@@ -1,5 +1,8 @@
 module AlgebraicDynamics
 
-greet() = print("Hello World!")
+using Catlab
+using Catlab.Doctrines
+using Catlab.WiringDiagrams
+using Catlab.Programs
 
 end # module

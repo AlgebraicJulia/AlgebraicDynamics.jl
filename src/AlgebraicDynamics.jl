@@ -5,5 +5,5 @@ using Catlab.Doctrines
 using Catlab.WiringDiagrams
 using Catlab.Programs
 
-include("main.jl")
+include("systems.jl")
 end # module

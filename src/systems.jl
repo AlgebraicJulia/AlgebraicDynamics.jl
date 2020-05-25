@@ -40,7 +40,7 @@ function states(f::FreeSMC.Hom{:generator})
 end
 
 function states(f::FreeSMC.Hom{:id})
-    return ArrayPartition(zeros(Float64, ndims(f.args[1])))
+    return ArrayPartition(zeros(Float64, ndims(dom(f))))
 end
 
 function states(composite::FreeSMC.Hom{:compose})

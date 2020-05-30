@@ -6,6 +6,11 @@ export observer, observel, initial, next, nsteps
 
 const FreeSMC = FreeSymmetricMonoidalCategory
 # store states as lists of nested pairs
+"""    observer(f, curr)
+
+maps a set of states to a set of possible observations
+on the right side of the automata.
+"""
 function observer(f::FreeSMC.Hom{:generator}, curr)
     return f.args[1].outputs[curr]
 end
@@ -25,6 +30,11 @@ function observer(product::FreeSMC.Hom{:otimes}, curr)
 end
 
 
+"""    observel(f, curr)
+
+maps a set of states to a set of possible observations
+on the left side of the automata.
+"""
 function observel(f::FreeSMC.Hom{:generator}, curr)
     return f.args[1].inputs[curr]
 end
@@ -43,6 +53,10 @@ function observel(product::FreeSMC.Hom{:otimes}, curr)
     return(observel(f, curr[1]), observel(g, curr[2]))
 end
 
+"""    initial(f)
+
+list out the initial state of the system
+"""
 function initial(f::FreeSMC.Hom{:generator})
     return f.args[1].states
 end
@@ -65,6 +79,11 @@ function initial(product::FreeSMC.Hom{:otimes})
     return states
 end
 
+"""    next(f, curr)
+
+compute the set of possible next states of the system. This is the core of
+nondeterministic evolution of the automata.
+"""
 function next(sys::FreeSMC.Hom{:generator}, curr)
     f = sys.args[1]
     nexts = []
@@ -109,17 +128,28 @@ function next(product::FreeSMC.Hom{:otimes}, curr)
     return nexts #don't unique because that would be very expensive
 end
 
-function nsteps(f, n::UnitRange)
-    x = [initial(f)]
-    for i in n[2:end]
-        push!(x, next(f, x[end]))
-    end
-    return x
-end
+"""    nsteps(f, n::Int)
+
+evolve the automata system by n time steps, this method returns a Vector of
+possible states for the system.
+"""
 function nsteps(f, n::Int)
     x = initial(f)
     for i in 2:n
         x = next(f, x)
+    end
+    return x
+end
+
+"""    nsteps(f, n::UnitRange)
+
+compute the next steps for each element of the range, this method returns a
+Vector of Vectors of possible states where each element is a time step.
+"""
+function nsteps(f, n::UnitRange)
+    x = [initial(f)]
+    for i in n[2:end]
+        push!(x, next(f, x[end]))
     end
     return x
 end

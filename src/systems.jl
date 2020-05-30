@@ -10,6 +10,7 @@ export FreeSMC, System, dom_ids, codom_ids, nstates, states,
  forward, initforward, problem
 
 const FreeSMC = FreeSymmetricMonoidalCategory
+
 struct System{T, F}
     inputs::Vector{Int}
     states::Vector{T}

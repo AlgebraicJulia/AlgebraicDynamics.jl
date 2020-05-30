@@ -1,0 +1,52 @@
+@testset "Automata" begin
+function nsteps(f, n::Int)
+    x = [initStates(f)]
+    for i in 2:n
+        push!(x, next(f, x[end]))
+    end
+    return x
+end
+# Declare that states are modeled as Int
+Z = Ob(FreeSMC, Int)
+
+# Create decorating matrices for counters mod 3 and mod 2
+counter3_matrix = reshape([0, 1, 0, 0, 0, 1, 1, 0, 0], 3,3)
+counter2_matrix = reshape([0, 1, 1, 0], 2, 2)
+
+counter3 = Hom(System([i%2 for i in 1:3], [1, 2], [i%2 for i in 1:3],  counter3_matrix), Z, Z)
+counter2 = Hom(System([i%2 for i in 1:2], [1, 2], [i%2 for i in 1:2], counter2_matrix), Z, Z)
+
+traj = nsteps(counter3, 4)
+@test length(traj) == 4
+@test map(sort, traj) == [
+    [1, 2],
+    [2, 3],
+    [1, 3],
+    [1, 2]
+]
+
+
+align = compose(counter2, counter3)
+traj = nsteps(align, 4)
+@test length(traj) == 4
+@test map(sort, traj) == [
+    [(1, 1), (2, 2)],
+    [(1, 3), (2, 2)],
+    [(1, 3)],
+    []
+]
+
+prod = otimes(counter2, counter3)
+curr = initStates(prod)
+
+
+traj = nsteps(prod, 4)
+@test length(traj) == 4
+@test map(sort, traj) == [
+    [(1, 1), (1, 2), (2, 1), (2, 2)],
+    [(1, 2), (1, 3), (2, 2), (2, 3)],
+    [(1, 1), (1, 3), (2, 1), (2, 3)],
+    [(1, 1), (1, 2), (2, 1), (2, 2)],
+]
+
+end

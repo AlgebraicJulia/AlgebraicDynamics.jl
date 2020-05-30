@@ -14,8 +14,7 @@ id(R)
 sinesys = System(Int[], [1.0], [1], x -> -x)
 @testset "AlgebraicDynamics.jl" begin
     # Write your own tests here.
-
-
+    include("automata.jl")
 
 @testset "ArrayPartition" begin
     v = ArrayPartition([1,2,3],[4,5,6])

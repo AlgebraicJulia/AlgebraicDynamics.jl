@@ -42,4 +42,26 @@ traj = nsteps(prod, 1:4)
     [(1, 1), (1, 2), (2, 1), (2, 2)],
 ]
 
+@testset "Recursive Automata" begin
+f = (counter3⋅counter3)⊗(counter2)
+initial(f)
+@time next(f, initial(f))
+@time next(f, initial(f))
+@test next(f, initial(f)) == [((2, 2), 2), ((3, 3), 2), ((2, 2), 1), ((3, 3), 1)]
+
+f = (counter3⋅counter3)⊗(counter3⋅counter2)
+@time next(f, initial(f))
+@time next(f, initial(f))
+@test next(f, initial(f)) == [((2, 2), (2, 2)), ((3, 3), (2, 2)), ((2, 2), (3, 1)), ((3, 3), (3, 1))]
+
+f = (counter3⋅counter2)⊗(counter3⋅counter2)
+@time next(f, initial(f))
+@time next(f, initial(f))
+@test next(f, initial(f)) == [((2, 2), (2, 2)), ((3, 1), (2, 2)), ((2, 2), (3, 1)), ((3, 1), (3, 1))]
+
+f = (counter2⊗(counter3⋅counter2))⊗(counter3⋅counter2)
+@time next(f, initial(f))
+@time next(f, initial(f))
+@test next(f, initial(f)) == [(2, (2, 2)), (1, (2, 2)), (2, (3, 1)), (1, (3, 1))]
+end
 end

@@ -104,8 +104,8 @@ function next(composite::FreeSMC.Hom{:compose}, curr)
 
     for (curr1, curr2)=curr
 
-        fstates = next(f,curr1)
-        gstates = next(g,curr2)
+        fstates = next(f,[curr1])
+        gstates = next(g,[curr2])
 
         append!(nexts,[(fs, gs) for fs=fstates, gs=gstates if observer(f, fs)==observel(g, gs)])
         end
@@ -120,8 +120,8 @@ function next(product::FreeSMC.Hom{:otimes}, curr)
 
     for (curr1, curr2)=curr
 
-        fstates = next(f,curr1)
-        gstates = next(g,curr2)
+        fstates = next(f,[curr1])
+        gstates = next(g,[curr2])
 
         append!(nexts,[(fs, gs) for fs=fstates, gs=gstates if true])
         end

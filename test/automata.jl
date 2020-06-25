@@ -23,9 +23,9 @@ align = compose(counter2, counter3)
 traj = nsteps(align, 1:4)
 @test length(traj) == 4
 @test map(sort, traj) == [
-    [(1, 1), (2, 2)],
-    [(1, 3), (2, 2)],
-    [(1, 3)],
+    [[1, 1], [2, 2]],
+    [[1, 3], [2, 2]],
+    [[1, 3]],
     []
 ]
 
@@ -36,10 +36,10 @@ curr = initial(prod)
 traj = nsteps(prod, 1:4)
 @test length(traj) == 4
 @test map(sort, traj) == [
-    [(1, 1), (1, 2), (2, 1), (2, 2)],
-    [(1, 2), (1, 3), (2, 2), (2, 3)],
-    [(1, 1), (1, 3), (2, 1), (2, 3)],
-    [(1, 1), (1, 2), (2, 1), (2, 2)],
+    [[1, 1], [1, 2], [2, 1], [2, 2]],
+    [[1, 2], [1, 3], [2, 2], [2, 3]],
+    [[1, 1], [1, 3], [2, 1], [2, 3]],
+    [[1, 1], [1, 2], [2, 1], [2, 2]],
 ]
 
 @testset "Recursive Automata" begin
@@ -47,21 +47,21 @@ f = (counter3⋅counter3)⊗(counter2)
 initial(f)
 @time next(f, initial(f))
 @time next(f, initial(f))
-@test next(f, initial(f)) == [((2, 2), 2), ((3, 3), 2), ((2, 2), 1), ((3, 3), 1)]
+@test sort(next(f, initial(f))) == [[[2, 2], 1], [[2, 2], 2], [[3, 3], 1], [[3, 3], 2]]
 
 f = (counter3⋅counter3)⊗(counter3⋅counter2)
 @time next(f, initial(f))
 @time next(f, initial(f))
-@test next(f, initial(f)) == [((2, 2), (2, 2)), ((3, 3), (2, 2)), ((2, 2), (3, 1)), ((3, 3), (3, 1))]
+@test sort(next(f, initial(f))) == [[[2, 2], [2, 2]], [[2, 2], [3, 1]],  [[3, 3], [2, 2]], [[3, 3], [3, 1]]]
 
 f = (counter3⋅counter2)⊗(counter3⋅counter2)
 @time next(f, initial(f))
 @time next(f, initial(f))
-@test next(f, initial(f)) == [((2, 2), (2, 2)), ((3, 1), (2, 2)), ((2, 2), (3, 1)), ((3, 1), (3, 1))]
+@test sort(next(f, initial(f))) == [[[2, 2], [2, 2]], [[2, 2], [3, 1]], [[3, 1], [2, 2]], [[3, 1], [3, 1]]]
 
 f = (counter2⊗(counter3⋅counter2))⊗(counter3⋅counter2)
 @time next(f, initial(f))
 @time next(f, initial(f))
-@test next(f, initial(f)) == [(2, (2, 2)), (1, (2, 2)), (2, (3, 1)), (1, (3, 1))]
+@test sort(next(f, initial(f))) == [ [1, [2,2], [2,2]], [1, [2,2], [3,1]], [1, [3,1], [2,2]], [1, [3,1], [3,1]], [2, [2,2], [2,2]], [2, [2,2], [3,1]], [2, [3,1], [2,2]], [2, [3,1], [3,1]] ]
 end
 end

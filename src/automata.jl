@@ -1,28 +1,11 @@
 using Catlab
 using Catlab.Doctrines
-using RecursiveArrayTools
 
 export observer, observel, initial, next, nsteps
 
 const FreeSMC = FreeSymmetricMonoidalCategory
-# In each function "pairs" is a sequence of array partitions with length n
-# pairs = (A1, (A2, (A3,(...(An-1, An)))))
-"""   lastOfPairs(pairs, n)
-
-Given a nested sequence of array partitions with length n
-pairs = (A1, (A2, (A3,(...(An-1, An))))), returns An
-"""
-function lastOfPairs(pairs, n)
-    if n == 2
-        return pairs.x[2]
-    else
-        return lastOfPairs(pairs.x[2], n-1)
-    end
-end
 
 
-
-# store states as lists of nested pairs
 """    observer(f, curr)
 
 maps a set of states to a set of possible observations
@@ -38,12 +21,11 @@ end
 
 function observer(composite::FreeSMC.Hom{:compose}, curr)
     g = last(composite.args)
-    return observer(g, lastOfPairs(curr, length(composite.args)))
+    return observer(g, last(curr))
 end
 
 function observer(product::FreeSMC.Hom{:otimes}, curr)
-    f,g = product.args[1], product.args[2]
-    return(observer(f, curr.x[1]), observer(g, curr.x[2]))
+    return map(observer, product.args, curr)
 end
 
 
@@ -62,12 +44,38 @@ end
 
 function observel(composite::FreeSMC.Hom{:compose}, curr)
     f = composite.args[1]
-    return observel(f, curr.x[1])
+    return observel(f, curr[1])
 end
 
 function observel(product::FreeSMC.Hom{:otimes}, curr)
-    f,g = product.args[1], product.args[2]
-    return(observel(f, curr.x[1]), observel(g, curr.x[2]))
+    return map(observel, product.args, curr)
+end
+
+""" processStates(states, fs, align)
+
+maps a set of states [s1,..., sn] where each si is a vector of states
+corresponding to the ith morphism of fs, to a set of states [t1,...,tk]
+where ti represent a state of the total system. In paricular each ti has n components.
+
+When align is set to true states of the total system must match on observation.
+"""
+function processStates(states, fs, align)
+    n = length(states)
+    if n==1
+        return broadcast(x->Any[x], states[1])
+    end
+
+    states1 = processStates(states[1:n-1], fs[1:n-1],  align)
+    states2 = states[n]
+    totalStates = []
+    for s1=states1
+        for s2=states2
+            if !align || observer(fs[n-1], s1[n-1]) == observel(fs[n], s2)
+                push!(totalStates, push!(copy(s1), s2))
+            end
+        end
+    end
+    return totalStates
 end
 
 """    initial(f)
@@ -79,80 +87,70 @@ function initial(f::FreeSMC.Hom{:generator})
 end
 
 function initial(composite::FreeSMC.Hom{:compose})
-    return initialHelperComposite(composite.args)
+    states = broadcast(initial, composite.args)
+    return processStates(states, composite.args, true)
 end
 
-function initialHelperComposite(fs)
-    n = length(fs)
-    f, g = fs[1], fs[2]
-    fstates = initial(f)
-    if n==2
-        gstates = initial(fs[2])
-        states = [ArrayPartition(fst, gst) for fst=fstates, gst=gstates if observer(f, fst)==observel(g, gst)]
-    else
-        gstates = initialHelperComposite(fs[2:n])
-        states = [ArrayPartition(fst, gst) for fst=fstates, gst=gstates if observer(f, fst)==observel(g,gst.x[1])]
-    end
-    return states
-end
 
 function initial(product::FreeSMC.Hom{:otimes})
-    f,g = product.args[1], product.args[2]
-    fstates = initial(f)
-    gstates = initial(g)
-
-    states = [ArrayPartition(fs, gs) for fs=fstates, gs=gstates if true] #the "if true" flattens the array
-    return states
+    states = broadcast(initial, product.args)
+    return processStates(states, product.args, false)
 end
 
-"""    next(f, curr)
+"""    next(f, currs)
 
-compute the set of possible next states of the system. This is the core of
-nondeterministic evolution of the automata.
+compute the set of possible next states of the system given a vector of
+current states.
+This is the core of nondeterministic evolution of the automata.
 """
-function next(sys::FreeSMC.Hom{:generator}, curr)
-    f = sys.args[1]
+function next(sys::FreeSMC.Hom{:generator}, currs)
     nexts = []
-    for i=curr
-        A = f.f[:, i] #grab the ith column
-        append!(nexts, findall(x->x==1, A)) # append indices of rows showing a 1
+    for curr=currs
+        append!(nexts, next_single_state(sys, curr))
     end
-    return unique(nexts)
+    return nexts
 end
 
-function next(sys::FreeSMC.Hom{:id}, curr)
-    return curr
-end
 
 function next(composite::FreeSMC.Hom{:compose}, currs)
     nexts = []
-    f, g = composite.args[1], composite.args[2]
-
-    for (curr1, curr2)=currs
-
-        fstates = next(f,[curr1])
-        gstates = next(g,[curr2])
-
-        append!(nexts,[ArrayPartition(fs, gs) for fs=fstates, gs=gstates if observer(f, fs)==observel(g, gs)])
-        end
-    return nexts #don't unique because that would be very expensive
+    for curr=currs
+        append!(nexts, next_single_state(composite, curr))
+    end
+    return nexts
 end
 
-
-
-function next(product::FreeSMC.Hom{:otimes}, curr)
+function next(product::FreeSMC.Hom{:otimes}, currs)
     nexts = []
-    f, g = product.args[1], product.args[2]
-
-    for (curr1, curr2)=curr
-
-        fstates = next(f,[curr1])
-        gstates = next(g,[curr2])
-
-        append!(nexts,[(fs, gs) for fs=fstates, gs=gstates if true])
-        end
-    return nexts #don't unique because that would be very expensive
+    for curr=currs
+        append!(nexts, next_single_state(product, curr))
+    end
+    return nexts
 end
+
+
+"""    next_single_state(f, curr)
+
+compute the set of possible next states of the system given a states curr.
+"""
+
+function next_single_state(sys::FreeSMC.Hom{:generator}, curr)
+    f = sys.args[1]
+    A = f.f[:, curr] #grab the ith column
+    return findall(x->x==1, A) # append indices of rows showing a 1
+end
+
+function next_single_state(composite::FreeSMC.Hom{:compose}, curr)
+    states = broadcast(next_single_state, composite.args, curr)
+    return processStates(states, composite.args, true)
+end
+
+function next_single_state(product::FreeSMC.Hom{:otimes}, curr)
+    states = broadcast(next_single_state, product.args, curr)
+    return processStates(states, product.args, false)
+end
+
+
 
 """    nsteps(f, n::Int)
 

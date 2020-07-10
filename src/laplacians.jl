@@ -1,3 +1,4 @@
+module Laplacians
 using Catlab
 using Catlab.Theories
 using Catlab.Programs
@@ -11,6 +12,8 @@ using AutoHashEquals
 import Catlab.Theories: dom, codom, id, compose, ⋅, ∘, otimes, ⊗, munit,
                         braid, σ, mcopy, Δ, mmerge, ∇, create, □, delete, ◊,
                         pair, copair, proj1, proj2, coproj1, coproj2
+
+export Meshes, FG, GraphFunctor
 
 display_wd(ex) = to_graphviz(ex, orientation=LeftToRight, labels=true);
 id(args...) = foldl((x,y)->id(x) ⊗ id(y), args);
@@ -33,7 +36,7 @@ end
 
 k₂ = path(2)
 k₃ = cycle(3)
-k₄ = cycle(4)
+c₄ = cycle(4)
 
 @auto_hash_equals struct Vertices
     n::Int
@@ -171,7 +174,8 @@ V, edge, triangle, square = generators(Meshes);
 FunctorGenerators = Dict(
     edge => GraphCospan([1], k₂, [2]),
     triangle => GraphCospan([1,2], k₃, [3]),
-    square => GraphCospan([1,2], k₄, [3,4]),
+    square => GraphCospan([1,2], c₄, [3,4]),
     V => Vertices(1),
 )
 FG(ex) = functor((Vertices, GraphCospan), ex, generators=FunctorGenerators)
+end

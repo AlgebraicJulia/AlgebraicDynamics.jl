@@ -3,7 +3,7 @@ using AlgebraicDynamics.Systems
 using Test
 
 using Catlab
-using Catlab.Doctrines
+using Catlab.Theories
 using Catlab.WiringDiagrams
 using Catlab.Programs
 using RecursiveArrayTools

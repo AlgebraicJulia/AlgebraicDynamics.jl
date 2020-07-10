@@ -15,6 +15,7 @@ sinesys = System(Int[], [1.0], [1], x -> -x)
 @testset "AlgebraicDynamics.jl" begin
     # Write your own tests here.
 
+    include("laplacians.jl")
 
 
 @testset "ArrayPartition" begin

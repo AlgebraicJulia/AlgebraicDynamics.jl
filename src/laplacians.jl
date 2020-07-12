@@ -174,7 +174,7 @@ V, edge, triangle, square = generators(Meshes);
 FunctorGenerators = Dict(
     edge => GraphCospan([1], k₂, [2]),
     triangle => GraphCospan([1,2], k₃, [3]),
-    square => GraphCospan([1,2], c₄, [3,4]),
+    square => GraphCospan([1,2], c₄, [4,3]),
     V => Vertices(1),
 )
 FG(ex) = functor((Vertices, GraphCospan), ex, generators=FunctorGenerators)

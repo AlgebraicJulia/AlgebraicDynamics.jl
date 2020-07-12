@@ -84,7 +84,7 @@ end
 function otimes(f::FinOrdFunction, g::FinOrdFunction)
     n′ = FinOrd(dom(f).n + dom(g).n)
     m′ = FinOrd(codom(f).n + codom(g).n)
-    f′(X) = x <= dom(f).n ? f(x) : g(x-dom(f).n)+codom(f).n
+    f′(x) = x <= dom(f).n ? f(x) : g(x-dom(f).n)+codom(f).n
     FinOrdFunction(f′, n′, m′)
 end
 

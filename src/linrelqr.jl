@@ -2,17 +2,17 @@ module LinearRelations
 
 using Catlab
 using LinearAlgebra
-using LinearMaps
-import LinearMaps: UniformScalingMap, BlockDiagonalMap
 using Test
 
 ⊕(a,b) = oplus(a,b)
 ⋅(a,b) = compose(a,b)
+
 π₁(A::AbstractMatrix, n::Int) = A[  1:n  , :]
 π₂(A::AbstractMatrix, n::Int) = A[n+1:end, :]
 
 rankr(R, tol=1e-15) = begin
     nrms = norm.(R[i,:] for i in 1:size(R)[1])
+    # @show nrms
     p(x) = x > tol
     sum(p.(nrms))
 end
@@ -29,17 +29,54 @@ struct LinRel{T,U}
     B::U
 end
 
-LinRel(B) = LinRel(UniformScalingMap(1, size(B,2)), B)
+# function LinRel(A::Matrix,B::Matrix)
+#     size(A,2) == size(B,2) || error("Span construction invalide")
+#     return new(A,B)
+# end
 
-dom(f::LinRel) = size(f.A,1)
-codom(f::LinRel) = size(f.B,1)
+
+# LinRel(B) = LinRel(UniformScalingMap(1, size(B,2)), B)
+
+dom(f::LinRel) = LinRelDom(size(f.A,1))
+codom(f::LinRel) = LinRelDom(size(f.B,1))
 id(X::LinRelDom) = LinRel(I(X.n), I(X.n))
-oplus(f::LinRel,g::LinRel) = LinRel(f.A⊕g.A, f.B⊗g.B)
-oplus(a...) = BlockDiagonalMap(a...)
+oplus(X::LinRelDom,Y::LinRelDom) = LinRelDom(X.n + Y.n)
+oplus(f::LinRel,g::LinRel) = LinRel(f.A⊕g.A, f.B⊕g.B)
+oplus(A::AbstractMatrix, B::AbstractMatrix) = oplus(Matrix(A), Matrix(B))
+oplus(A::Matrix,B::Matrix) = hvcat((2,2),
+                                   A, zeros(size(A,1), size(B,2)),
+                                   zeros(size(B,1), size(A,2)), B)
+# oplus(a...) = BlockDiagonalMap(a...)
 oplus(a::Diagonal,b::Diagonal) = Diagonal(vcat(a.diag, b.diag))
+
+mzero(::Type{LinRelDom}) = LinRelDom(0)
+swap(X::LinRelDom, Y::LinRelDom) = LinRel(I(X.n+Y.n), hvcat((2,2), zeros(Y.n,X.n), I(Y.n), I(X.n), zeros(X.n,Y.n)))
+
+mcopy(X::LinRelDom) = LinRel(I(X.n), vcat(I(X.n), I(X.n)))
+delete(X::LinRelDom) = LinRel(I(X.n), zeros(0, X.n))
+plus(X::LinRelDom) = LinRel(I(2*X.n), hcat(I(X.n), I(X.n)))
+zero(X::LinRelDom) = LinRel(ones(0,1), zeros(X.n, 1))
+
+scalar(X::LinRelDom, c::Number) = LinRel(I(X.n), c*I(X.n))
+antipode(X::LinRelDom) = LinRel(I(X.n), -I(X.n))
+
+pair(f::LinRel, g::LinRel) = mcopy(dom(f)) ⋅ (f ⊕ g)
+copair(f::LinRel, g::LinRel) = (f ⊕ g) ⋅ plus(codom(f))
+plus(f::LinRel, g::LinRel) = mcopy(dom(f)) ⋅ (f⊕g) ⋅ plus(codom(f))
+
+proj1(A::LinRelDom, B::LinRelDom) = id(A) ⊕ delete(B)
+proj2(A::LinRelDom, B::LinRelDom) = delete(A) ⊕ id(B)
+coproj1(A::LinRelDom, B::LinRelDom) = id(A) ⊕ zero(B)
+coproj2(A::LinRelDom, B::LinRelDom) = zero(A) ⊕ id(B)
+
+
 inv(f::LinRel) = LinRel(f.B, f.A)
 
+
+
+
 function compose(f::LinRel,g::LinRel)
+    codom(f) == dom(g) || error("Dimension Mismatch $(codom(f).n)!=$(dom(g).n)")
     A, B, C, D = f.A, f.B, g.A, g.B
     M = Matrix(hcat(B,-C))
     # we need to use an iterative solver for computing the nullspace here
@@ -70,10 +107,14 @@ end
 
 function QRLinRel(A::Matrix, B::Matrix)
     M = vcat(A, B)
-    QR = qr(M)
+    QR = qr(M, Val(true))
+    # @show size(QR.Q)
+    # @show size(QR.R)
     r = rankr(QR.R, 1e-12)
     return QRLinRel(size(A,1), size(B,1), r, QR)
 end
+
+QRLinRel(f::LinRel) = QRLinRel(Matrix(f.A), Matrix(f.B))
 
 
 Q₁(f::QRLinRel) = f.QR.Q[1:f.n, 1:f.r]
@@ -87,19 +128,24 @@ LinRel(f::QRLinRel) = LinRel(Q₁R₁(f), Q₂R₁(f))
 dom(f::QRLinRel) = LinRelDom(f.n)
 codom(f::QRLinRel) = LinRelDom(f.m)
 
-id(X::LinRelDom) = QRLinRel(I(X.n), I(X.n))
+# id(X::LinRelDom) = LinRel(LinRel(I(X.n), I(X.n)))
 oplus(f::QRLinRel,g::QRLinRel) = QRLinRel(Q₁R₁(f)⊕Q₁R₁(g), Q₂R₁(f)⊕Q₂R₁(g))
-
-function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
-    # norm(vcat(x,y)) > tol || return true
-    r = projker(f.QR.Q[:, 1:f.r], vcat(x,y))
-    return norm(r) < tol
-end
 
 function compose(f::QRLinRel, g::QRLinRel)
     h = compose(LinRel(f), LinRel(g))
     QRLinRel(h.A, h.B)
 end
+
+function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
+    # norm(vcat(x,y)) > tol || return true
+    # r = projker(f.QR.Q, vcat(x,y))
+    r = projker(f.QR.Q[:, 1:f.r], vcat(x,y))
+    return norm(r) < tol
+end
+
+(f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
+(f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
+
 
 function testcomposite(f::QRLinRel, g::QRLinRel)
         h = compose(f,g)
@@ -120,10 +166,50 @@ function testcomposite(f::QRLinRel, g::QRLinRel)
         p₁, p₂ = π₁(V₀, b), π₂(V₀, b)
         w = ones(size(V₀, 2))
         y₁ = f̂.B*p₁*w
-        y₂ = ĝ.A*p₁*w
+        y₂ = ĝ.A*p₂*w
         @test norm(y₁ - y₂) < 1e-8
 end
 
+
+
+@testset "Containment" begin
+    A = [1 1 0; 1 1 0; 1 2 1]
+    QR = qr(A)
+    Q, R = QR.Q, QR.R
+    r = rankr(R, 1e-12)
+    v = A*[1, 2, 3]
+    @test norm(projker(Q[:, 1:r],v)) < 1e-12
+    vf = copy(v)
+    vf[2] *= -1
+    @test norm(projker(Q[:, 1:r], [3,-3,8])) > 1e-12
+    @test norm(projker(Q[:, 1:r], vf)) > 1e-12
+    vf = copy(v)
+    vf[2] += 1
+    vf[3] += 1
+    @test norm(projker(Q[:, 1:r],vf)) > 1e-12
+
+    vf = copy(v)
+    vf[3] += 1
+    @test norm(projker(Q[:, 1:r],vf)) < 1e-12
+
+    f = QRLinRel(A[1:2, :], A[3:end, :])
+    v = A*[1, 2, 3]
+    norm(projker(Q[:,1:r], v))
+    @test in(v[1:2], f, v[3:end])
+    @test !in([v[1], -v[2]], f, [0])
+    @test !in([v[1], -v[2]], f, v[3:end])
+end
+
+@testset "NullContainment" begin
+    A = Matrix(I(5))
+    f = QRLinRel(A, 2A)
+    @test in(ones(5),   f,  2*ones(5))
+    @test !in(-ones(5), f,  2*ones(5))
+    @test !in(ones(5),  f, -2*ones(5))
+    @test in(zeros(5),  f,   zeros(5))
+    @test !in(zeros(5), f,    ones(5))
+    @test !in(ones(5),  f,   zeros(5))
+end
 
 @testset "Composition" begin
     @testset "combo 1" begin
@@ -152,49 +238,138 @@ end
         g = QRLinRel(B,A)
         testcomposite(f,g)
     end
+    @testset "combo 4" begin
+        A = [1 1 0; -1 1 0]
+        B = Matrix([1 2 1; 2 3 1])
+        C = Matrix([0 2 1; -1 3 1])
+        f = QRLinRel(A,B)
+        g = QRLinRel(C,A)
+        testcomposite(f,g)
+        D = [1 1 0; -1 1 -1]
+        g = QRLinRel(C,D)
+        testcomposite(f,g)
+    end
 end
 
+@testset "LinearFunctions Instance" begin
+    f = LinRel(ones(3,3), ones(4,3))
 
-@testset "Containment" begin
-    A = [1 1 0; 1 1 0; 1 2 1]
-    QR = qr(A)
-    Q, R = QR.Q, QR.R
-    @show Q
-    @show R
-    @show r = rankr(R, 1e-12)
-    v = A*[1, 2, 3]
-    @show v
-    @test norm(projker(Q[:, 1:r],v)) < 1e-12
-    vf = copy(v)
-    vf[2] *= -1
-    @test norm(projker(Q[:, 1:r], [3,-3,8])) > 1e-12
-    @test norm(projker(Q[:, 1:r], vf)) > 1e-12
-    vf = copy(v)
-    vf[2] += 1
-    vf[3] += 1
-    @test norm(projker(Q[:, 1:r],vf)) > 1e-12
+    @test dom(f).n == 3
+    @test codom(f).n == 4
+    QRf = QRLinRel(f)
+    @test QRf(f.A*ones(3), f.B*ones(3))
+    @test !QRf(f.A*ones(3)+[0,0,1], f.B*ones(3))
 
-    vf = copy(v)
-    vf[3] += 1
-    @test norm(projker(Q[:, 1:r],vf)) < 1e-12
+    I5 = id(LinRelDom(5))
+    @test dom(I5).n ==5
+    @test codom(I5).n ==5
+    QRI5 = QRLinRel(I5)
+    @test QRI5(ones(5), ones(5))
+    @test !QRI5(2ones(5), ones(5))
+    @test !QRI5(ones(5), 2ones(5))
+    @test QRI5(2ones(5), 2ones(5))
 
-    f = QRLinRel(A[1:2, :], A[3:end, :])
-    v = A*[1, 2, 3]
-    @show norm(projker(Q[:,1:r], v))
-    @test in(v[1:2], f, v[3:end])
-    @test !in([v[1], -v[2]], f, [0])
-    @test !in([v[1], -v[2]], f, v[3:end])
+    @test size(oplus(ones(3,3), ones(2,2))) == (5,5)
+
+    @test oplus(LinRelDom(5), LinRelDom(3)).n == 8
+    foplusI2 = oplus(f,id(LinRelDom(2)))
+    QRfoplusI2 = QRLinRel(foplusI2)
+
+    x = vcat(f.A*ones(3), ones(2))
+    y = vcat(f.B*ones(3), ones(2))
+    # @show QRfoplusI2.r
+    # @show QRfoplusI2.QR.R
+    # @show rankr(QRfoplusI2.QR.R)
+    # @show projker(QRfoplusI2.QR.Q[:, 1:3], vcat(x, y)) |> norm
+    # @show projker(QRfoplusI2.QR.Q, vcat(x, y)) |> norm
+    # @show QRfoplusI2(x,y)
+    @test QRfoplusI2(x,y)
+    @test QRLinRel(foplusI2 ⋅ id(LinRelDom(6)))(x,y)
+
+    @test QRLinRel(I5⋅foplusI2)(x,y)
+
+    V₁ = LinRelDom(1)
+    V₂ = LinRelDom(2)
+    V₃ = LinRelDom(3)
+
+    @test mzero(LinRelDom) == LinRelDom(0)
+    @testset "Swap" begin
+        @test  swap(V₁, V₁)([1,2], [2,1])
+        @test !swap(V₁, V₁)([1,2], [1,2])
+        @test !swap(V₁, V₁)([1,2], [1,3])
+        @test  swap(V₂, V₃)([1,2,3,4,5], [3,4,5,1,2])
+        @test !swap(V₂, V₃)([1,2,3,4,5], [4,4,5,1,2])
+        @test !swap(V₃, V₂)([1,2,3,4,5], [3,4,5,1,2])
+    end
+
+    @testset "Mcopy" begin 
+        @test  mcopy(LinRelDom(1))([ 1], [1,1])
+        @test !mcopy(LinRelDom(1))([-1], [1,1])
+        @test  mcopy(LinRelDom(2))([ 1, 2], [ 1,2,1,2])
+        @test !mcopy(LinRelDom(2))([-1, 2], [-1,2,1,2])
+    end
+
+    @testset "Delete" begin
+        @test delete(V₁)([1], [])
+        @test delete(V₂)([1, 2], [])
+        @test_throws Exception delete(V₂)([1, 2], [2])
+    end
+
+    @testset "Plus" begin
+        @test  plus(V₁)([1,2], [3])
+        @test !plus(V₁)([1,3], [3])
+        @test  plus(V₂)([1,2,3,4], [4,6])
+        @test !plus(V₂)([1,3,3,4], [4,6])
+    end
+
+    @testset "Zero" begin
+        for i in 1:4
+            z = zero(LinRelDom(i))
+            @test z([], zeros(i))
+            @test norm((z⋅id(LinRelDom(i))).B) < 1e-14
+        end
+    end
+
+    @testset "Scalar/Antipode" begin
+        for i in 1:4
+            V = LinRelDom(i)
+            @test scalar(V, 2)(ones(i), 2ones(i))
+            @test antipode(V)(ones(i), -ones(i))
+            @test ( scalar(V,2)⋅antipode(V) )(ones(i), -2ones(i))
+            @test ( antipode(V)⋅scalar(V,2) )(ones(i), -2ones(i))
+            @test ( antipode(V)⋅scalar(V,2)⋅antipode(V))(ones(i), 2ones(i))
+        end
+    end
+
+    @testset "Pair/Copair" begin
+        V = LinRelDom(2)
+        f = scalar(V, 2)
+        g = scalar(V, 3)
+        @test  pair(f,g)([1,2], [2,4,3,6])
+        @test !pair(f,g)([1,2], [3,4,3,6])
+
+        f = scalar(V, 2)
+        g = scalar(V, 3)
+        @test  copair(f,g)([1,2,3,4], [11,16])
+        @test !copair(f,g)([1,2,3,4], [12,16])
+    end
+
+    @testset "Proj/Coproj" begin
+        V = LinRelDom(2)
+        W = LinRelDom(4)
+        f = scalar(V, 2)
+        g = scalar(V, 3)
+        f̂ = (f⊕g)⋅proj1(V,V)
+        ĝ = (f⊕g)⋅proj2(V,V)
+
+        @test f̂([1,2, 1, 1], [2,4])
+        @test ĝ([1,2, 1, 1], [3,3])
+
+    end
+
+    # inv(f::LinRel) = LinRel(f.B, f.A)
+
 end
 
-@testset "NullContainment" begin
-    A = Matrix(I(5))
-    f = QRLinRel(A, 2A)
-    @test in(ones(5),   f,  2*ones(5))
-    @test !in(-ones(5), f,  2*ones(5))
-    @test !in(ones(5),  f, -2*ones(5))
-    @test in(zeros(5),  f,   zeros(5))
-    @test !in(zeros(5), f,    ones(5))
-    @test !in(ones(5),  f,   zeros(5))
-end
 
 end

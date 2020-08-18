@@ -1,13 +1,14 @@
-module LinearRelations
+module LinRels
 
 import Base: +
+using LinearAlgebra
+# import LinearAlgebra: ⋅
 using Catlab
-using Catlab.LinearAlgebra
 import Catlab.Theories:
   Ob, Hom, dom, codom, compose, ⋅, ∘, id, oplus, ⊕, mzero, swap,
   dagger, dunit, dcounit, mcopy, Δ, delete, ◊, mmerge, ∇, create, □,
   plus, +, zero, coplus, cozero, meet, top, join, bottom
-using LinearAlgebra
+using Catlab.LinearAlgebra
 using Test
 
 ⊕(a,b) = oplus(a,b)
@@ -303,7 +304,7 @@ end
         @test !swap(V₃, V₂)([1,2,3,4,5], [3,4,5,1,2])
     end
 
-    @testset "Mcopy" begin 
+    @testset "Mcopy" begin
         @test  mcopy(LinRelDom(1))([ 1], [1,1])
         @test !mcopy(LinRelDom(1))([-1], [1,1])
         @test  mcopy(LinRelDom(2))([ 1, 2], [ 1,2,1,2])

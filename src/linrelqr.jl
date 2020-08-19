@@ -168,7 +168,7 @@ end
     X,Y,Z,U,V,W = Ob.([ FreeLinearRelations ], [:X,:Y,:Z,:U,:V,:W])
     f = Hom(:f, X, Y)
     g = Hom(:g, Y, Z)
-    ud = Hom(:ud, U, X)
+    ud = Hom(:ud, X⊕X⊕X, X)
     h = f⋅g
     @test dom(h) == dom(f)
     @test codom(h) == codom(g)
@@ -265,9 +265,43 @@ end
         @test s([-1, 1, 1, -1], 2ones(2))
 
         s² = oplus(F(id(X)), s, F(id(X)))⋅s
+        @test QRLinRel(s²).r == 7
         x = [1,0,-1,-1,0,1]
         y = s²(x)
         @test s²(x,y)
+        s³ = oplus(F(id(X)), s², F(id(X)))⋅s
+        @test QRLinRel(s³).r == 9
+        x = [2,1,0,-1,-1,0,1, 2]
+        y = s³(x)
+        @test s³(x,y)
+
+        @test QRLinRel(F(Δ(X)⊕id(X⊕X)⊕Δ(X))⋅s²).r == 5
+        @test QRLinRel(F(Δ(X)⊕id(X⊕X⊕X⊕X)⊕Δ(X))⋅s³).r == 7
+
+        X² = X⊕X
+        I₁ = id(X)
+        I₂ = id(X²)
+        Δ₂ = Δ(X²)
+        p₁ = plus(X)
+        c₂ = create(X²)
+        t₁ = oplus(I₂, c₂⋅Δ₂,I₁,c₂⋅Δ₂,I₂)
+        t₂ = oplus(ud, I₂, ud, I₂, ud)
+        t₃ = oplus(p₁,(p₁⊕I₁)⋅p₁,p₁)
+        tex = compose(t₁,t₂,t₃)
+
+        t = F(tex)
+        q = QRLinRel(t)
+        @test QRLinRel(t).r == 7
+        x = ones(5)
+        # @show Q₁(q)'x
+        # @show Q₂(q)*Q₁(q)'x
+        y = t(x)
+        @test_broken t(x,y)
+        t² = F(I₁⊕tex⊕I₁)⋅t
+        @test QRLinRel(t²).r == 9
+        x = ones(7)
+        # @show y = t²(x)
+        @test_broken t²(x,y)
     end
 
 end

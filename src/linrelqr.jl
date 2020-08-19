@@ -29,7 +29,6 @@ struct LinRelDom
     n::Int
 end
 
-
 struct LinRel{T,U}
     A::T
     B::U
@@ -91,6 +90,7 @@ end
     adjoint(f::LinRel) = LinRel(adjoint(f.A), adjoint(f.B))
 end
 
+create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
 inv(f::LinRel) = LinRel(f.B, f.A)
 
 
@@ -145,10 +145,11 @@ function compose(f::QRLinRel, g::QRLinRel)
 end
 
 function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
-    # norm(vcat(x,y)) > tol || return true
+    norm(vcat(x,y)) > tol || return true
     # r = projker(f.QR.Q, vcat(x,y))
-    r = projker(f.QR.Q[:, 1:f.r], vcat(x,y))
-    return norm(r) < tol
+    z = vcat(x,y)
+    r = projker(f.QR.Q[:, 1:f.r], z)
+    return norm(r)/norm(z) < tol
 end
 
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)

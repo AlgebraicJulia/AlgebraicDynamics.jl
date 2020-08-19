@@ -153,7 +153,9 @@ function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
 end
 
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
+(f::QRLinRel)(x::Vector) = Q₂(f)*Q₁(f)'x
 (f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
+(f::LinRel)(x::Vector) = QRLinRel(f)(x)
 
 function semantics(generators::AbstractDict=Dict(), terms::AbstractDict=Dict())
     return ex->functor((LinRelDom, LinRel),
@@ -263,9 +265,8 @@ end
         @test s([-1, 1, 1, -1], 2ones(2))
 
         s² = oplus(F(id(X)), s, F(id(X)))⋅s
-        qrs² = QRLinRel(s²)
         x = [1,0,-1,-1,0,1]
-        y = Q₂(qrs²)*Q₁(qrs²)'x
+        y = s²(x)
         @test s²(x,y)
     end
 

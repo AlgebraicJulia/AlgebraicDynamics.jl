@@ -153,9 +153,21 @@ function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
 end
 
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
+# TODO: this is wrong
 (f::QRLinRel)(x::Vector) = Q₂(f)*Q₁(f)'x
+# (f::QRLinRel)(x::Vector) = Q₂(f)*R₁(f)*(R₁(f) \ (Q₁(f)'x))
 (f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
 (f::LinRel)(x::Vector) = QRLinRel(f)(x)
+
+"""    solution(f::LinRel, v::Vector)
+
+compute the (x,y) pair indexed by v. That is:
+
+    (f.A*v, f.B*v)
+
+"""
+solution(f::LinRel, v::Vector) = (f.A*v, f.B*v)
+solution(f::QRLinRel, v::Vector) = (Q₁R₁(f)*v, Q₂R₁(f)*v)
 
 function semantics(generators::AbstractDict=Dict(), terms::AbstractDict=Dict())
     return ex->functor((LinRelDom, LinRel),
@@ -295,10 +307,24 @@ end
         x = ones(5)
         # @show Q₁(q)'x
         # @show Q₂(q)*Q₁(q)'x
-        y = t(x)
-        @test_broken t(x,y)
+        x₀ = t.A*ones(size(t.A,2))
+        y₀ = t.B*ones(size(t.B,2))
+        x,y = solution(t, ones(size(t.A,2)))
+        @test norm(x₀-x) < 1e-12
+        @test norm(y₀-y) < 1e-12
+        @test norm(projker(Q₁(q), x))/norm(x) > 1e-12
+        @test norm(projker(Q₂(q), y))/norm(y) > 1e-12
+        @test norm(projker(vcat(Q₁(q), Q₂(q)), vcat(x,y)))/norm(vcat(x,y)) < 1e-12
+        @test t(x,y)
+
+        #solving for y for a fixed x
+        ŷ = t(x)
+        @test_broken norm(projker(vcat(Q₁(q), Q₂(q)), vcat(x,ŷ)))/norm(vcat(x,ŷ)) <1e-12
+
         t² = F(I₁⊕tex⊕I₁)⋅t
         @test QRLinRel(t²).r == 9
+        x,y = solution(t², ones(size(t².A,2)))
+        @test t²(x,y)
         x = ones(7)
         # @show y = t²(x)
         @test_broken t²(x,y)

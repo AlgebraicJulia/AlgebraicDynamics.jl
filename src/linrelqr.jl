@@ -155,6 +155,121 @@ end
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
 (f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
 
+function semantics(generators::AbstractDict=Dict(), terms::AbstractDict=Dict())
+    return ex->functor((LinRelDom, LinRel),
+                       ex,
+                       generators=generators,
+                       terms=terms)
+end
+
+@testset "Syntactic" begin
+    X,Y,Z,U,V,W = Ob.([ FreeLinearRelations ], [:X,:Y,:Z,:U,:V,:W])
+    f = Hom(:f, X, Y)
+    g = Hom(:g, Y, Z)
+    ud = Hom(:ud, U, X)
+    h = f⋅g
+    @test dom(h) == dom(f)
+    @test codom(h) == codom(g)
+    F = semantics(Dict(X=>LinRelDom(1),
+                       Y=>LinRelDom(4),
+                       Z=>LinRelDom(2),
+                       U=>LinRelDom(3),
+                       f=>LinRel(ones(1,4)/4, I(4)),
+                       g=>LinRel([1 0;
+                                  1 0;
+                                  0 1;
+                                  0 1], I(2)),
+                       ud=>LinRel(I(3), ones(1,3)/3))
+                  )
+    @testset "One grid cell Laplacian" begin
+        @test F(f).A == ones(1,4)/4
+        @test F(f).B == I(4)
+        qrf = QRLinRel(F(f))
+        @test qrf([0], [1,1,-1,-1])
+        @test qrf([1], [1,1,-1,-1]) == false
+        @test qrf.r == 4
+        @test norm(projker(qrf.QR.Q[:, 1:4], [-1/4, 1,1,-1,-2])) < 1e-12
+        @test qrf([0], [1,1,-1,-2]) == false
+        @test F(f).B*[1,1,-1,-2] == [1,1,-1,-2]
+        @test F(f).A*[1,1,-1,-2] == [-1/4]
+        @test norm(projker(qrf.QR.Q[:, 1:4], [-1/4, 1,1,-1,-2])) < 1e-12
+        @test qrf([-1/4], [1,1,-1,-2])
+    end
+    @testset "Boundary Laplacian Relation" begin
+        @test F(f⋅g)([0], [1, -1])
+        @test F(f⋅g)([-1/2], [1, -2])
+        @test F(f⋅g)([0], [2, -2])
+        @test F(f⋅g)([2], [2, 2])
+        @test F(f⋅g)([-1/4], [1, -2]) == false
+        V₀ = pullback(F(f),F(g))
+        y₁ = F(f).B*π₁(V₀, 4)
+        y₂ = F(g).A*π₂(V₀, 4)
+        @test norm(y₁ .- y₂) < 1e-12
+
+        one4 = LinRel(Int[], ones(4))
+        # one4 = LinRel(Float64[], ones(4))
+        @test inv(one4).A == ones(4)
+
+        # @test (F(f)⋅one4)([0], [0,0,0,0])
+        @test (F(f)⋅inv(one4))([1], Float64[])
+
+        constbound = F(f)⋅LinRel(ones(4,1), I(1))⋅LinRel(ones(1), Float64[])
+        @test constbound([4], Float64[])
+        @test constbound([3], Float64[])
+        @test (F(f)⋅scalar(F(Y), 4)⋅inv(one4))([4], Float64[])
+        # @test (F(f)⋅scalar(F(Y), 4)⋅inv(one4))([3], Float64[])== false
+        # @test (F(f)⋅one4)([2], 2ones(4))
+        # @show create(F(X))
+        # @show F(create(X))
+
+        # @show y₁
+        # @show π₁(V₀, 4)
+        # @show F(f).A
+        # @show F(f).A*π₁(V₀, 4)
+        # @show π₂(V₀, 4)
+        # @show F(g).B
+        # @show F(g).B*π₂(V₀, 4)
+    end
+    @testset "Upwind Differencing" begin
+        @test dom(F(id(X⊕X))) == LinRelDom(2)
+        @test codom(F(id(X⊕X))) == LinRelDom(2)
+        @test codom(F(create(X⊕X))) == LinRelDom(2)
+        @test dom(F(create(X⊕X))) == LinRelDom(0)
+        s1 = F(id(X⊕X)⊕create(X⊕X)⊕id(X⊕X))
+        @test dom(s1) == LinRelDom(4)
+        @test codom(s1) == LinRelDom(6)
+        # @show F(create(X⊕X))
+        # @show F(mcopy(X⊕X))
+        cp = create(X⊕X)⋅mcopy(X⊕X)
+        # @show F(cp)
+        s1 = F(id(X⊕X)⊕(cp)⊕id(X⊕X))
+        @test dom(s1) == LinRelDom(4)
+        @test codom(s1) == LinRelDom(8)
+        s2 = F(ud⊕id(X⊕X)⊕ud)
+        @test dom(s2) == LinRelDom(8)
+        @test codom(s2) == LinRelDom(4)
+
+        s3 = F(plus(X)⊕plus(X))
+        @test dom(s3).n == 4
+        @test codom(s3).n == 2
+
+        s = compose(s1,s2,s3)
+        @test dom(s3).n == 4
+        @test codom(s3).n == 2
+
+        @test s(ones(4), ones(2))
+        @test s([-1, 1, 1, -1], ones(2))
+        @test s([-1, 1, 1, -1], [1, 2]) == false
+        @test s([-1, 1, 1, -1], 2ones(2))
+
+        s² = oplus(F(id(X)), s, F(id(X)))⋅s
+        qrs² = QRLinRel(s²)
+        x = [1,0,-1,-1,0,1]
+        y = Q₂(qrs²)*Q₁(qrs²)'x
+        @test s²(x,y)
+    end
+
+end
 
 function testcomposite(f::QRLinRel, g::QRLinRel)
     h = compose(f,g)

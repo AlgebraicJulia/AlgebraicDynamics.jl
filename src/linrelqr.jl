@@ -93,8 +93,23 @@ end
 create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
 inv(f::LinRel) = LinRel(f.B, f.A)
 
+"""    ncopy(n::Int)
 
+create a linear relation representing the nfold copy of a scalar
+"""
+ncopy(n::Int) = LinRel(I(1), ones(n,1))
 
+# TODO: fix this
+# ncopy(X::LinRelDom, n::Int) = LinRel(I(X.n), ones(n,X.n))
+
+"""    vecrel(v)
+
+create a linear relation containing the span of one vector as the codomain.
+"""
+vecrel(v) = begin
+    n = length(v)
+    compose(compose(create(LinRelDom(1)), ncopy(n)), LinRel(I(n), diagm(v)))
+end
 
 
 function pullback(f::LinRel,g::LinRel)
@@ -154,10 +169,34 @@ end
 
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
 # TODO: this is wrong
-(f::QRLinRel)(x::Vector) = Q₂(f)*Q₁(f)'x
+(f::QRLinRel)(x::Vector, rtol::Real=1e-12) = begin
+    norm(projker(Q₁(f), x))/norm(x) < rtol || return nothing
+    return Q₂(f)*Q₁(f)'x
+end
+
 # (f::QRLinRel)(x::Vector) = Q₂(f)*R₁(f)*(R₁(f) \ (Q₁(f)'x))
 (f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
 (f::LinRel)(x::Vector) = QRLinRel(f)(x)
+
+
+"""    solve(f::LinRel, x::Vector)
+
+compute a basis of the solution space of {y | f(x,y)}
+"""
+function solve(f::LinRel, x::Vector, tol=1e-12)
+    f̂ = vecrel(x)⋅f
+    Q,R,π = qr(f̂.B, Val(true))
+    r = rankr(R, tol)
+    Q₁ = Q[:, 1:r]
+end
+
+"""    inrange(f::Matrix, y::Vector)
+
+test if a vector is in the range of a matrix using linear solving
+"""
+inrange(A::Matrix, y::Vector, tol=1e-12) = norm(y - A*(A\y)) < tol
+
+
 
 """    solution(f::LinRel, v::Vector)
 
@@ -319,16 +358,85 @@ end
 
         #solving for y for a fixed x
         ŷ = t(x)
-        @test_broken norm(projker(vcat(Q₁(q), Q₂(q)), vcat(x,ŷ)))/norm(vcat(x,ŷ)) <1e-12
+        @test isnothing(ŷ)
+        @test_throws MethodError norm(projker(vcat(Q₁(q), Q₂(q)), vcat(x,ŷ)))
+
+        @show x₀ = Q₁R₁(q)*ones(q.r)
+        @show x₁ = Q₁(q)*Q₁(q)'x₀
+        @show x₂ = x₀ - projker(Q₁(q), x₀)
+        @show x₃ = projker(Q₁(q), x₂)
+        @show t(x₁)
+        @show t(x₂)
+        @show t(x₃)
+        ŷ = t(Q₁(q)*Q₁(q)'x₀)
+        @test_broken !isnothing(ŷ)
+        @test_broken q(x₀,ŷ)
+
+        ŷ = t(Q₁(q)*Q₁(q)'x)
+        @test_broken !isnothing(ŷ)
+        @test_broken q(x,ŷ)
 
         t² = F(I₁⊕tex⊕I₁)⋅t
         @test QRLinRel(t²).r == 9
         x,y = solution(t², ones(size(t².A,2)))
         @test t²(x,y)
         x = ones(7)
-        # @show y = t²(x)
-        @test_broken t²(x,y)
+        @test isnothing(t²(x))
     end
+    @testset "Solving for fixed x" begin
+        f = LinRel(ones(2,2), ones(1,2))
+        q = QRLinRel(f)
+        x,y = Q₁(q)*ones(q.r), Q₂(q)*ones(q.r)
+        @test f(x,y)
+        v = ones(2,1)
+        @show size(v)
+        v̂ = v/norm(v)
+        g = LinRel(I(1), v̂)
+        h = g⋅f
+        @test dom(h) == dom(g)
+        @test codom(h) == codom(f)
+        x̂ = Q₁R₁(QRLinRel(h))*ones(2,1)
+        ŷ = Q₂R₁(QRLinRel(h))*ones(2,1)
+        @test h(x̂[:,1], ŷ[:,1])
+        @test h(x̂[:,1], ŷ[:,1])
+
+        cx = vecrel(x̂[:, 1])
+        @test dom(cx).n == 0
+        @test codom(cx).n == length(x̂)
+
+        x = f.A*ones(size(f.A,2))
+        y = f.B*ones(size(f.B,2))
+        @test_broken !isnothing(f(x))
+        @test f(x,y)
+        f̂ = vecrel(x)⋅f
+        @test size(f̂.B) == (1, 2)
+        @test f̂([], y)
+        @test f̂([], [3])
+
+        @testset "Bigger System" begin
+            f = LinRel(I(3), [1 2 3; -1 0 1; 0 1 0])
+            x = ones(3)
+            y = f.B*ones(3)
+
+            f̂ = vecrel(x)⋅f
+            @test size(f̂.A) == (0,1)
+            @test size(f̂.B) == (3,1)
+            @show f̂.B
+            z = solve(f, x)
+            @test z/z[1] == f̂.B/f̂.B[1]
+            @test inrange(f̂.B, y)
+            @test !inrange(f̂.B, [-1,0,1])
+
+            @test f̂([], y)
+            @test !f̂([], [-1, 0, 1])
+
+        end
+
+        # @show compose(f̂, LinRel(Matrix(ŷ), ones(1,2)))
+        # @test !isnothing(h([ 1 ]))
+
+    end
+
 
 end
 

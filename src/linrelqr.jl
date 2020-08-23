@@ -1,6 +1,6 @@
 module LinRels
 
-import Base: +
+import Base: +, sum
 using LinearAlgebra
 # import LinearAlgebra: ⋅
 using Catlab
@@ -92,6 +92,10 @@ end
 
 create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
 inv(f::LinRel) = LinRel(f.B, f.A)
+dunit(X::LinRelDom) = zero(X)⋅inv(plus(X))
+dcounit(X::LinRelDom) = plus(X)⋅inv(zero(X))
+
+sum(X::LinRelDom) = LinRel(I(X.n), ones(X.n)')
 
 """    ncopy(n::Int)
 
@@ -194,7 +198,7 @@ end
 
 test if a vector is in the range of a matrix using linear solving
 """
-inrange(A::Matrix, y::Vector, tol=1e-12) = norm(y - A*(A\y)) < tol
+inrange(A::AbstractMatrix, y::AbstractVector, tol=1e-12) = norm(y - A*(A\y)) < tol
 
 
 
@@ -421,7 +425,6 @@ end
             f̂ = vecrel(x)⋅f
             @test size(f̂.A) == (0,1)
             @test size(f̂.B) == (3,1)
-            @show f̂.B
             z = solve(f, x)
             @test z/z[1] == f̂.B/f̂.B[1]
             @test inrange(f̂.B, y)
@@ -430,14 +433,55 @@ end
             @test f̂([], y)
             @test !f̂([], [-1, 0, 1])
 
+            f⁻¹ = inv(f)
+            @test inrange(f⁻¹.B, x)
+            @test f⁻¹(y, x)
+            i¹ = f⋅f⁻¹
+            i² = f⁻¹⋅f
+            @test dom(i¹) == dom(f)
+            @test codom(i¹) == codom(f⁻¹)
+            @test dom(i²) == dom(f⁻¹)
+            @test codom(i²) == codom(f)
+            @test size(i¹.A) == (3,3)
+            @test size(i².A) == (3,3)
         end
 
         # @show compose(f̂, LinRel(Matrix(ŷ), ones(1,2)))
         # @test !isnothing(h([ 1 ]))
-
     end
+end
 
+@testset "Finite Volume Equilibria" begin
+    R = LinRelDom(1)
+    R² = LinRelDom(2)
+    R³ = LinRelDom(3)
+    R⁴ = LinRelDom(4)
 
+    X,Y,Z,U,V,W = Ob.([FreeLinearRelations], [:X,:Y,:Z,:U,:V,:W])
+    f = Hom(:f, X, Y)
+    g = Hom(:g, Y, Z)
+    L₄ = Hom(:ud, X⊕X⊕X, X)
+    h = f⋅g
+    @test dom(h) == dom(f)
+    @test codom(h) == codom(g)
+    F = semantics(Dict(X=>R,
+                       Y=>R²,
+                       Z=>R³,
+                       U=>R⁴,
+                       f=>LinRel(ones(1,3), I(1)),
+                       g=>LinRel([1 0;
+                                  1 0;
+                                  0 1;
+                                  0 1], I(2)),
+                       )
+                  )
+
+    L⁴ = (id(R³)⊕dunit(R))⋅((sum(R⁴)⋅inv(zero(R)))⊕id(R))
+    @test L⁴([1,2,3], [6])
+    @test L⁴([1,1,1], [3])
+    @test L⁴([1,0,1], [2])
+    @test !L⁴([1,0,1], [3])
+    @test !L⁴([1,1,1], [-3])
 end
 
 function testcomposite(f::QRLinRel, g::QRLinRel)
@@ -652,6 +696,18 @@ end
         @test f̂([1,2, 1, 1], [2,4])
         @test ĝ([1,2, 1, 1], [3,3])
 
+    end
+
+    @testset "Caps and Cups" begin
+        @test dunit(LinRelDom(1))([], [1, -1])
+        @test !dunit(LinRelDom(1))([], [1, -2])
+        @test dunit(LinRelDom(2))([], [1, 2, -1, -2])
+        @test !dunit(LinRelDom(2))([], [1, 2, -2, 1])
+
+        @test dcounit(LinRelDom(1))([1, -1], [])
+        @test !dcounit(LinRelDom(1))([1, -2], [])
+        @test dcounit(LinRelDom(2))([1, 2, -1, -2], [])
+        @test !dcounit(LinRelDom(2))([1, 2, -2, 1], [])
     end
 
     # inv(f::LinRel) = LinRel(f.B, f.A)

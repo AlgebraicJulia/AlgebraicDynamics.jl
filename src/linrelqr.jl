@@ -482,6 +482,54 @@ end
     @test L⁴([1,0,1], [2])
     @test !L⁴([1,0,1], [3])
     @test !L⁴([1,1,1], [-3])
+
+    L¹ = (dunit(R)⊕id(R³))⋅(id(R)⊕(sum(R⁴)⋅inv(zero(R))))
+    @test L¹([1,2,3], [6])
+    @test L¹([1,1,1], [3])
+    @test L¹([1,0,1], [2])
+    @test !L¹([1,0,1], [3])
+    @test !L¹([1,1,1], [-3])
+
+    cell² = L⁴⋅inv(L⁴)
+    @show cell².A |> size
+    @show cell².B |> size
+    @test cell²(ones(3), ones(3))
+    ####################
+    #                  #
+    #    0      0      #
+    #    |      |      #
+    # x--L⁴--v--L¹--y  #
+    #    |      |      #
+    #    0      0      #
+    #                  #
+    ####################
+    L¹ = (dunit(R)⊕id(R³))⋅(id(R)⊕(sum(R⁴)⋅inv(zero(R))))
+    L⁴ = (id(R³)⊕dunit(R))⋅((sum(R⁴)⋅inv(zero(R)))⊕id(R))
+    cell²sealed = (id(R)⊕vecrel([0,0]) )⋅cell²⋅(inv(vecrel([0,0]))⊕id(R))
+    @test cell²sealed([1], [1])
+    @test !cell²sealed([1], [2])
+
+    @test dom(L¹).n == 3
+    @test codom(L¹).n == 1
+    pL = (zero(R²)⊕id(R))⋅ L¹
+    @test dom(pL).n == 1
+    @test codom(pL).n == 1
+    chain(f::LinRel, n::Int) = foldl(compose, (f for i in 1:n))
+    #############################################
+    #                                           #
+    #    0       0       0       0       0      #
+    #    |       |       |       |       |      #
+    # x--L¹--v₁--L¹--v₂--L¹--v₃--L¹--v₄--L¹--y  #
+    #    |       |       |       |       |      #
+    #    0       0       0       0       0      #
+    #                                           #
+    #############################################
+    pipe = chain(pL, 5)
+    @test dom(pipe).n == 1
+    @test codom(pipe).n == 1
+    @test pipe([1], [1])
+    @test !pipe([1], [2])
+    
 end
 
 function testcomposite(f::QRLinRel, g::QRLinRel)

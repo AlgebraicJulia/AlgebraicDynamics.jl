@@ -14,21 +14,51 @@ using Test
 ⊕(a,b) = oplus(a,b)
 ⋅(a,b) = compose(a,b)
 
+
+"""    π₁(A::AbstractMatrix, n::Int)
+
+project a matrix M:Rˣ→Rʸ onto the first n dimensions of Rʸ.
+"""
 π₁(A::AbstractMatrix, n::Int) = A[  1:n  , :]
+
+"""    π₂(A::AbstractMatrix, n::Int)
+
+project a matrix M:Rˣ→Rʸ onto the second y-n dimensions of Rʸ.
+"""
 π₂(A::AbstractMatrix, n::Int) = A[n+1:end, :]
 
+"""    rankr(R, tol)
+
+estimate the rank of the upper triangular matrix R. It is assumed that R was produced by a QR decomposition with partial pivoting ie. `qr(A Val(true)).R`.
+"""
 rankr(R, tol=1e-15) = begin
     nrms = norm.(R[i,:] for i in 1:size(R)[1])
     p(x) = x > tol
     sum(p.(nrms))
 end
 
+"""    projker(Q,v)
+
+subtract from v, its projection onto the range of Q. Assumes that Q is orthogonal, Q'Q = I.
+"""
 projker(Q, v) = v-Q*Q'v
 
+"""    LinRelDom
+
+the domain of a linear relation. Represents vector space $\mathbb{R}^n$.
+"""
 struct LinRelDom
     n::Int
 end
 
+"""    LinRel
+
+a linear relation stored as a span A,B. Represents the set of pairs of vectors (x,y):
+
+$$x = Av, y = Bv$$
+
+LinearRelations form a hypergraph category and are an instance of a Bicategory of relations.
+"""
 struct LinRel{T,U}
     A::T
     B::U
@@ -95,11 +125,15 @@ inv(f::LinRel) = LinRel(f.B, f.A)
 dunit(X::LinRelDom) = zero(X)⋅inv(plus(X))
 dcounit(X::LinRelDom) = plus(X)⋅inv(zero(X))
 
+"""    sum(X::LinRelDom)
+
+the linear relation representing v↦sum(v).
+"""
 sum(X::LinRelDom) = LinRel(I(X.n), ones(X.n)')
 
 """    ncopy(n::Int)
 
-create a linear relation representing the nfold copy of a scalar
+the linear relation representing the nfold copy of a scalar
 """
 ncopy(n::Int) = LinRel(I(1), ones(n,1))
 
@@ -108,7 +142,7 @@ ncopy(n::Int) = LinRel(I(1), ones(n,1))
 
 """    vecrel(v)
 
-create a linear relation containing the span of one vector as the codomain.
+the linear relation containing the span of one vector as the codomain.
 """
 vecrel(v) = begin
     n = length(v)
@@ -116,6 +150,10 @@ vecrel(v) = begin
 end
 
 
+"""    pullback(f::LinRel, g::LinRel)
+
+computes the pullback of `X<-f.A- V₁ -f.B-> Y <-g.A- V₂ -g.B-> Z`.
+"""
 function pullback(f::LinRel,g::LinRel)
     A, B, C, D = f.A, f.B, g.A, g.B
     M = Matrix(hcat(B,-C))
@@ -127,6 +165,15 @@ function pullback(f::LinRel,g::LinRel)
     return V₀
 end
 
+"""    LinRel
+
+a linear relation stored as a QR decompositon of
+
+[x]  =  [A][v]
+[y]     [B]
+
+Useful for checking correctness of LinRel implementation.
+"""
 struct QRLinRel{T}
     n::Int
     m::Int
@@ -163,6 +210,10 @@ function compose(f::QRLinRel, g::QRLinRel)
     QRLinRel(h.A, h.B)
 end
 
+"""    in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
+
+test if (x,y) in relation f to a fixed relative tolerance.
+"""
 function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
     norm(vcat(x,y)) > tol || return true
     # r = projker(f.QR.Q, vcat(x,y))
@@ -171,6 +222,10 @@ function in(x::Vector, f::QRLinRel, y::Vector, tol=1e-12)
     return norm(r)/norm(z) < tol
 end
 
+"""    (f::QRLinRel)(x::Vector, y::Vector, tol=1e-12)
+
+test if (x,y) in relation f to a fixed relative tolerance.
+"""
 (f::QRLinRel)(x::Vector, y::Vector) = in(x,f,y)
 # TODO: this is wrong
 (f::QRLinRel)(x::Vector, rtol::Real=1e-12) = begin
@@ -178,9 +233,13 @@ end
     return Q₂(f)*Q₁(f)'x
 end
 
-# (f::QRLinRel)(x::Vector) = Q₂(f)*R₁(f)*(R₁(f) \ (Q₁(f)'x))
+"""    (f::LinRel)(x::Vector, y::Vector, tol=1e-12)
+
+test if (x,y) in relation f to a fixed relative tolerance.
+"""
 (f::LinRel)(x::Vector, y::Vector) = QRLinRel(f)(x,y)
 (f::LinRel)(x::Vector) = QRLinRel(f)(x)
+# (f::QRLinRel)(x::Vector) = Q₂(f)*R₁(f)*(R₁(f) \ (Q₁(f)'x))
 
 
 """    solve(f::LinRel, x::Vector)
@@ -212,6 +271,12 @@ compute the (x,y) pair indexed by v. That is:
 solution(f::LinRel, v::Vector) = (f.A*v, f.B*v)
 solution(f::QRLinRel, v::Vector) = (Q₁R₁(f)*v, Q₂R₁(f)*v)
 
+"""    semantics(generators::AbstractDict=Dict(), terms::AbstractDict=Dict())
+
+capture a map of generators and terms into a closure that accepts expressions
+in a hypergraph category and returns the corresponding LinRel by plugging in
+the LinRels for the generators and following the functorial definition.
+"""
 function semantics(generators::AbstractDict=Dict(), terms::AbstractDict=Dict())
     return ex->functor((LinRelDom, LinRel),
                        ex,
@@ -529,7 +594,6 @@ end
     @test codom(pipe).n == 1
     @test pipe([1], [1])
     @test !pipe([1], [2])
-    
 end
 
 function testcomposite(f::QRLinRel, g::QRLinRel)

@@ -81,7 +81,8 @@ end
 # LinRel(B) = LinRel(UniformScalingMap(1, size(B,2)), B)
 
 
-@instance LinearFunctions(LinRelDom, LinRel) begin
+inv(f::LinRel) = LinRel(f.B, f.A)
+@instance LinearRelations(LinRelDom, LinRel) begin
     dom(f::LinRel) = LinRelDom(size(f.A,1))
     codom(f::LinRel) = LinRelDom(size(f.B,1))
     id(X::LinRelDom) = LinRel(I(X.n), I(X.n))
@@ -99,16 +100,29 @@ end
     braid(X::LinRelDom, Y::LinRelDom) = LinRel(I(X.n+Y.n), hvcat((2,2), zeros(Y.n,X.n), I(Y.n), I(X.n), zeros(X.n,Y.n)))
 
     mcopy(X::LinRelDom) = LinRel(I(X.n), vcat(I(X.n), I(X.n)))
+    mmerge(X::LinRelDom) = inv(mcopy(X))
     delete(X::LinRelDom) = LinRel(I(X.n), zeros(0, X.n))
     plus(X::LinRelDom) = LinRel(I(2*X.n), hcat(I(X.n), I(X.n)))
     zero(X::LinRelDom) = LinRel(ones(0,1), zeros(X.n, 1))
 
+    meet(R::LinRel, S::LinRel) = compose(mcopy(dom(R)), oplus(R,S), mmerge(codom(R)))
+    top(A::LinRelDom, B::LinRelDom) = compose(delete(A), create(B))
+    join(R::LinRel, S::LinRel) = compose(coplus(dom(R)), oplus(R,S), plus(codom(R)))
+    bottom(A::LinRelDom, B::LinRelDom) = compose(cozero(A), zero(B))
+
     scalar(X::LinRelDom, c::Number) = LinRel(I(X.n), c*I(X.n))
     antipode(X::LinRelDom) = LinRel(I(X.n), -I(X.n))
 
-    pair(f::LinRel, g::LinRel) = mcopy(dom(f)) ⋅ (f ⊕ g)
-    copair(f::LinRel, g::LinRel) = (f ⊕ g) ⋅ plus(codom(f))
+    create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
+    dunit(X::LinRelDom) = zero(X)⋅inv(plus(X))
+    dcounit(X::LinRelDom) = plus(X)⋅inv(zero(X))
+
     plus(f::LinRel, g::LinRel) = mcopy(dom(f)) ⋅ (f⊕g) ⋅ plus(codom(f))
+
+    dagger(f::LinRel) = inv(f)
+    coplus(X::LinRelDom) = inv(plus(X))
+
+    cozero(X::LinRelDom) = inv(zero(X))
 
     proj1(A::LinRelDom, B::LinRelDom) = id(A) ⊕ delete(B)
     proj2(A::LinRelDom, B::LinRelDom) = delete(A) ⊕ id(B)
@@ -128,10 +142,11 @@ end
     adjoint(f::LinRel) = LinRel(adjoint(f.A), adjoint(f.B))
 end
 
-create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
-inv(f::LinRel) = LinRel(f.B, f.A)
-dunit(X::LinRelDom) = zero(X)⋅inv(plus(X))
-dcounit(X::LinRelDom) = plus(X)⋅inv(zero(X))
+pair(f::LinRel, g::LinRel) = mcopy(dom(f)) ⋅ (f ⊕ g)
+proj1(A::LinRelDom, B::LinRelDom) = id(A) ⊕ delete(B)
+proj2(A::LinRelDom, B::LinRelDom) = delete(A) ⊕ id(B)
+copair(f::LinRel, g::LinRel) = (f ⊕ g) ⋅ plus(codom(f))
+
 
 """    sum(X::LinRelDom)
 

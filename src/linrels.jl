@@ -113,7 +113,7 @@ inv(f::LinRel) = LinRel(f.B, f.A)
     scalar(X::LinRelDom, c::Number) = LinRel(I(X.n), c*I(X.n))
     antipode(X::LinRelDom) = LinRel(I(X.n), -I(X.n))
 
-    create(X::LinRelDom) = LinRel(zeros(0,1), ones(X.n,1))
+    create(X::LinRelDom) = inv(delete(X))
     dunit(X::LinRelDom) = zero(X)⋅inv(plus(X))
     dcounit(X::LinRelDom) = plus(X)⋅inv(zero(X))
 

@@ -131,7 +131,7 @@ inv(f::LinRel) = LinRel(f.B, f.A)
     compose(f::LinRel,g::LinRel) = begin
         codom(f) == dom(g) || error("Dimension Mismatch $(codom(f).n)!=$(dom(g).n)")
         A, B, C, D = f.A, f.B, g.A, g.B
-        M = Matrix(hcat(B,-C))
+        M = Matrix(hcat(Float64.(B),-Float64.(C)))
         # we need to use an iterative solver for computing the nullspace here
         V₀ = nullspace(M)
         nb = size(B,2)

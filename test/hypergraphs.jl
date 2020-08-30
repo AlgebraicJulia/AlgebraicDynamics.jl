@@ -35,9 +35,9 @@ using OrdinaryDiffEq
     u₀ = [13.0, 12.0]
 
     nullparams = collect(repeat([0], length(tasks)))
-    @test norm(vectorfield(d, g)(zeros(nparts(d,:Junction)), u₀, nullparams, 0)) <= 1e-6
-
     @time f = vectorfield(d,g)
+    @test norm(f(zeros(nparts(d,:Junction)), u₀, nullparams, 0)) <= 1e-12
+
     p = ODEProblem(f, u₀, (0,10.0), nullparams)
 
     @time sol = OrdinaryDiffEq.solve(p, Tsit5())

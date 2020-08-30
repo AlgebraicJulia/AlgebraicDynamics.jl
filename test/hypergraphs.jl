@@ -174,4 +174,45 @@ end
     # @test all(vcat(sol.u...) .> 0)
     # @show sol.u
 end
+    @testset "Food Web Parameters" begin
+    g = Dict(
+        :birth     => (u, p, t) -> [ p[1]*u[1] ],
+        :death     => (u, p, t) -> [-p[1]*u[1] ],
+        :predation => (u, p, t) -> [-p[1]*u[1]*u[2], p[2]*u[1]*u[2]]
+    )
+    d = @relation (x,y,z) where (x::X, y::X, z::X) begin
+        birth(x)
+        predation(x,y)
+        death(y)
+        predation(x,z)
+        death(z)
+    end
+    @show d
+    params = [[1.2], [0.1, 0.1], [1.3], [0.05, 0.05], [1.1]]
+    du         = zeros(nparts(d, :Junction))
+    println("Out of Place Creation")
+    @time f = vectorfield(d, g)
+    f(du, [13.0, 12.0, 12], params, 0.0)
+    @show du
+    f(du, [13.0, 12.0, 6], params, 0.0)
+    @show du
+    f(du, [17.0, 12.0, 6], params, 0.0)
+    @show du
+
+    u₀ = [13.0, 12.0, 12]
+    p = ODEProblem(f, u₀, (0,10.0), params)
+    println("Out of Place Solve EQ")
+    @time sol = OrdinaryDiffEq.solve(p, Tsit5())
+    @time sol = OrdinaryDiffEq.solve(p, Tsit5())
+    @test norm(u[2]-u[3] for (u,t) in tuples(sol)) > 1e-2
+
+    u₀ = [17.0, 11.0, 6]
+    p = ODEProblem(f, u₀, (0,10.0), params)
+    println("Out of Place Solve Osc")
+    @time sol = OrdinaryDiffEq.solve(p, Tsit5())
+    @time sol = OrdinaryDiffEq.solve(p, Tsit5())
+    @test all(vcat(sol.u...) .> 0)
+    @test norm(u[2]-u[3] for (u,t) in tuples(sol)) > 1e-2
+    end
+
 end

@@ -9,6 +9,7 @@ using Catlab.Programs
 using RecursiveArrayTools
 using OrdinaryDiffEq
 
+include("hypergraphs.jl")
 include("linrels.jl")
 
 R = Ob(FreeSMC, Float64)

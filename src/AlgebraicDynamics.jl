@@ -7,5 +7,6 @@ using Catlab.Programs
 
 include("linrels.jl")
 include("systems.jl")
+include("hypergraphs.jl")
 
 end # module

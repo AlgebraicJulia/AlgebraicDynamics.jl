@@ -87,9 +87,9 @@ function dynam!(d, generators::Dict, scratch::AbstractVector)
         juncs = subpart(d, :junction)
         boxjuncs = juncs[boxports]
         tv = view(scratch, boxports)
+        n = subpart(d,:name)[b]
         task(u, p, t) = begin
             v = view( u, boxjuncs)
-            n = subpart(d,:name)[b]
             generators[n](tv, v, p, t)
         end
     end
@@ -141,7 +141,7 @@ Example:
 ```
 """
 function vectorfield!(d, generators::Dict, scratch::AbstractVector)
-    tasks, aggregate! = dynam!(d,generalizes, scratch)
+    tasks, aggregate! = dynam!(d,generators, scratch)
     f(du, u, p, t) = begin
         #TODO: parallelize this loop
         map(enumerate(tasks)) do (i, tk)

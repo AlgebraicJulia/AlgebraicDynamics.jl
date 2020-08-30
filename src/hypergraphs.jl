@@ -15,7 +15,7 @@ using Catlab.Programs.RelationalPrograms
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.CSets
 
-export dynam, vectorfield
+export dynam, dynam!, vectorfield, vectorfield!
 
 
 """    dynam(d, generators::Dict)
@@ -67,6 +67,88 @@ function vectorfield(d, generators::Dict)
         tvec = vcat(tvecs...)
         # @assert (length(tvec)) == nparts(d,:Port)
         aggregate!(du, tvec)
+        return du
+    end
+    return f
+end
+
+"""    dynam!(d, generators::Dict, scratch::AbstractVector)
+
+in place version of dynam
+
+- d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
+- generators: A dictionary mapping the name of each box to its corresponding dynamical system
+- scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
+"""
+function dynam!(d, generators::Dict, scratch::AbstractVector)
+    @assert length(scratch) == nparts(d, :Port)
+    tasks = map(1:nparts(d, :Box)) do b
+        boxports = incident(d, b, :box)
+        juncs = subpart(d, :junction)
+        boxjuncs = juncs[boxports]
+        tv = view(scratch, boxports)
+        task(u, p, t) = begin
+            v = view( u, boxjuncs)
+            n = subpart(d,:name)[b]
+            generators[n](tv, v, p, t)
+        end
+    end
+    # TODO: Eliminate all allocations here
+    aggregate!(out, du) = begin
+        map(1:nparts(d, :Junction)) do j
+            juncports = incident(d, j, :junction)
+            du[j] = sum(scratch[juncports])
+        end
+        return du
+    end
+    return tasks, aggregate!
+end
+
+"""    vectorfield!(d, generators::Dict)
+
+in place version of vectorfield
+
+- d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
+- generators: A dictionary mapping the name of each box to its corresponding dynamical system
+- scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
+
+returns f(du, u, p, t) that you can pass to ODEProblem.
+
+The generators passed to this function must accept `du::AbstractVector` passed as the first argument
+
+Example:
+
+```julia
+    d = @relation (x,y) where (x::X, y::X) begin
+        birth(x)
+        predation(x,y)
+        death(y)
+    end
+
+    α = 1.2
+    β = 0.1
+    γ = 1.3
+    δ = 0.1
+
+    g = Dict(
+        :birth     => (du, u, p, t) -> begin du[1] =  α*u[1] end,
+        :death     => (du, u, p, t) -> begin du[1] = -γ*u[1] end,
+        :predation => (du, u, p, t) -> begin du[1] = -β*u[1]*u[2]
+        du[2] = δ*u[1]*u[2]
+        end
+    )
+    vectorfield!(d, g, zeros(3))
+```
+"""
+function vectorfield!(d, generators::Dict, scratch::AbstractVector)
+    tasks, aggregate! = dynam!(d,generalizes, scratch)
+    f(du, u, p, t) = begin
+        #TODO: parallelize this loop
+        map(enumerate(tasks)) do (i, tk)
+            tk(u, p[i], t)
+        end
+        # @assert (length(tvec)) == nparts(d,:Port)
+        aggregate!(du, scratch)
         return du
     end
     return f

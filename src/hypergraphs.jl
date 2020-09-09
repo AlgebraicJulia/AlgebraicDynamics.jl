@@ -31,10 +31,11 @@ function dynam(d, generators::Dict)
     # primitive subsystems using pmap. This function overhead could be eliminated
     # for benchmarking the sequential version.
     tasks = Function[]
+    junctions = subpart(d,:junction)
     for box in 1:nparts(d, :Box)
         n = subpart(d, :name)[box]
         ports = incident(d, box, :box)
-        juncs = [subpart(d,:junction)[p] for p in ports]
+        juncs = [junctions[p] for p in ports]
         tk = (u, θ, t) -> generators[n](u[juncs], θ, t)
         push!(tasks, tk)
     end

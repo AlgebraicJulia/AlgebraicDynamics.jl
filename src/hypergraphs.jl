@@ -42,8 +42,11 @@ function dynam(d, generators::Dict)
     # this function could avoid doing all the lookups every time by enclosing the ports
     # vectors into the function.
     # TODO: Eliminate all allocations here
+
+    inc = [incident(d,j,:junction) for j in 1:nparts(d, :Junction)]
+
     aggregate!(out, du) = for j in 1:nparts(d, :Junction)
-        ports = incident(d, j, :junction)
+        ports = inc[j]
         out[j] = sum(du[ports])
     end
     return tasks, aggregate!

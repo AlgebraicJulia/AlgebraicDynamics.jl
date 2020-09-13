@@ -51,7 +51,7 @@ using AlgebraicDynamics.LinRels
         @test F(f⋅g)([0], [2, -2])
         @test F(f⋅g)([2], [2, 2])
         @test F(f⋅g)([-1/4], [1, -2]) == false
-        V₀ = pullback(F(f),F(g))
+        V₀ = LinRels.pullback(F(f),F(g))
         y₁ = F(f).B*π₁(V₀, 4)
         y₂ = F(g).A*π₂(V₀, 4)
         @test norm(y₁ .- y₂) < 1e-12
@@ -336,7 +336,7 @@ function testcomposite(f::QRLinRel, g::QRLinRel)
 
     f̂ = LinRel(f)
     ĝ = LinRel(g)
-    V₀ = pullback(f̂, ĝ)
+    V₀ = LinRels.pullback(f̂, ĝ)
     b = size(f̂.B,2)
     p₁, p₂ = π₁(V₀, b), π₂(V₀, b)
     w = ones(size(V₀, 2))

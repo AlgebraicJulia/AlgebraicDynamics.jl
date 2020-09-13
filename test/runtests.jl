@@ -9,6 +9,8 @@ using Catlab.Programs
 using RecursiveArrayTools
 using OrdinaryDiffEq
 
+include("linrels.jl")
+
 R = Ob(FreeSMC, Float64)
 id(R)
 sinesys = System(Int[], [1.0], [1], x -> -x)
@@ -16,7 +18,6 @@ sinesys = System(Int[], [1.0], [1], x -> -x)
     # Write your own tests here.
 
     include("laplacians.jl")
-
 
 @testset "ArrayPartition" begin
     v = ArrayPartition([1,2,3],[4,5,6])
@@ -78,7 +79,7 @@ end
     ir = Hom(System([1], [1.00, 0], [2], (x,t)->[-0.05x[1], 0.05x[1]]), R, R)
     sir = compose(si, ir)
     p = problem(sir, (0,270.0))
-    sol = solve(p, alg=Tsit5())
+    sol = OrdinaryDiffEq.solve(p, alg=Tsit5())
     @test sol.u[end][1] < 1e-1
     @test sol.u[end][end] > 100-1
 
@@ -89,7 +90,7 @@ end
     ir_2= Hom(System([1], [1.00, 0], [2], (x,t)->[-0.07x[1], 0.07x[1]]), R, R)
     sir_2 = compose(si_2, ir_2)
     p = problem(otimes(sir, sir_2), (0,270.0))
-    sol = solve(p, alg=Tsit5())
+    sol = OrdinaryDiffEq.solve(p, alg=Tsit5())
     @test sol.u[end][1] < 1e-1
     @test sol.u[end][4] > 100-1
     @test sol.u[end][5] < 5

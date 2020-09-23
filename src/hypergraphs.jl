@@ -31,21 +31,29 @@ function dynam(d, generators::Dict)
     # primitive subsystems using pmap. This function overhead could be eliminated
     # for benchmarking the sequential version.
     tasks = Function[]
+
     junctions = subpart(d,:junction)
+    names = subpart(d, :name)
+
+    # First we create a function based on each generator that accepts the total
+    # state of the system (which is why it limits the input to `juncs`)
     for box in 1:nparts(d, :Box)
-        n = subpart(d, :name)[box]
+        n = names[box]
         ports = incident(d, box, :box)
         juncs = [junctions[p] for p in ports]
-        tk = (u, θ, t) -> generators[n](u[juncs], θ, t)
+        generator = generators[n]
+        tk = (u, θ, t) -> generator(u[juncs], θ, t)
         push!(tasks, tk)
     end
     # this function could avoid doing all the lookups every time by enclosing the ports
     # vectors into the function.
     # TODO: Eliminate all allocations here
 
+    # Given a junction, what are all incident ports?
     inc = [incident(d,j,:junction) for j in 1:nparts(d, :Junction)]
 
-    aggregate!(out, du) = for j in 1:nparts(d, :Junction)
+    # Sum over all port values for each junction
+    aggregate!(out, du) = for j in 1:length(inc)
         ports = inc[j]
         out[j] = sum(du[ports])
     end
@@ -62,12 +70,17 @@ create a function for computing the vector field of a dynamical system
 returns f(du, u, p, t) that you can pass to ODEProblem.
 """
 function vectorfield(d, generators::Dict)
+
     tasks, aggregate! = dynam(d, generators)
     f(du, u, p, t) = begin
         # TODO: Eliminate all allocations here
+        # Evaluate every individual generator
         tvecs = map(enumerate(tasks)) do (i, tk)
             tk(u, p[i], t)
         end
+
+        # Since ports are assigned in order of Boxes, we can just concatenate
+        # all tvecs and tvecs[n] will be the value at port `n`
         tvec = vcat(tvecs...)
         # @assert (length(tvec)) == nparts(d,:Port)
         aggregate!(du, tvec)
@@ -86,24 +99,27 @@ in place version of dynam
 """
 function dynam!(d, generators::Dict, scratch::AbstractVector)
     @assert length(scratch) == nparts(d, :Port)
+    juncs = subpart(d, :junction)
+    names = subpart(d,:name)
+
     tasks = map(1:nparts(d, :Box)) do b
         boxports = incident(d, b, :box)
-        juncs = subpart(d, :junction)
         boxjuncs = juncs[boxports]
         tv = view(scratch, boxports)
-        n = subpart(d,:name)[b]
+        n = names[b]
         task(u, p, t) = begin
             v = view( u, boxjuncs)
             generators[n](tv, v, p, t)
         end
     end
+
     # TODO: Eliminate all allocations here
+    inc = [incident(d,j, :junction) for j in 1:nparts(d,:Junction)]
     aggregate!(out, du) = begin
-        map(1:nparts(d, :Junction)) do j
-            juncports = incident(d, j, :junction)
-            du[j] = sum(scratch[juncports])
+        for j in 1:length(inc)
+            juncports = inc[j]
+            out[j] = sum(du[juncports])
         end
-        return du
     end
     return tasks, aggregate!
 end

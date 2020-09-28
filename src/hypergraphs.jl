@@ -32,6 +32,8 @@ function dynam(d, generators::Dict)
     # for benchmarking the sequential version.
     tasks = Function[]
 
+    cur_size = nparts(d, :Junction)
+    num_juncs = nparts(d, :Junction)
     junctions = subpart(d,:junction)
     names = subpart(d, :name)
 
@@ -41,7 +43,12 @@ function dynam(d, generators::Dict)
         n = names[box]
         ports = incident(d, box, :box)
         juncs = [junctions[p] for p in ports]
-        generator = generators[n]
+        (generator, size) = generators[n]
+        if size > length(ports)
+            len_diff = size - length(ports)
+            append!(juncs, cur_size .+ (1:len_diff))
+            cur_size += len_diff
+        end
         tk = (u, θ, t) -> generator(u[juncs], θ, t)
         push!(tasks, tk)
     end
@@ -52,12 +59,16 @@ function dynam(d, generators::Dict)
     # Given a junction, what are all incident ports?
     inc = [incident(d,j,:junction) for j in 1:nparts(d, :Junction)]
 
+    hidden_size = cur_size - num_juncs
     # Sum over all port values for each junction
-    aggregate!(out, du) = for j in 1:length(inc)
+    aggregate!(out, du) = begin
+      for j in 1:length(inc)
         ports = inc[j]
         out[j] = sum(du[ports])
+      end
+      out[(end - hidden_size):end] = du[(end - hidden_size):end]
     end
-    return tasks, aggregate!
+    return tasks, aggregate!, cur_size
 end
 
 """    vectorfield(d, generators::Dict)
@@ -71,7 +82,7 @@ returns f(du, u, p, t) that you can pass to ODEProblem.
 """
 function vectorfield(d, generators::Dict)
 
-    tasks, aggregate! = dynam(d, generators)
+    tasks, aggregate!, num_var = dynam(d, generators)
     f(du, u, p, t) = begin
         # TODO: Eliminate all allocations here
         # Evaluate every individual generator
@@ -86,7 +97,7 @@ function vectorfield(d, generators::Dict)
         aggregate!(du, tvec)
         return du
     end
-    return f
+    return f, num_var
 end
 
 """    dynam!(d, generators::Dict, scratch::AbstractVector)
@@ -98,30 +109,43 @@ in place version of dynam
 - scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
 """
 function dynam!(d, generators::Dict, scratch::AbstractVector)
-    @assert length(scratch) == nparts(d, :Port)
     juncs = subpart(d, :junction)
     names = subpart(d,:name)
+    cur_ports = nparts(d, :Port)
+    cur_juncs = nparts(d, :Junction)
+    junc_size = nparts(d, :Junction)
 
     tasks = map(1:nparts(d, :Box)) do b
-        boxports = incident(d, b, :box)
+        boxports = copy(incident(d, b, :box))
         boxjuncs = juncs[boxports]
-        tv = view(scratch, boxports)
         n = names[b]
+        (generator, size) = generators[n]
+        if size > length(boxports)
+            len_diff = size - length(boxports)
+            append!(boxjuncs, cur_juncs .+ (1:len_diff))
+            append!(boxports, cur_ports .+ (1:len_diff))
+            cur_ports += len_diff
+            cur_juncs += len_diff
+        end
+        tv = view(scratch, boxports)
         task(u, p, t) = begin
-            v = view( u, boxjuncs)
-            generators[n](tv, v, p, t)
+            v = view(u, boxjuncs)
+            generator(tv, v, p, t)
         end
     end
 
     # TODO: Eliminate all allocations here
     inc = [incident(d,j, :junction) for j in 1:nparts(d,:Junction)]
+    hidden_size = cur_juncs - junc_size
     aggregate!(out, du) = begin
         for j in 1:length(inc)
             juncports = inc[j]
             out[j] = sum(du[juncports])
         end
+        out[(end - hidden_size):end] = du[(end - hidden_size):end]
     end
-    return tasks, aggregate!
+    @assert length(scratch) == cur_ports
+    return tasks, aggregate!, cur_juncs
 end
 
 """    vectorfield!(d, generators::Dict)
@@ -161,7 +185,7 @@ Example:
 ```
 """
 function vectorfield!(d, generators::Dict, scratch::AbstractVector)
-    tasks, aggregate! = dynam!(d,generators, scratch)
+    tasks, aggregate!, num_vars = dynam!(d,generators, scratch)
     f(du, u, p, t) = begin
         #TODO: parallelize this loop
         map(enumerate(tasks)) do (i, tk)
@@ -171,6 +195,6 @@ function vectorfield!(d, generators::Dict, scratch::AbstractVector)
         aggregate!(du, scratch)
         return du
     end
-    return f
+    return f, num_vars
 end
 end #module

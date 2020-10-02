@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
 Compose = "a81c6b42-2e10-5240-aca2-a61377ecd94b"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"

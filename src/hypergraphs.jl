@@ -15,7 +15,13 @@ using Catlab.Programs.RelationalPrograms
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.CSets
 
-export dynam, dynam!, vectorfield, vectorfield!
+export DynamicalSystem, dynam, dynam!, vectorfield, vectorfield!
+
+
+struct DynamicalSystem
+  dynamics::F where F <: Function
+  space::Int
+end
 
 
 """    dynam(d, generators::Dict)
@@ -26,7 +32,7 @@ for each subsystem and a function for aggregating the terms of the ODE.
 - d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
 - generators: A dictionary mapping the name of each box to its corresponding dynamical system
 """
-function dynam(d, generators::Dict)
+function dynam(d, generators::Dict{Symbol, DynamicalSystem})
     # we create a task array so that you could parallelize the computation of
     # primitive subsystems using pmap. This function overhead could be eliminated
     # for benchmarking the sequential version.
@@ -108,7 +114,7 @@ in place version of dynam
 - generators: A dictionary mapping the name of each box to its corresponding dynamical system
 - scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
 """
-function dynam!(d, generators::Dict, scratch::AbstractVector)
+function dynam!(d, generators::Dict{Symbol, DynamicalSystem}, scratch::AbstractVector)
     juncs = subpart(d, :junction)
     names = subpart(d,:name)
     cur_ports = nparts(d, :Port)
@@ -119,9 +125,11 @@ function dynam!(d, generators::Dict, scratch::AbstractVector)
         boxports = copy(incident(d, b, :box))
         boxjuncs = juncs[boxports]
         n = names[b]
-        (generator, size) = generators[n]
-        if size > length(boxports)
-            len_diff = size - length(boxports)
+        dynam = generators[n].dynamics
+        space = generators[n].space
+
+        if space > length(boxports)
+            len_diff = space - length(boxports)
             append!(boxjuncs, cur_juncs .+ (1:len_diff))
             append!(boxports, cur_ports .+ (1:len_diff))
             cur_ports += len_diff
@@ -130,7 +138,7 @@ function dynam!(d, generators::Dict, scratch::AbstractVector)
         tv = view(scratch, boxports)
         task(u, p, t) = begin
             v = view(u, boxjuncs)
-            generator(tv, v, p, t)
+            dynam(tv, v, p, t)
         end
     end
 
@@ -142,7 +150,7 @@ function dynam!(d, generators::Dict, scratch::AbstractVector)
             juncports = inc[j]
             out[j] = sum(du[juncports])
         end
-        out[(end - hidden_size):end] = du[(end - hidden_size):end]
+        out[(end - hidden_size + 1):end] = du[(end - hidden_size + 1):end]
     end
     @assert length(scratch) == cur_ports
     return tasks, aggregate!, cur_juncs

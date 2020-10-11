@@ -9,6 +9,7 @@ using Catlab.Programs
 using RecursiveArrayTools
 using OrdinaryDiffEq
 
+include("discdynam.jl")
 include("hypergraphs.jl")
 include("linrels.jl")
 

@@ -8,5 +8,5 @@ using Catlab.Programs
 include("linrels.jl")
 include("systems.jl")
 include("hypergraphs.jl")
-
+include("discdynam.jl")
 end # module

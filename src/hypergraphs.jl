@@ -15,95 +15,29 @@ using Catlab.Programs.RelationalPrograms
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.CSets
 
-export DynamicalSystem, dynam, dynam!, vectorfield, vectorfield!
+export DynamicalSystem, dynam, vectorfield, set_junctions!, set_hidden_vars!, State
 
+
+struct State
+  state::Array{Float64,1}
+  hidden_ports::Array{Int,1}
+  visible_ports::Array{Int,1}
+  ports_to_junctions::Array{Int,1}
+end
 
 struct DynamicalSystem
   dynamics::F where F <: Function
   space::Int
 end
 
-
-"""    dynam(d, generators::Dict)
-
-create a function for computing the dynamics of a wiring diagram. Returns a list of independent tasks
-for each subsystem and a function for aggregating the terms of the ODE.
-
-- d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
-- generators: A dictionary mapping the name of each box to its corresponding dynamical system
-"""
-function dynam(d, generators::Dict{Symbol, DynamicalSystem})
-    # we create a task array so that you could parallelize the computation of
-    # primitive subsystems using pmap. This function overhead could be eliminated
-    # for benchmarking the sequential version.
-    tasks = Function[]
-
-    cur_size = nparts(d, :Junction)
-    num_juncs = nparts(d, :Junction)
-    junctions = subpart(d,:junction)
-    names = subpart(d, :name)
-
-    # First we create a function based on each generator that accepts the total
-    # state of the system (which is why it limits the input to `juncs`)
-    for box in 1:nparts(d, :Box)
-        n = names[box]
-        ports = incident(d, box, :box)
-        juncs = [junctions[p] for p in ports]
-        (generator, size) = generators[n]
-        if size > length(ports)
-            len_diff = size - length(ports)
-            append!(juncs, cur_size .+ (1:len_diff))
-            cur_size += len_diff
-        end
-        tk = (u, θ, t) -> generator(u[juncs], θ, t)
-        push!(tasks, tk)
-    end
-    # this function could avoid doing all the lookups every time by enclosing the ports
-    # vectors into the function.
-    # TODO: Eliminate all allocations here
-
-    # Given a junction, what are all incident ports?
-    inc = [incident(d,j,:junction) for j in 1:nparts(d, :Junction)]
-
-    hidden_size = cur_size - num_juncs
-    # Sum over all port values for each junction
-    aggregate!(out, du) = begin
-      for j in 1:length(inc)
-        ports = inc[j]
-        out[j] = sum(du[ports])
-      end
-      out[(end - hidden_size):end] = du[(end - hidden_size):end]
-    end
-    return tasks, aggregate!, cur_size
+function set_junctions!(state::State, values::Array{<:Real, 1})
+  maximum(state.ports_to_junctions) == length(values) || throw(DimensionMismatch("Not enough ports for input values"))
+  state.state[state.visible_ports] = values[state.ports_to_junctions]
 end
 
-"""    vectorfield(d, generators::Dict)
-
-create a function for computing the vector field of a dynamical system
-
-- d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
-- generators: A dictionary mapping the name of each box to its corresponding dynamical system
-
-returns f(du, u, p, t) that you can pass to ODEProblem.
-"""
-function vectorfield(d, generators::Dict)
-
-    tasks, aggregate!, num_var = dynam(d, generators)
-    f(du, u, p, t) = begin
-        # TODO: Eliminate all allocations here
-        # Evaluate every individual generator
-        tvecs = map(enumerate(tasks)) do (i, tk)
-            tk(u, p[i], t)
-        end
-
-        # Since ports are assigned in order of Boxes, we can just concatenate
-        # all tvecs and tvecs[n] will be the value at port `n`
-        tvec = vcat(tvecs...)
-        # @assert (length(tvec)) == nparts(d,:Port)
-        aggregate!(du, tvec)
-        return du
-    end
-    return f, num_var
+function set_hidden_vars!(state::State, values::Array{<:Real, 1})
+  size(state.hidden_ports) == size(values) || throw(DimensionMismatch("Not enough ports for input values"))
+  state.state[state.hidden_ports] = values
 end
 
 """    dynam!(d, generators::Dict, scratch::AbstractVector)
@@ -114,46 +48,65 @@ in place version of dynam
 - generators: A dictionary mapping the name of each box to its corresponding dynamical system
 - scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
 """
-function dynam!(d, generators::Dict{Symbol, DynamicalSystem}, scratch::AbstractVector)
+function dynam(d, generators::Dict{Symbol, DynamicalSystem})
     juncs = subpart(d, :junction)
     names = subpart(d,:name)
     cur_ports = nparts(d, :Port)
     cur_juncs = nparts(d, :Junction)
     junc_size = nparts(d, :Junction)
 
+    cur_state = 0
+    offset = 0
+    port_to_state = zeros(Int, cur_ports)
+
+    hidden_states = []
+
+    # Define the task list
     tasks = map(1:nparts(d, :Box)) do b
-        boxports = copy(incident(d, b, :box))
-        boxjuncs = juncs[boxports]
+        boxports = collect(incident(d, b, :box))
+        state_vals = offset .+ boxports
         n = names[b]
         dynam = generators[n].dynamics
         space = generators[n].space
 
+        port_to_state[boxports] = state_vals
+        cur_state += length(boxports)
+
         if space > length(boxports)
             len_diff = space - length(boxports)
-            append!(boxjuncs, cur_juncs .+ (1:len_diff))
-            append!(boxports, cur_ports .+ (1:len_diff))
-            cur_ports += len_diff
-            cur_juncs += len_diff
+            append!(state_vals, cur_state .+ (1:len_diff))
+            append!(hidden_states, cur_state .+ (1:len_diff)) 
+            cur_state += len_diff
+            offset += len_diff
         end
-        tv = view(scratch, boxports)
-        task(u, p, t) = begin
-            v = view(u, boxjuncs)
+
+        # Run dynam with only its own ports visible
+        task(du, u, p, t) = begin
+            v = view(u, state_vals)
+            tv = view(du, state_vals)
             dynam(tv, v, p, t)
         end
     end
 
-    # TODO: Eliminate all allocations here
-    inc = [incident(d,j, :junction) for j in 1:nparts(d,:Junction)]
-    hidden_size = cur_juncs - junc_size
-    aggregate!(out, du) = begin
-        for j in 1:length(inc)
-            juncports = inc[j]
-            out[j] = sum(du[juncports])
+    # Define the aggregation function
+    #inc = [incident(d,j, :junction) for j in 1:nparts(d,:Junction)]
+    junc_state = zeros(junc_size)
+    port_range = 1:nparts(d, :Port)
+
+    p2j = subpart(d, :junction)
+    j2p = [incident(d,j, :junction)[1] for j in 1:nparts(d, :Junction)]
+    internal_junc = port_to_state[j2p[p2j]]
+
+    aggregate!(du) = begin
+        junc_state .= 0
+        for i in port_range
+            if internal_junc[i] != port_to_state[i]
+                du[internal_junc[i]] += du[port_to_state[i]]
+            end
         end
-        out[(end - hidden_size + 1):end] = du[(end - hidden_size + 1):end]
+        du[port_to_state[port_range]] = du[internal_junc[port_range]]
     end
-    @assert length(scratch) == cur_ports
-    return tasks, aggregate!, cur_juncs
+    return tasks, aggregate!, State(zeros(cur_state), hidden_states, port_to_state, p2j)
 end
 
 """    vectorfield!(d, generators::Dict)
@@ -162,7 +115,6 @@ in place version of vectorfield
 
 - d: An undirected wiring diagram whose Boxes represent systems and junctions represent variables
 - generators: A dictionary mapping the name of each box to its corresponding dynamical system
-- scratch::AbstractVector the storage space for computing the tangent vector, must have the same length as the number of ports
 
 returns f(du, u, p, t) that you can pass to ODEProblem.
 
@@ -192,17 +144,17 @@ Example:
     vectorfield!(d, g, zeros(3))
 ```
 """
-function vectorfield!(d, generators::Dict, scratch::AbstractVector)
-    tasks, aggregate!, num_vars = dynam!(d,generators, scratch)
+function vectorfield(d, generators::Dict)
+    tasks, aggregate!, state = dynam(d,generators)
     f(du, u, p, t) = begin
         #TODO: parallelize this loop
         map(enumerate(tasks)) do (i, tk)
-            tk(u, p[i], t)
+            tk(du, u, p[i], t)
         end
         # @assert (length(tvec)) == nparts(d,:Port)
-        aggregate!(du, scratch)
+        aggregate!(du)
         return du
     end
-    return f, num_vars
+    return f, state
 end
 end #module

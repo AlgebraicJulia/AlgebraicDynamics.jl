@@ -75,30 +75,31 @@ using OrdinaryDiffEq
             du[2] = δ*u[1]*u[2]
             end, 2)
         )
-        scratch = zeros(nparts(d, :Port))
         nullparams = zeros(nparts(d, :Box))
-        du = zeros(nparts(d, :Junction))
         println("In Place Creation")
-        @time f, vars = vectorfield!(d, g, scratch)
-        f(du, [13.0, 12.0], zeros(3), 0.0)
+        @time f, state = vectorfield(d, g)
+
+        du = zeros(length(state.state))
+        set_junctions!(state, [13.0, 12.0])
+
+        f(du, state.state, zeros(length(state.state)), 0.0)
         @test norm(du) < 1e-12
 
-        u₀ = [13.0, 12.0]
-        p = ODEProblem(f, u₀, (0,10.0), nullparams)
+        p = ODEProblem(f, state.state, (0,10.0), nullparams)
         println("In Place Solve EQ")
         @time sol = OrdinaryDiffEq.solve(p, Tsit5())
         @time sol = OrdinaryDiffEq.solve(p, Tsit5())
-        @test norm(sol.u[end] - u₀) < 1e-4
+        @test norm(sol.u[end] - state.state) < 1e-4
 
-        u₀ = [17.0, 11.0]
-        p = ODEProblem(f, u₀, (0,10.0), nullparams)
+        set_junctions!(state, [17.0, 11.0])
+        p = ODEProblem(f, state.state, (0,10.0), nullparams)
         println("In Place Solve Osc")
-        f(du, [17.0, 11.0], zeros(3), 0.0)
+        f(du, state.state, zeros(3), 0.0)
         @test norm(du) > 1e-4
         @time sol = OrdinaryDiffEq.solve(p, Tsit5())
         @time sol = OrdinaryDiffEq.solve(p, Tsit5())
         @test all(vcat(sol.u...) .> 0)
-        @test norm(u[1]-u₀[1] for (u,t) in tuples(sol)) > 1e-2
+        @test norm(u[1]-state.state[1] for (u,t) in tuples(sol)) > 1e-2
     end
 #=
     @testset "Food Web" begin
@@ -292,16 +293,15 @@ using OrdinaryDiffEq
             end, 2)
         )
 
-        scratch = [ForwardDiff.Dual(0.0, 0.0) for i in 1:nparts(d, :Port)]
         nullparams = zeros(nparts(d, :Box))
         println("In/Out Place Creation")
-        @time f, vars = vectorfield!(d, g, scratch)
+        @time f, state = vectorfield(d, g)
 
-        u₀ = ForwardDiff.Dual.([17.0, 11.0], [0.0,0.0])
-        p = ODEProblem(f, u₀, (ForwardDiff.Dual(0,0),ForwardDiff.Dual(10.0,0)), nullparams)
+        set_junctions!(state, [17.0, 11.0])
+        p = ODEProblem(f, state.state, (0,10.0), nullparams)
         @time sol = OrdinaryDiffEq.solve(p, Trapezoid())
         @test all(vcat(sol.u...) .> 0)
-        @test norm(u[1]-u₀[1] for (u,t) in tuples(sol)) > 1e-2
+        @test norm(u[1]-state.state[1] for (u,t) in tuples(sol)) > 1e-2
 
     end
 end

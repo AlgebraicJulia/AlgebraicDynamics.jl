@@ -7,7 +7,6 @@ using Catlab.WiringDiagrams.UndirectedWiringDiagrams
 using Catlab.Theories
 using Catlab.CategoricalAlgebra
 
-# using AlgebraicDynamics
 import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
 
 export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, update!, isconsistent
@@ -32,10 +31,9 @@ export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, update!, isconsistent
     value::Attr(State, Scalar)
     jvalue::Attr(Junction, Scalar)
     #junction ⋅ jvalue == state ⋅ value
+
     dynamics::Attr(Box, Dynamics)
-
     # h::Attr(Box, Scalar)
-
 end
 
 const AbstractDynamUWD = AbstractACSetType(TheoryDynamUWD)
@@ -66,8 +64,8 @@ end
 compute the new state of a (continuous space) discrete time dynamical system using in-place operations
 """
 function update!(d::AbstractDynamUWD)
+    # Apply the dynamic of each box on its incident states
     boxes = 1:nparts(d, :Box)
-    boxes
     diffs = map(boxes) do b
         states = incident(d, b, :system)
         values = subpart(d, states, :value)
@@ -77,13 +75,12 @@ function update!(d::AbstractDynamUWD)
         @assert subpart(d, states, :value) == newvalues
         diff = newvalues .- values
     end |> x-> foldl(vcat, x)
+
+    # Apply the cumulative differences to appropriate junctions
     juncs = 1:nparts(d, :Junction)
     map(juncs) do j
         p = incident(d, j, :junction)
         statesp = subpart(d, p, :state)
-        diffs[statesp]
-        subpart(d,:, :jvalue)
-        subpart(d, j, :jvalue)
         nextval = sum(diffs[statesp]) + subpart(d, j, :jvalue)
         set_subpart!(d, j, :jvalue, nextval)
         @assert subpart(d, j, :jvalue) == nextval

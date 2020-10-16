@@ -1,5 +1,7 @@
 using AlgebraicDynamics.DiscDynam
+using AlgebraicDynamics.DiscDynam: functor
 using Catlab
+using LinearAlgebra
 using Catlab.CategoricalAlgebra
 using Test
 
@@ -36,14 +38,13 @@ add_parts!(d, :OuterPort, 0, outer_junction=Int[])
 @test update!(d) == [6, 6, 6, 29, 6, 29]
 @assert isconsistent(d) "d is not consistent, check the initial condition"
 
-end #testset
 
 
 #=
 
 Desired API for defining dynamical systems:
 we need a syntax for expressing the structure of the problem
-d_str = @relation (x, z) begin
+d_str = @relation (x, z) where (x::Var, z::Var) begin
     f(x, y)
     g(y, z)
 end
@@ -55,8 +56,8 @@ d_cont = Functor(:f=>Dynam(
         states=2,
         portmap=(ports=>states)
         values=[-3.0, 1.2])
-    :g=>Dynam(g(x) = states, 
-    ...)    
+    :g=>Dynam(g(x) = states,
+    ...)
 )(d_str)
 # junction values can be computed by commutativity
 # junction⋅jvalue = state⋅value
@@ -70,3 +71,63 @@ for i in 1:100
     update!(d)
 end
 =#
+
+@testset "Relation Functor" begin
+    f(x) = [x[1]*x[2], x[1]+x[2]]
+    g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
+    d_str = @relation (x, z) where (x, y, z) begin
+        f(x, y)
+        g(y, z)
+    end
+
+    d_cont = functor(Dict(:f=>Dynam(
+                            f,
+                            2,
+                            [1,2],
+                            [1,1]),
+                          :g=>Dynam(
+                            g,
+                            3,
+                            [1,2],
+                            [1,1,3]))
+    )(d_str);
+
+    @test isconsistent(d_cont)
+    @test update!(d_cont) == [1,3,3,0,3]
+    @test update!(d_cont) == [3,4,4,-3,3]
+    @test isconsistent(d_cont)
+end
+
+@testset "LV Model" begin
+    α = 1.2
+    β = 0.1
+    γ = 1.3
+    δ = 0.1
+
+    gen = Dict(
+        :birth     => u -> u+[ α*u[1]],
+        :death     => u -> u+[-γ*u[1]],
+        :predation => u -> u+[-β*u[1]*u[2], δ*u[1]*u[2]],
+    )
+
+    d = @relation (x,y) where (x::X, y::X) begin
+        birth(x)
+        predation(x,y)
+        death(y)
+    end
+
+    lv = functor( Dict(:birth => Dynam(gen[:birth], 1, [1], [0]),
+                      :death => Dynam(gen[:death], 1, [1], [0]),
+                      :predation => Dynam(gen[:predation], 2, [1,2], [0,0])))(d)
+
+    # Test starting at equlibrium values
+    u₀ = [13.0, 13.0, 12.0, 12.0]
+    set_values!(lv, u₀)
+    @test all([norm(u₀ - update!(lv)) < 1e-4 for i in 1:10])
+
+    # Test non-equlibrium values
+    u₀ = [17.0, 17.0, 11.0, 11.0]
+    set_values!(lv, u₀)
+    @test norm(u₀ - update!(lv)) > 1e-1
+end
+end #testset

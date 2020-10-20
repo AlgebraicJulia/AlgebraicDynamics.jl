@@ -5,7 +5,7 @@ using Catlab.Graphics
 using Catlab.Theories
 using Catlab.CategoricalAlgebra
 
-export TheoryGraph, AbstractGraph, Graph
+export TheoryGraph, AbstractGraph, Graph, DFS, linearGraph, TheoryVertexValuedGraph, AbstractVertexValuedGraph, VertexValuedGraph
 
 @present TheoryGraph(FreeSchema) begin
     Vertex::Ob
@@ -68,6 +68,23 @@ function cyclicGraph(n::Int)
     return DynamToGraph(cyclicDynam(n))
 end
 
+function linearGraph(n::Int)
+    g = Graph()
+    add_parts!(g, :Vertex,  n)
+    add_parts!(g, :Edge,    n-1, src=1:(n-1),   tgt=2:n)
+    add_parts!(g, :Edge,    n-1, src=2:n,       tgt=1:(n-1))
+    return g
+end
+
+
+@present TheoryVertexValuedGraph <: TheoryGraph begin
+    Value::Data 
+    value::Attr(Vertex, Value)
+end
+
+const AbstractVertexValuedGraph = AbstractACSetType(TheoryVertexValuedGraph)
+const VertexValuedGraph = ACSetType(TheoryVertexValuedGraph, index=[:src, :tgt, :value])
+
 
 
 # g = Graph()
@@ -75,13 +92,16 @@ end
 # add_parts!(g, :Edge,   5,  src=[1,1,1,2,2], tgt=[2,3,3,2,3])
 # @show DFS(g, 3)
 
-d = cyclicDynam(4)
-#add_parts!(d, :State, 4, next=[2,3,1,1])
-@show g = DynamToGraph(d)
-@show DFS(g,1)
+# d = cyclicDynam(4)
+# #add_parts!(d, :State, 4, next=[2,3,1,1])
+# @show g = DynamToGraph(d)
+# @show DFS(g,1)
 
-g = cyclicGraph(10)
-@show DFS(g, 2)
+# g = cyclicGraph(10)
+# @show DFS(g, 2)
+
+# l = linearGraph(4)
+# @show l
 
 
 end #module

@@ -6,6 +6,10 @@ using Catlab.Theories
 using Catlab.CategoricalAlgebra
 using Plots
 
+include("graphDynam.jl")
+
+using GraphDynam
+
 export TheoryDynamMachine, AbstractDynamMachine, DynamMachine
 
 @present TheoryDynamMachine(FreeSchema) begin
@@ -29,6 +33,11 @@ end
 const AbstractDynamMachine = AbstractACSetType(TheoryDynamMachine)
 const DynamMachine = ACSetType(TheoryDynamMachine, index=[:parameterizes, :state, :system, :value, :feeder, :dynamics])
 DynamMachine() = DynamMachine{Real, Function}()
+
+@present TheoryDynamEquippedGraph <: TheoryGraph begin
+    Dynamics::Data
+    dynamics::Attr(Vertex, Dynamics)
+end
 
 
 
@@ -96,8 +105,8 @@ for i=1:N
     fs[i] = vs[2]
 end
 
-plot(ts, rs)
-plot!(ts, fs)
-@show rs
-@show fs
+# plot(ts, rs)
+# plot!(ts, fs)
+# @show rs
+# @show fs
 end #module

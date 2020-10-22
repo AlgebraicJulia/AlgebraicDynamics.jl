@@ -92,16 +92,27 @@ function update!(d::AbstractDynamUWD)
 end
 
 struct Dynam
-    dynam::Function
-    states::Int
-    portmap::Array{Int}
-    values::Array{Real}
+    dynam::AbstractDynamUWD
     function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Array{<:Real,1})
         @assert maximum(portmap) <= states
         @assert states == length(values)
-        new(dynam, states, portmap, values)
+        d_box = DynamUWD()
+        b_ind = add_part!(d_box, :Box, dynamics=dynam)
+        st_ind = add_parts!(d_box, :State, states, value=values,
+                            system=ones(Int,length(values)))
+        jn_ind = add_parts!(d_box, :Junction, length(portmap))
+        pt_ind = add_parts!(d_box, :Port, length(portmap),
+                                   junction=collect(1:length(portmap)),
+                                   state=portmap)
+        set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
+        new(d_box)
     end
 end
+
+dynam(d::Dynam) = subpart(d.dynam, :dynamics)[1]
+states(d::Dynam) = nparts(d.dynam, :State)
+portmap(d::Dynam) = subpart(d.dynam, :state)
+values(d::Dynam) = subpart(d.dynam, :value)
 
 function functor(transform::Dict{Symbol, Dynam})
     convert(uwd::AbstractUWD) = begin
@@ -115,11 +126,11 @@ function functor(transform::Dict{Symbol, Dynam})
         for b in 1:nparts(dst, :Box)
             name = subpart(uwd, b, :name)
             ports = incident(dst, b, :box)
-            dynam = transform[name]
-            set_subpart!(dst, b, :dynamics, dynam.dynam)
-            states = add_parts!(dst, :State, dynam.states, system=fill(b, dynam.states),
-                                                           value=dynam.values)
-            set_subpart!(dst, ports, :state, states[dynam.portmap])
+            dyn = transform[name]
+            set_subpart!(dst, b, :dynamics, dynam(dyn))
+            d_states = add_parts!(dst, :State, states(dyn), system=fill(b, states(dyn)),
+                                                            value=values(dyn))
+            set_subpart!(dst, ports, :state, d_states[portmap(dyn)])
         end
         for p in 1:nparts(dst, :Port)
             j = subpart(dst, p, :junction)

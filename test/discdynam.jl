@@ -110,7 +110,7 @@ end
         :predation => u -> u+[-β*u[1]*u[2], δ*u[1]*u[2]],
     )
 
-    d = @relation (x,y) where (x::X, y::X) begin
+    d = @relation (x,y) where (x, y) begin
         birth(x)
         predation(x,y)
         death(y)

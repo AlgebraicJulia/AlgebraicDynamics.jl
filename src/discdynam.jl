@@ -6,6 +6,7 @@ using Catlab.WiringDiagrams
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 using Catlab.Theories
 using Catlab.CategoricalAlgebra
+using ..Functors
 
 import Catlab.Programs.RelationalPrograms: @relation
 import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
@@ -101,7 +102,7 @@ struct Dynam
         st_ind = add_parts!(d_box, :State, states, value=values,
                             system=ones(Int,length(values)))
         jn_ind = add_parts!(d_box, :Junction, length(portmap))
-        pt_ind = add_parts!(d_box, :Port, length(portmap),
+        pt_ind = add_parts!(d_box, :Port, length(portmap), box=ones(Int, length(portmap)),
                                    junction=collect(1:length(portmap)),
                                    state=portmap)
         set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
@@ -115,30 +116,19 @@ portmap(d::Dynam) = subpart(d.dynam, :state)
 values(d::Dynam) = subpart(d.dynam, :value)
 
 function functor(transform::Dict{Symbol, Dynam})
-    convert(uwd::AbstractUWD) = begin
-        dst = DynamUWD()
-        add_parts!(dst, :Junction, nparts(uwd, :Junction))
-        add_parts!(dst, :Box, nparts(uwd, :Box))
-        add_parts!(dst, :Port, nparts(uwd, :Port), box=subpart(uwd, :box),
-                                                   junction=subpart(uwd, :junction))
-        add_parts!(dst, :OuterPort, nparts(uwd, :OuterPort),
-                                    outer_junction=subpart(uwd, :outer_junction))
-        for b in 1:nparts(dst, :Box)
-            name = subpart(uwd, b, :name)
-            ports = incident(dst, b, :box)
-            dyn = transform[name]
-            set_subpart!(dst, b, :dynamics, dynam(dyn))
-            d_states = add_parts!(dst, :State, states(dyn), system=fill(b, states(dyn)),
-                                                            value=values(dyn))
-            set_subpart!(dst, ports, :state, d_states[portmap(dyn)])
-        end
-        for p in 1:nparts(dst, :Port)
-            j = subpart(dst, p, :junction)
-            set_subpart!(dst, j, :jvalue, subpart(dst,subpart(dst, p, :state), :value))
-        end
-        return dst
-    end
-    return convert
+  function ob_to_dynam(rel::UntypedRelationDiagram)
+    cur_dyn = DynamUWD()
+    src = transform[subpart(rel, 1, :name)].dynam
+    copy_parts!(cur_dyn, src, (Box=:, Port=:, State=:))
+    add_parts!(cur_dyn, :Junction, nparts(rel, :Junction))
+    p_to_junc = subpart(rel, :junction)
+    set_subpart!(cur_dyn, :junction, p_to_junc)
+    set_subpart!(cur_dyn, :jvalue,
+                subpart(src, [incident(cur_dyn, i, :junction)[1] for i in 1:nparts(rel, :Junction)], :jvalue))
+    add_parts!(cur_dyn, :OuterPort, nparts(rel, :OuterPort), outer_junction=subpart(rel, :outer_junction))
+    cur_dyn
+  end
+  Functor(ob_to_dynam, DynamUWD)
 end
 
 function set_values!(d::AbstractDynamUWD{<:Number, Function}, values::Array{<:Number})

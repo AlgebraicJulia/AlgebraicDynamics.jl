@@ -17,14 +17,22 @@ struct Functor
 end
 
 function (F::Functor)(uwd::RelationDiagram)
+  _functor(F, copy(uwd))
+end
+
+function _functor(F::Functor, uwd::RelationDiagram)
   # Base Case: UWD of 1 box
   if nparts(uwd, :Box) == 1
       return F.ob(uwd)
   end
+  # TODO: Make a more generalized version so that we don't have
+  # to arbitrarily keep track of OuterPort order
+
   # Split box, apply functor, then re-compose
-  cosp, l_uwd, r_uwd = F.split(uwd)
-  return F.comp(cosp, F(l_uwd), F(r_uwd))
+  op, cosp, l_uwd, r_uwd = F.split(uwd)
+  return F.comp(op, cosp, F(l_uwd), F(r_uwd))
 end
+
 
 function Functor(ob, OpenType)
   Functor(ob, gen_compose(OpenType), split!)
@@ -37,44 +45,39 @@ end
 # Generic compose function that should
 function gen_compose(OpenType)
   OpenTOb, OpenT = OpenACSetTypes(OpenType, :Junction)
-  function typedComp(cosp::Cospan, a::T, b::T) where {CD, AD, Ts, T <: ACSet{CD, AD, Ts}}
-    # Define the necessary open type (would like to get this from T)
-    fin_ind = [(findall(x->x==i, cosp.legs[1].func),
-                findall(x->x==i, cosp.legs[2].func)) for i in 1:length(cosp.apex)]
-    a_bound = Array{Int, 1}()
-    b_bound = Array{Int, 1}()
-    new_order = zeros(Int, length(cosp.apex))
+  function typedComp(op_map::Array{Int, 1}, cosp::Cospan, a::T, b::T) where {CD, AD, Ts, T <: ACSet{CD, AD, Ts}}
+    # Get inverses of the cospan legs to convert it to a span
+    a_inv = zeros(Int, length(cosp.apex))
+    a_inv[cosp.legs[1].func] = 1:length(cosp.legs[1].func)
 
-    # Determine the offset for each junction in b that will not be merged
-    # (and will be added to the end of the set of junctions)
-    indices = filter(inds -> !(isempty(inds[1]) || isempty(inds[2])), fin_ind)
-    indices = [ind[2][1] for ind in indices]
-    offsets = collect(1:nparts(b,:Junction))
-    sort!(indices)
-    for i in indices
-      offsets[(i+1):end] .-= 1
-    end
+    b_inv = zeros(Int, length(cosp.apex))
+    b_inv[cosp.legs[2].func] = 1:length(cosp.legs[2].func)
 
-    #
-    for (i, inds) in enumerate(fin_ind)
-      # We assume that no two junctions on one leg map to the same point on the apex
-      if !(isempty(inds[1]) || isempty(inds[2]))
-        append!(a_bound, inds[1][1])
-        append!(b_bound, inds[2][1])
-        new_order[inds[1][1]] = i
-      elseif !isempty(inds[1])
-        new_order[inds[1][1]] = i
-      elseif !isempty(inds[2])
-        new_order[offsets[inds[2][1]]+nparts(a,:Junction)] = i
-      else
+    # Generate boundaries, and fill in junctions necessary to convert cospan to span
+    for i in 1:length(cosp.apex)
+      if a_inv[i] == 0 && b_inv[i] == 0
         throw(error("Index $i in the apex has no value mapped to it"))
+      elseif b_inv[i] == 0
+        a_attr = a.tables.Junction[a_inv[i]]
+        b_junc = add_part!(b, :Junction, a_attr)
+        b_inv[i] = b_junc
+      elseif a_inv[i] == 0
+        b_attr = b.tables.Junction[b_inv[i]]
+        a_junc = add_part!(a, :Junction, b_attr)
+        a_inv[i] = a_junc
       end
     end
-    open_a = OpenT{Ts.parameters...}(a, FinFunction(Array{Int, 1}(), nparts(a, :Junction)), FinFunction(a_bound, nparts(a, :Junction)))
-    open_b = OpenT{Ts.parameters...}(b, FinFunction(b_bound, nparts(b, :Junction)), FinFunction(Array{Int, 1}(), nparts(b, :Junction)))
+
+    # We now have sufficient data on both ends to use open composition
+    open_a = OpenT{Ts.parameters...}(a, FinFunction(Array{Int, 1}(), nparts(a, :Junction)), FinFunction(a_inv, nparts(a, :Junction)))
+    open_b = OpenT{Ts.parameters...}(b, FinFunction(b_inv, nparts(b, :Junction)), FinFunction(Array{Int, 1}(), nparts(b, :Junction)))
+
     # It might help if this structure stored what objects in a,b map to objects in ab
     ab = compose(open_a, open_b).cospan.apex
-    reorder_part!(ab, :Junction, new_order)
+
+    # Bring the resulting junctions back to original order
+    reorder_part!(ab, :Junction, a_inv)
+    reorder_part!(ab, :OuterPort, op_map)
     return ab
   end
   return typedComp
@@ -107,23 +110,41 @@ function split!(left::UntypedRelationDiagram)
   junctions = filter(j -> isempty(incident(left, j, :junction)), right_juncs)
   # Transfer outer_ports with these
   outerports = vcat(incident(left, junctions, :outer_junction)...)
-  if !isempty(outerports)
-    add_parts!(right, :OuterPort, length(outerports),
-                    outer_junction=left_to_right[subpart(left, outerports, :outer_junction)])
-    rem_parts!(left, :OuterPort, outerports)
+  left_outer = collect(1:nparts(left, :OuterPort))
+  right_outer = Array{Int, 1}()
+  reverse!(sort!(outerports)) # Delete from back to front
+
+  # Take care of order of OuterPorts
+  left_op_juncs = left.tables.OuterPort[outerports]
+
+  for (i,op) in enumerate(outerports)
+    add_part!(right, :OuterPort)
+    for k in keys(left_op_juncs[i])
+      v = left_op_juncs[i][k]
+      if k == :outer_junction
+        set_subpart!(right, i, k, left_to_right[v])
+      else
+        set_subpart!(right, i, k, v)
+      end
+    end
+    rem_part!(left, :OuterPort, op)
+    push!(right_outer, left_outer[op])
+    left_outer[op] = left_outer[end]
+    pop!(left_outer)
   end
+
+  # Remove unnecessary junctions
   reverse!(sort!(junctions))
 
   # NOTE: This section is dependent upon the specific deletion algorithm used by
-  for j in sort!(junctions)
+  for j in junctions
     rem_part!(left, :Junction, j)
     left_juncs[j] = left_juncs[end]
     pop!(left_juncs)
   end
   cosp = Cospan(FinFunction(left_juncs, njuncs), FinFunction(right_juncs, njuncs))
-  cosp, left, right
+  vcat(left_outer, right_outer), cosp, left, right
 end
-
 
 # Provide a new order for a given part of the ACSet
 # `order` is assumed to be a bijection. Maybe make this into

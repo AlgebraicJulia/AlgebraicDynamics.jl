@@ -11,7 +11,7 @@ using ..Functors
 import Catlab.Programs.RelationalPrograms: @relation
 import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
 
-export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, update!, isconsistent, Dynam, functor, @relation, set_values!
+export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, update!, isconsistent, Dynam, functor, @relation, set_values!, dynamics
 # @present TheoryUWD(FreeSchema) begin
 #   Box::Ob
 #   Port::Ob
@@ -90,6 +90,17 @@ function update!(d::AbstractDynamUWD)
         @assert all(subpart(d, statesp, :value) .== nextval)
     end
     subpart(d,:, :value)
+end
+
+function dynamics(d::DynamUWD)
+    f(x) = begin
+        set_subpart!(d, :, :value, x)
+        set_subpart!(d, :, :jvalue, x[subpart(d, map(first, incident(d, :, :junction)), :state)])
+        # subpart(d, :, :value)
+        x′ = update!(d)
+        @assert all(x′ .== subpart(d,:,:value))
+        return x′
+    end
 end
 
 struct Dynam

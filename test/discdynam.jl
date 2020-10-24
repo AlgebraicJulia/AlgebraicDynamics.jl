@@ -38,6 +38,45 @@ add_parts!(d, :OuterPort, 0, outer_junction=Int[])
 @test update!(d) == [6, 6, 6, 29, 6, 29]
 @assert isconsistent(d) "d is not consistent, check the initial condition"
 
+@testset "Recusive DiscDynam" begin
+    f(x) = [x[1]*x[2], x[1]+x[2]]
+    g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
+
+    d = DynamUWD{Float64, Function}()
+    add_parts!(d, :Junction,  3, jvalue=[1,1,1])
+    add_parts!(d, :Box,       2, dynamics=[f,g])
+    add_parts!(d, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
+    add_parts!(d, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
+    add_parts!(d, :OuterPort, 2, outer_junction=[1,3])
+
+
+    gdef = DynamUWD{Float64, Function}()
+    add_parts!(gdef, :Box, 2, dynamics=[x->[x[1]+x[2], x[2]-x[1]], x->[x[1]]])
+    add_parts!(gdef, :State, 3, value=[1,1,3], system=[1,1,2])
+    add_parts!(gdef, :Junction, 3)
+    add_parts!(gdef, :Port, 3, box=[1,1,2], junction=[1,2,3], state=[1,2,3])
+    add_parts!(gdef, :OuterPort, 2, outer_junction=[1,2])
+    set_subpart!(gdef, :jvalue, [1,1,3])
+    g2 = dynamics(gdef) 
+
+    d2 = DynamUWD{Float64, Function}()
+    add_parts!(d2, :Junction,  3, jvalue=[1,1,1])
+    add_parts!(d2, :Box,       2, dynamics=[f,g2])
+    add_parts!(d2, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
+    add_parts!(d2, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
+    add_parts!(d2, :OuterPort, 2, outer_junction=[1,3])
+    
+
+    x₁ = update!(d)
+    x₂ = update!(d)
+
+    y₁ = update!(d2)
+    # @show subpart(d2, :, [:value])
+    # @show subpart(gdef, :, [:value])
+    y₂ = update!(d2)
+    @test x₁ == y₁
+    @test x₂ == y₂
+end
 
 
 #=

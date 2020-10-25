@@ -23,6 +23,17 @@ add_parts!(d, :OuterPort, 2, outer_junction=[1,3])
 @test update!(d) == [3,4,4,-3,3]
 @test isconsistent(d)
 
+
+println("Sys1\tStep1")
+x = [1,1,1,1,3]
+y = zero(x)
+update!(y, d, x)
+@test y == [1,3,3,0,3]
+y′ = zero(x)
+println("Sys1\tStep2")
+update!(y′, d, y)
+@test y′ == [3,4,4,-3,3]
+
 f(x) = [x[2], x[1]]
 g(x) = [x[1]+x[2], x[2]-x[1]]
 h(x) = [2*x[1], 2*x[1]*x[2]]
@@ -37,6 +48,19 @@ add_parts!(d, :OuterPort, 0, outer_junction=Int[])
 @assert isconsistent(d) "d is not consistent, check the initial condition"
 @test update!(d) == [6, 6, 6, 29, 6, 29]
 @assert isconsistent(d) "d is not consistent, check the initial condition"
+
+@testset "Preallocated" begin
+    d = DynamUWD{Float64, Function}()
+    add_parts!(d, :Junction,  3, jvalue=[1,0,5])
+    add_parts!(d, :Box,       3, dynamics=[f,g,h])
+    add_parts!(d, :State,     6, system=[1,1, 2,2, 3,3], value=[1,1,1,5,3,5])
+    add_parts!(d, :Port,      5, box=[1, 1, 2, 2, 3], junction=[1, 1, 1, 3,3], state=[1,2,3,4,6])
+    add_parts!(d, :OuterPort, 0, outer_junction=Int[])
+    x = subpart(d, :value)
+    y = zero(x)
+    update!(y, d, x)
+    @test y == [6,6,6,29,6,29]
+end
 
 @testset "Recusive DiscDynam" begin
     f(x) = [x[1]*x[2], x[1]+x[2]]

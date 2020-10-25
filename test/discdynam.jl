@@ -90,7 +90,7 @@ end
     add_parts!(d2, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
     add_parts!(d2, :OuterPort, 2, outer_junction=[1,3])
     
-    x = subpart(d2, :value)
+    x = copy(subpart(d2, :value))
     x₁ = update!(d)
     x₂ = update!(d)
 
@@ -101,10 +101,6 @@ end
     @test x₁ == y₁
     @test x₂ == y₂
 
-    dynamics!(diag::DynamUWD) = begin
-        # storage = zeros(Float64, nparts(diag, :State))
-        return state -> update!(zeros(Float64, nparts(diag, :State)), diag, state)
-    end
 
     d3 = DynamUWD{Float64, Function}()
     add_parts!(d3, :Junction,  3, jvalue=[1,1,1])

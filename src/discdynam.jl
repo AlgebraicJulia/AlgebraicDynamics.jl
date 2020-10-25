@@ -92,15 +92,17 @@ function update!(d::AbstractDynamUWD)
     subpart(d,:, :value)
 end
 
+function update!(y::AbstractVector, f::Function, x::AbstractVector)
+    y .= f(x)
+end
+
 function update!(newstate::AbstractVector, d::AbstractDynamUWD, state::AbstractVector)
     # Apply the dynamic of each box on its incident states
     boxes = 1:nparts(d, :Box)
     for b in boxes
         states = incident(d, b, :system)
-        values = state[states]
         dynamics = subpart(d, b, :dynamics)
-        newvalues = dynamics(values)
-        newstate[states] .= newvalues
+        newvalues = update!(view(newstate, states), dynamics, view(state, states))
     end
 
     # Apply the cumulative differences to appropriate junctions

@@ -101,12 +101,17 @@ end
     @test x₁ == y₁
     @test x₂ == y₂
 
-    d3 = DynamUWD{Float64, Any}()
-    add_parts!(d2, :Junction,  3, jvalue=[1,1,1])
-    add_parts!(d2, :Box,       2, dynamics=[f,gdef])
-    add_parts!(d2, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
-    add_parts!(d2, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
-    add_parts!(d2, :OuterPort, 2, outer_junction=[1,3])
+    dynamics!(diag::DynamUWD) = begin
+        # storage = zeros(Float64, nparts(diag, :State))
+        return state -> update!(zeros(Float64, nparts(diag, :State)), diag, state)
+    end
+
+    d3 = DynamUWD{Float64, Function}()
+    add_parts!(d3, :Junction,  3, jvalue=[1,1,1])
+    add_parts!(d3, :Box,       2, dynamics=[f,dynamics!(gdef)])
+    add_parts!(d3, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
+    add_parts!(d3, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
+    add_parts!(d3, :OuterPort, 2, outer_junction=[1,3])
     @test update!(zero(x), d3, x) == y₁
     @test update!(zero(x), d3, y₁) == y₂
 end

@@ -139,26 +139,28 @@ end
 
 struct Dynam
     dynam::AbstractDynamUWD
-    function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Array{<:Real,1})
-        @assert maximum(portmap) <= states
-        @assert states == length(values)
-        d_box = DynamUWD()
-        b_ind = add_part!(d_box, :Box, dynamics=dynam)
-        st_ind = add_parts!(d_box, :State, states, value=values,
-                            system=ones(Int,length(values)))
-        jn_ind = add_parts!(d_box, :Junction, length(portmap))
-        pt_ind = add_parts!(d_box, :Port, length(portmap), box=ones(Int, length(portmap)),
-                                   junction=collect(1:length(portmap)),
-                                   state=portmap)
-        set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
-        new(d_box)
-    end
 end
 
+function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Array{<:Real,1})
+    @assert maximum(portmap) <= states
+    @assert states == length(values)
+    d_box = DynamUWD()
+    b_ind = add_part!(d_box, :Box, dynamics=dynam)
+    st_ind = add_parts!(d_box, :State, states, value=values,
+                        system=ones(Int,length(values)))
+    jn_ind = add_parts!(d_box, :Junction, length(portmap))
+    pt_ind = add_parts!(d_box, :Port, length(portmap), box=ones(Int, length(portmap)),
+                                junction=collect(1:length(portmap)),
+                                state=portmap)
+    set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
+    Dynam(d_box)
+end
 dynam(d::Dynam) = subpart(d.dynam, :dynamics)[1]
 states(d::Dynam) = nparts(d.dynam, :State)
 portmap(d::Dynam) = subpart(d.dynam, :state)
 values(d::Dynam) = subpart(d.dynam, :value)
+
+update!(y::AbstractVector, f::Dynam, x::AbstractVector) = update!(y, f.dynam, x)
 
 function functor(transform::Dict{Symbol, Dynam})
   function ob_to_dynam(rel::UntypedRelationDiagram)

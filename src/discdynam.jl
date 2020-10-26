@@ -6,13 +6,14 @@ using Catlab.WiringDiagrams
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 using Catlab.Theories
 using Catlab.CategoricalAlgebra
+import Catlab.CategoricalAlgebra.FinSets: Cospan, FinFunction
 using ..Functors
 
 import Catlab.Programs.RelationalPrograms: @relation
 import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
 
-export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, 
-  update!, isconsistent,
+export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, Cospan, FinFunction,
+  update!, isconsistent, compose,
   dynamics, dynamics!,
   Dynam, functor, @relation, set_values!
 
@@ -176,6 +177,41 @@ function functor(transform::Dict{Symbol, Dynam})
     cur_dyn
   end
   Functor(ob_to_dynam, DynamUWD)
+end
+
+# Can either compose this by using heirarchical definition
+# Or can keep everything expanded out
+
+# How about a heriarchical definition here, then we can have a "flatten" function called on a Dynam?
+
+function compose(cosp::Cospan)
+  function operation(systems::Dynam...)
+    res = DynamUWD{Real, Union{Function, Dynam}}()
+    # Add system boxes
+    add_parts!(res, :Box, length(systems), dynamics=systems)
+
+    # Add junctions
+    add_parts!(res, :Junction, length(cosp.apex))
+
+    # Add global outerports
+    add_parts!(res, :OuterPort, length(cosp.legs[2].func),
+                    outer_junction=cosp.legs[2].func)
+
+    # Add appropriate states and ports
+    tot_states = 0
+    for (i,sys) in enumerate(systems)
+      add_parts!(res, :State, nparts(sys.dynam, :State), system=i, value=subpart(sys.dynam, :value))
+      # How do we choose what state is assigned to the outerport?
+      # Currently we just choose the first port connected to the junction since this *should* always
+      #   be equivalent to other ports on the junction
+      add_parts!(res, :Port, nparts(sys.dynam, :OuterPort), box=i,
+                      state=tot_states .+ [first(incident(sys.dynam, port, :junction)) for port in subpart(sys.dynam, :outer_junction)])
+      tot_states += nparts(sys.dynam, :State)
+    end
+    set_subpart!(res, :junction, cosp.legs[1].func)
+    set_subpart!(res, :jvalue, subpart(res, subpart(res, map(first, incident(res, :, :junction)), :state), :value))
+    res
+  end
 end
 
 function set_values!(d::AbstractDynamUWD{<:Number, Function}, values::Array{<:Number})

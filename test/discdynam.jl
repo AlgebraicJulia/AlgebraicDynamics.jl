@@ -81,7 +81,7 @@ end
     add_parts!(gdef, :Port, 3, box=[1,1,2], junction=[1,2,3], state=[1,2,3])
     add_parts!(gdef, :OuterPort, 2, outer_junction=[1,2])
     set_subpart!(gdef, :jvalue, [1,1,3])
-    g2 = dynamics(gdef) 
+    g2 = dynamics(gdef)
 
     d2 = DynamUWD{Float64, Function}()
     add_parts!(d2, :Junction,  3, jvalue=[1,1,1])
@@ -89,7 +89,7 @@ end
     add_parts!(d2, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
     add_parts!(d2, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
     add_parts!(d2, :OuterPort, 2, outer_junction=[1,3])
-    
+
     x = copy(subpart(d2, :value))
     x₁ = update!(d)
     x₂ = update!(d)
@@ -121,6 +121,41 @@ end
     @test update!(zero(x), d3, y₁) == y₂
 end
 
+@testset "Composition of Systems" begin
+    f(x) = [x[1]*x[2], x[1]+x[2]]
+    g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
+    f_rel = @relation (x, y) where (x, y) begin
+        f(x, y)
+    end
+    g_rel = @relation (x, y) where (x, y) begin
+        g(x, y)
+    end
+
+    to_dynam = functor(Dict(:f=>Dynam(
+                            f,
+                            2,
+                            [1,2],
+                            [1,1]),
+                          :g=>Dynam(
+                            g,
+                            3,
+                            [1,2],
+                            [1,1,3]))
+    );
+    f_dyn = Dynam(to_dynam(f_rel))
+    g_dyn = Dynam(to_dynam(g_rel))
+
+    cosp = Cospan(FinFunction([1,2,2,3], 3), FinFunction([1,3], 3))
+    fg_dyn = AlgebraicDynamics.DiscDynam.compose(cosp)(f_dyn, g_dyn)
+
+    output = zeros(5)
+    input = [1,1,1,1,3]
+    @test isconsistent(fg_dyn)
+    @test update!(output, fg_dyn, input) == [1,3,3,0,3]
+    input = output
+    @test update!(output, fg_dyn, input) == [3,4,4,-3,3]
+    @test isconsistent(fg_dyn)
+end
 
 #=
 

@@ -30,10 +30,10 @@ function _functor(F::Functor, uwd::RelationDiagram)
 
   # Split box, apply functor, then re-compose
   op, cosp, l_uwd, r_uwd = F.split(uwd)
-  return F.comp(op, cosp, F(l_uwd), F(r_uwd))
+  return F.comp(op, cosp, _functor(F, l_uwd), _functor(F, r_uwd))
 end
 
-
+# TODO: Add some kind of checking to ensure that `ob` returns valid objects
 function Functor(ob, OpenType)
   Functor(ob, gen_compose(OpenType), split!)
 end

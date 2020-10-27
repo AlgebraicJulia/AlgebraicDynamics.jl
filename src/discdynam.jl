@@ -70,14 +70,14 @@ end
 
 compute the new state of a (continuous space) discrete time dynamical system using in-place operations
 """
-function update!(d::AbstractDynamUWD)
+function update!(d::AbstractDynamUWD, args...)
     # Apply the dynamic of each box on its incident states
     boxes = 1:nparts(d, :Box)
     diffs = map(boxes) do b
         states = incident(d, b, :system)
         values = subpart(d, states, :value)
         dynamics = subpart(d, b, :dynamics)
-        newvalues = dynamics(values)
+        newvalues = dynamics(values, args...)
         set_subpart!(d, states, :value, newvalues)
         @assert subpart(d, states, :value) == newvalues
         diff = newvalues .- values
@@ -97,20 +97,21 @@ function update!(d::AbstractDynamUWD)
     subpart(d,:, :value)
 end
 
-function update!(y::AbstractVector, f::Function, x::AbstractVector)
-    y .= f(x)
+function update!(y::AbstractVector, f::Function, x::AbstractVector, args...)
+    y .= f(x, args...)
 end
 
-function update!(newstate::AbstractVector, d::AbstractDynamUWD, state::AbstractVector)
+function update!(newstate::AbstractVector, d::AbstractDynamUWD, state::AbstractVector, args...)
     # Apply the dynamic of each box on its incident states
     boxes = 1:nparts(d, :Box)
     for b in boxes
         states = incident(d, b, :system)
         dynamics = subpart(d, b, :dynamics)
-        newvalues = update!(view(newstate, states), dynamics, view(state, states))
+        newvalues = update!(view(newstate, states), dynamics, view(state, states), args...)
     end
 
     # Apply the cumulative differences to appropriate junctions
+
     juncs = 1:nparts(d, :Junction)
     for j in juncs
         p = incident(d, j, :junction)

@@ -244,4 +244,42 @@ end
     set_values!(lv, u₀)
     @test norm(u₀ - update!(lv)) > 1e-1
 end
+
+
+@testset "dynamics with input" begin
+    f(x, a) = [x[1] + a, a*x[2]]
+    g(x, a) = [x[2], a-x[1]]
+
+    f_dyn = Dynam(f, 2, [1,2], [-1,1])
+    g_dyn = Dynam(g, 2, [1,2], [-1,1])
+
+    cspn = Cospan(FinFunction([1,2,1,2], 2), FinFunction([1,2], 2))
+
+    d = AlgebraicDynamics.DiscDynam.compose(cspn)(f_dyn, g_dyn)
+
+    input = subpart(d,:value)
+    output = zero(input)
+    @test update!(output,d,input, 1) == [2, 2, 2, 2]
+    @test update!(output,d,input, 100) == [101, 200, 101, 200]
+
+
+    h(x,a,b) = [a*x[1], b*x[2]]
+    k(x,a,b) = [a*b, x[2]]
+    l(x,a,b) = [x[2], -x[1]]
+
+    h_dyn = Dynam(h, 2, [1,2], [-1, -2])
+    k_dyn = Dynam(k, 2, [1,2], [-2, -3])
+    l_dyn = Dynam(l, 2, [1,2], [-3, -4])
+
+    cspn = Cospan(FinFunction([1,2,2,3, 3, 4], 4), FinFunction([1,2,3,4], 4))
+    d = AlgebraicDynamics.DiscDynam.compose(cspn)(h_dyn, k_dyn, l_dyn)
+
+    input = subpart(d, :value)
+    output = zero(input)
+    @test update!(output, d, input, 10, 2) == [-10, 18, 18, -4, -4, 3]
+    @test update!(output, d, input, 0, 0) == [0, 2, 2, -4, -4, 3]
+
+
+end
+
 end #testset

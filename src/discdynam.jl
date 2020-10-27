@@ -178,32 +178,34 @@ end
 
 # How about a heriarchical definition here, then we can have a "flatten" function called on a Dynam?
 
-function compose(cosp::Cospan, systems::DynamUWD...)
-  res = DynamUWD{Real, Union{Function, DynamUWD}}()
-  # Add system boxes
-  add_parts!(res, :Box, length(systems), dynamics=systems)
+function compose(M::Cospan, systems::DynamUWD...)
+  # Generate product and cospan of systems
+  sys_prod =  coproduct([sys for sys in systems]).cocone.apex
+  sys_left =  FinFunction(subpart(sys_prod, :junction),       nparts(sys_prod, :Junction))
+  sys_right = FinFunction(subpart(sys_prod, :outer_junction), nparts(sys_prod, :Junction))
+  N = Cospan(sys_left, sys_right)
 
-  # Add junctions
-  add_parts!(res, :Junction, length(cosp.apex))
+  # Compose cospans
+  comp = compose(N, M)
 
-  # Add global outerports
-  add_parts!(res, :OuterPort, length(cosp.legs[2].func),
-                  outer_junction=cosp.legs[2].func)
-
-  # Add appropriate states and ports
-  tot_states = 0
-  for (i,sys) in enumerate(systems)
-    add_parts!(res, :State, nparts(sys, :State), system=i, value=subpart(sys, :value))
-    # How do we choose what state is assigned to the outerport?
-    # Currently we just choose the first port connected to the junction since this *should* always
-    #   be equivalent to other ports on the junction
-    add_parts!(res, :Port, nparts(sys, :OuterPort), box=i,
-                    state=tot_states .+ [first(incident(sys, port, :junction)) for port in subpart(sys, :outer_junction)])
-    tot_states += nparts(sys, :State)
+  dyn = DynamUWD()
+  # Add in junctions
+  inv_comp = zeros(Int, length(comp.apex))
+  inv_comp[left(comp).func] = 1:length(left(comp).func)
+  for i in 1:length(comp.apex)
+    add_part!(dyn, :Junction, sys_prod.tables.Junction[inv_comp[i]])
   end
-  set_subpart!(res, :junction, cosp.legs[1].func)
-  set_subpart!(res, :jvalue, subpart(res, subpart(res, map(first, incident(res, :, :junction)), :state), :value))
-  res
+
+  # Add other objects
+  copy_parts!(dyn, sys_prod, (Box=:, State=:))
+  add_parts!(dyn, :Port, nparts(sys_prod, :Port),
+                  box=subpart(sys_prod, :box),
+                  junction=left(comp).func[subpart(sys_prod, :junction)],
+                  state=subpart(sys_prod, :state))
+  add_parts!(dyn, :OuterPort, length(right(M).func),
+                  outer_junction=right(comp).func[right(M).func])
+
+  dyn
 end
 
 # Curried form of compose
@@ -211,6 +213,11 @@ function compose(cosp::Cospan)
   function operation(systems::DynamUWD...)
     compose(cosp, systems...)
   end
+end
+
+function compose(M::Cospan, N::Cospan)
+  ιM, ιN = colim = pushout(right(M), left(N))
+  cospan = Cospan(ob(colim), ιM, ιN)
 end
 
 function set_values!(d::AbstractDynamUWD{T}, values::Array{<:T}) where T

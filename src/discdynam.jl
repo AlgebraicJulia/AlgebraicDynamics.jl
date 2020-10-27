@@ -14,8 +14,8 @@ import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
 
 export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, Cospan, FinFunction,
   update!, isconsistent, compose,
-  dynamics, dynamics!,
-  Dynam, functor, @relation, set_values!
+  Dynam, dynamics, dynamics!,
+  functor, @relation, set_values!
 
 # @present TheoryUWD(FreeSchema) begin
 #   Box::Ob
@@ -45,7 +45,7 @@ end
 
 const AbstractDynamUWD = AbstractACSetType(TheoryDynamUWD)
 const DynamUWD = ACSetType(TheoryDynamUWD, index=[:box, :junction, :outer_junction, :state, :system])
-DynamUWD() = DynamUWD{Real, Function}()
+DynamUWD() = DynamUWD{Real, Union{Function, DynamUWD}}()
 """    isconsistent(d::AbstractDynamUWD)
 
 check that all the states associated to ports that are connected to junctions, have the same value as the value of the junction.
@@ -138,10 +138,6 @@ function dynamics!(diag::DynamUWD)
     return state -> update!(storage, diag, state)
 end
 
-struct Dynam
-    dynam::AbstractDynamUWD
-end
-
 function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Array{<:Real,1})
     @assert maximum(portmap) <= states
     @assert states == length(values)
@@ -154,19 +150,17 @@ function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Arra
                                 junction=collect(1:length(portmap)),
                                 state=portmap)
     set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
-    Dynam(d_box)
+    d_box
 end
-dynam(d::Dynam) = subpart(d.dynam, :dynamics)[1]
-states(d::Dynam) = nparts(d.dynam, :State)
-portmap(d::Dynam) = subpart(d.dynam, :state)
-values(d::Dynam) = subpart(d.dynam, :value)
+dynam(d::DynamUWD) = subpart(d, :dynamics)[1]
+states(d::DynamUWD) = nparts(d, :State)
+portmap(d::DynamUWD) = subpart(d, :state)
+values(d::DynamUWD) = subpart(d, :value)
 
-update!(y::AbstractVector, f::Dynam, x::AbstractVector) = update!(y, f.dynam, x)
-
-function functor(transform::Dict{Symbol, Dynam})
+function functor(transform::Dict{Symbol, <:AbstractDynamUWD})
   function ob_to_dynam(rel::UntypedRelationDiagram)
     cur_dyn = DynamUWD()
-    src = transform[subpart(rel, 1, :name)].dynam
+    src = transform[subpart(rel, 1, :name)]
     copy_parts!(cur_dyn, src, (Box=:, Port=:, State=:))
     add_parts!(cur_dyn, :Junction, nparts(rel, :Junction))
     p_to_junc = subpart(rel, :junction)
@@ -184,37 +178,42 @@ end
 
 # How about a heriarchical definition here, then we can have a "flatten" function called on a Dynam?
 
+function compose(cosp::Cospan, systems::DynamUWD...)
+  res = DynamUWD{Real, Union{Function, DynamUWD}}()
+  # Add system boxes
+  add_parts!(res, :Box, length(systems), dynamics=systems)
+
+  # Add junctions
+  add_parts!(res, :Junction, length(cosp.apex))
+
+  # Add global outerports
+  add_parts!(res, :OuterPort, length(cosp.legs[2].func),
+                  outer_junction=cosp.legs[2].func)
+
+  # Add appropriate states and ports
+  tot_states = 0
+  for (i,sys) in enumerate(systems)
+    add_parts!(res, :State, nparts(sys, :State), system=i, value=subpart(sys, :value))
+    # How do we choose what state is assigned to the outerport?
+    # Currently we just choose the first port connected to the junction since this *should* always
+    #   be equivalent to other ports on the junction
+    add_parts!(res, :Port, nparts(sys, :OuterPort), box=i,
+                    state=tot_states .+ [first(incident(sys, port, :junction)) for port in subpart(sys, :outer_junction)])
+    tot_states += nparts(sys, :State)
+  end
+  set_subpart!(res, :junction, cosp.legs[1].func)
+  set_subpart!(res, :jvalue, subpart(res, subpart(res, map(first, incident(res, :, :junction)), :state), :value))
+  res
+end
+
+# Curried form of compose
 function compose(cosp::Cospan)
-  function operation(systems::Dynam...)
-    res = DynamUWD{Real, Union{Function, Dynam}}()
-    # Add system boxes
-    add_parts!(res, :Box, length(systems), dynamics=systems)
-
-    # Add junctions
-    add_parts!(res, :Junction, length(cosp.apex))
-
-    # Add global outerports
-    add_parts!(res, :OuterPort, length(cosp.legs[2].func),
-                    outer_junction=cosp.legs[2].func)
-
-    # Add appropriate states and ports
-    tot_states = 0
-    for (i,sys) in enumerate(systems)
-      add_parts!(res, :State, nparts(sys.dynam, :State), system=i, value=subpart(sys.dynam, :value))
-      # How do we choose what state is assigned to the outerport?
-      # Currently we just choose the first port connected to the junction since this *should* always
-      #   be equivalent to other ports on the junction
-      add_parts!(res, :Port, nparts(sys.dynam, :OuterPort), box=i,
-                      state=tot_states .+ [first(incident(sys.dynam, port, :junction)) for port in subpart(sys.dynam, :outer_junction)])
-      tot_states += nparts(sys.dynam, :State)
-    end
-    set_subpart!(res, :junction, cosp.legs[1].func)
-    set_subpart!(res, :jvalue, subpart(res, subpart(res, map(first, incident(res, :, :junction)), :state), :value))
-    res
+  function operation(systems::DynamUWD...)
+    compose(cosp, systems...)
   end
 end
 
-function set_values!(d::AbstractDynamUWD{<:Number, Function}, values::Array{<:Number})
+function set_values!(d::AbstractDynamUWD{T}, values::Array{<:T}) where T
     @assert length(values) == nparts(d, :State)
     set_subpart!(d, :value, values)
     set_subpart!(d, subpart(d, :junction), :jvalue,

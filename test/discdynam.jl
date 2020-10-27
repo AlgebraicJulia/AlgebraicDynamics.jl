@@ -9,7 +9,7 @@ using Test
 f(x) = [x[1]*x[2], x[1]+x[2]]
 g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
 
-d = DynamUWD{Float64, Function}()
+d = DynamUWD()
 add_parts!(d, :Junction,  3, jvalue=[1,1,1])
 add_parts!(d, :Box,       2, dynamics=[f,g])
 add_parts!(d, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
@@ -24,13 +24,12 @@ add_parts!(d, :OuterPort, 2, outer_junction=[1,3])
 @test isconsistent(d)
 
 
-println("Sys1\tStep1")
 x = [1,1,1,1,3]
 y = zero(x)
 update!(y, d, x)
 @test y == [1,3,3,0,3]
 y′ = zero(x)
-println("Sys1\tStep2")
+
 update!(y′, d, y)
 @test y′ == [3,4,4,-3,3]
 
@@ -38,7 +37,7 @@ f(x) = [x[2], x[1]]
 g(x) = [x[1]+x[2], x[2]-x[1]]
 h(x) = [2*x[1], 2*x[1]*x[2]]
 
-d = DynamUWD{Float64, Function}()
+d = DynamUWD()
 add_parts!(d, :Junction,  3, jvalue=[1,0,5])
 add_parts!(d, :Box,       3, dynamics=[f,g,h])
 add_parts!(d, :State,     6, system=[1,1, 2,2, 3,3], value=[1,1,1,5,3,5])
@@ -62,7 +61,7 @@ add_parts!(d, :OuterPort, 0, outer_junction=Int[])
     @test y == [6,6,6,29,6,29]
 end
 
-@testset "Recusive DiscDynam" begin
+@testset "Recursive DiscDynam" begin
     f(x) = [x[1]*x[2], x[1]+x[2]]
     g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
 
@@ -95,8 +94,6 @@ end
     x₂ = update!(d)
 
     y₁ = update!(d2)
-    # @show subpart(d2, :, [:value])
-    # @show subpart(gdef, :, [:value])
     y₂ = update!(d2)
     @test x₁ == y₁
     @test x₂ == y₂
@@ -111,9 +108,9 @@ end
     @test update!(zero(x), d3, x) == y₁
     @test update!(zero(x), d3, y₁) == y₂
 
-    d3 = DynamUWD{Float64, Union{Function, Dynam}}()
+    d3 = DynamUWD{Float64, Union{Function, DynamUWD}}()
     add_parts!(d3, :Junction,  3, jvalue=[1,1,1])
-    add_parts!(d3, :Box,       2, dynamics=[f,Dynam(gdef)])
+    add_parts!(d3, :Box,       2, dynamics=[f,gdef])
     add_parts!(d3, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
     add_parts!(d3, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
     add_parts!(d3, :OuterPort, 2, outer_junction=[1,3])
@@ -142,8 +139,8 @@ end
                             [1,2],
                             [1,1,3]))
     );
-    f_dyn = Dynam(to_dynam(f_rel))
-    g_dyn = Dynam(to_dynam(g_rel))
+    f_dyn = to_dynam(f_rel)
+    g_dyn = to_dynam(g_rel)
 
     cosp = Cospan(FinFunction([1,2,2,3], 3), FinFunction([1,3], 3))
     fg_dyn = AlgebraicDynamics.DiscDynam.compose(cosp)(f_dyn, g_dyn)

@@ -150,6 +150,7 @@ function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Arra
                                 junction=collect(1:length(portmap)),
                                 state=portmap)
     set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
+    add_parts!(d_box, :OuterPort, length(portmap), outer_junction=1:length(portmap))
     d_box
 end
 dynam(d::DynamUWD) = subpart(d, :dynamics)[1]

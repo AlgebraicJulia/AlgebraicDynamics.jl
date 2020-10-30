@@ -207,6 +207,8 @@ function compose(M::Cospan, systems::DynamUWD...)
   add_parts!(dyn, :OuterPort, length(right(M).func),
                   outer_junction=right(comp).func[right(M).func])
 
+  set_subpart!(dyn, subpart(dyn, :junction), :jvalue,
+                  subpart(dyn, subpart(dyn, :state), :value))
   dyn
 end
 

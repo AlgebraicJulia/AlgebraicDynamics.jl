@@ -71,30 +71,12 @@ end
 compute the new state of a (continuous space) discrete time dynamical system using in-place operations
 """
 function update!(d::AbstractDynamUWD, args...)
-    # Apply the dynamic of each box on its incident states
-    boxes = 1:nparts(d, :Box)
-    diffs = map(boxes) do b
-        states = incident(d, b, :system)
-        values = subpart(d, states, :value)
-        dynamics = subpart(d, b, :dynamics)
-        newvalues = dynamics(values, args...)
-        set_subpart!(d, states, :value, newvalues)
-        @assert subpart(d, states, :value) == newvalues
-        diff = newvalues .- values
-    end |> x-> foldl(vcat, x)
 
-    # Apply the cumulative differences to appropriate junctions
-    juncs = 1:nparts(d, :Junction)
-    map(juncs) do j
-        p = incident(d, j, :junction)
-        statesp = subpart(d, p, :state)
-        nextval = sum(diffs[statesp]) + subpart(d, j, :jvalue)
-        set_subpart!(d, j, :jvalue, nextval)
-        @assert subpart(d, j, :jvalue) == nextval
-        set_subpart!(d, statesp, :value, fill(nextval, length(statesp)))
-        @assert all(subpart(d, statesp, :value) .== nextval)
-    end
-    subpart(d,:, :value)
+  input = subpart(d, :value)
+  output = zero(input)
+  update!(output, d, input, args...)
+  set_values!(d, output)
+  return output
 end
 
 function update!(y::AbstractVector, f::Function, x::AbstractVector, args...)
@@ -207,6 +189,8 @@ function compose(M::Cospan, systems::DynamUWD...)
   add_parts!(dyn, :OuterPort, length(right(M).func),
                   outer_junction=right(comp).func[right(M).func])
 
+  set_subpart!(dyn, subpart(dyn, :junction), :jvalue,
+                  subpart(dyn, subpart(dyn, :state), :value))
   dyn
 end
 

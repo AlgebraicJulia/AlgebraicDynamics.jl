@@ -6,90 +6,125 @@ dynamical systems with hierarchical structure.
 
 ## Examples
 
-You can specify and solve an SIR epidemic system using the following code:
+### Lotka Volterra Equations
 
 ```julia
 using AlgebraicDynamics
-using Plots
+using AlgebraicDynamics.DiscDynam
+
 using Catlab
-using Catlab.Doctrines
-using RecursiveArrayTools
-using OrdinaryDiffEq
+using Catlab.WiringDiagrams
+using Catlab.CategoricalAlgebra
+using Catlab.CategoricalAlgebra.CSets
+using Catlab.Programs.RelationalPrograms
 
-# Declare that real numbers are modeled as Float64
-R = Ob(FreeSMC, Float64)
-# specify the S->I subsystem
-si = Hom(System([1], [99.0, 1], [2], (x,t)->[-0.0035x[1]*x[2], 0.0035x[1]*x[2]]), R,R)
-# specify the I->R subsystem
-ir = Hom(System([1], [1.00, 0], [2], (x,t)->[-0.05x[1], 0.05x[1]]), R, R)
-# compose them into SIR
-sir = compose(si, ir)
-# create an ODEProblem
-p = problem(sir, (0,270.0))
-# solve that ODEProblem using the regular solvers
-sol = solve(p, alg=Tsit5())
-# plot the solution, notice the ∀t u₂(t) == u₃(t) because they both represent I.
-plot(sol)
+import AlgebraicDynamics.DiscDynam.functor
+
+using Plots
+
+α = 1.2
+β = 0.1
+γ = 1.3
+δ = 0.1
+
+h = 0.1
+gen = Dict(
+    :birth     => u -> u .+ h .* [ α*u[1]],
+    :death     => u -> u .+ h .* [-γ*u[1]],
+    :predation => u -> u .+ h.* [-β*u[1]*u[2], δ*u[1]*u[2]],
+)
+
+d = @relation (x,y) where (x, y) begin
+    birth(x)
+    predation(x,y)
+    death(y)
+end
+
+lv = functor( Dict(:birth => Dynam(gen[:birth], 1, [1], [0]),
+                    :death => Dynam(gen[:death], 1, [1], [0]),
+                    :predation => Dynam(gen[:predation], 2, [1,2], [0,0])))(d)
+
+n = 100
+u = zeros(Float64, 4, n)
+u[:,1] = [17.0, 17.0, 11.0, 11.0]
+for i in 1:n-1
+    @views update!(u[:, i+1], lv, u[:, i])
+    println(u[:, i+1])
+end
+
+plot(u')
 ```
 
-We can then model what would happen in two noninteracting populations where one
-population "flattened the curve" and the other did not.
+![Lotka Volterra Solutions](/doc/img/lvsoln.png)
 
-```julia
-# The first population uses the same parameters as before
-si = Hom(System([1], [99.0, 1], [2], (x,t)->[-0.0035x[1]*x[2], 0.0035x[1]*x[2]]), R,R)
-ir = Hom(System([1], [1.00, 0], [2], (x,t)->[-0.05x[1], 0.05x[1]]), R, R)
-sir = compose(si, ir)
-# The second population flattens the curve by reducing R₀
-si_2 = Hom(System([1], [99.0, 1], [2], (x,t)->[-0.0025x[1]*x[2], 0.0025x[1]*x[2]]), R,R)
-ir_2= Hom(System([1], [1.00, 0], [2], (x,t)->[-0.07x[1], 0.07x[1]]), R, R)
-sir_2 = compose(si_2, ir_2)
-# sir⊗sir_2 is the independent product system
-p = problem(otimes(sir, sir_2), (0,270.0))
-sol = solve(p, alg=Tsit5())
-# notice that you have two sets of SIR curves lagging each other
-plot(sol)
-```
 
-These examples are quite small and you could have worked them out by hand, but
+This example is quite small and you could have worked it out by hand, but
 this approach is based on solid mathematical theory that allows you to automatically
 scale to larger and more complex problems.
 
 ## Theory
 
-Each system is represented by a term in a Generalized Algebraic Theory (GAT).
-Within a GAT, there are operators that allow you to combine terms into bigger terms,
-for example we have used `f⋅g` for composition and `f⊗g` for independent combination.
-Because this system is based on the algebraic perspective implemented in Catlab,
-we can build arbitrarily complex systems by building formulas. The behavior of
-the combined system is defined by a structure preserving map into vector fields.
+A dynamical systems is composed of subsystems that are wired together via shared variables. 
+The connectivity structure is encoded into an undirected wiring diagram, which is defined in Catlab.
+A simplified version is shown below
 
-Here is a simplified version of the definition of combination and composition:
 ```julia
-function forward(product::FreeSMC.Hom{:otimes}, u, t)
-    # to compute the tangent vector of `f⊗g` compute the tangent vector of f and g
-    f,g = product.args[1], product.args[2]
-    duf = forward(f, u.x[1], t)
-    dug = forward(g, u.x[2], t)
-    # and then concatenate them
-    du = ArrayPartition(duf, dug)
-    return du
-end
+@present TheoryUWD(FreeSchema) begin
+  Box::Ob
+  Port::Ob
+  Junction::Ob
 
-function forward(composite::FreeSMC.Hom{:compose}, u, t)
-    # to compute the tangent vector of `f⋅g` compute the tangent vector of f and g
-    f,g = composite.args[1], composite.args[2]
-    duf = forward(f, u.x[1], t)
-    dug = forward(g, u.x[2], t)
-    # then ensure that they are equal on the variables they share
-    # we use symmetric superposition to ensure the following equality
-    # forward(f,u,t)[codom(f)] == forward(g,u,t)[dom(g)]
-    dufup = duf[codom_ids(f)]
-    dugup = dug[dom_ids(g)]
-    duf[codom_ids(f)] .+= dugup
-    dug[  dom_ids(g)] .+= dufup
-    # and then concatenate the tangent vectors
-    du = ArrayPartition(duf, dug)
-    return du
+  box::Hom(Port,Box)
+  junction::Hom(Port,Junction)
 end
 ```
+
+The boxes represent primitive systems that expose interfaces defined by ports, so each port belongs to a box.
+The junctions are places where systems can interact, each port maps to a junction, which is visually illustrated
+as a wire connected the port's box to the junction node.
+
+We extend this theory by adding States, and Dynamics to the wiring diagram. Each state belongs to a system (`Box`) and each
+port points to a state, to indicate that the state is exposed via the port. Additionally each system has dynamics, which will be 
+stored as a julia function that computes the action of that system on the state space.
+
+```julia
+@present TheoryDynamUWD <: TheoryUWD begin
+    State::Ob
+    Dynamics::Data
+
+    system::Hom(State, Box)
+    state::Hom(Port, State)
+    dynamics::Attr(Box, Dynamics)
+end
+```
+
+The vector field of a dynamical system can be computed compositionally from its definition as an undirected wiring diagram
+the key idea is that resource sharing systems compose by superposition. Each system acts on its variables, and then the changes 
+are summed around junctions that encode an equivalence relation on the variables.
+
+```julia
+function update!(newstate::AbstractVector, d::AbstractDynamUWD, state::AbstractVector, params...)
+    # Apply the dynamics of each box on its incident states
+    boxes = 1:nparts(d, :Box)
+    for b in boxes
+        states = incident(d, b, :system)
+        dynamics = subpart(d, b, :dynamics)
+        newvalues = update!(view(newstate, states), dynamics, view(state, states), params...)
+    end
+
+    # Apply the cumulative differences to appropriate junctions
+    juncs = 1:nparts(d, :Junction)
+    for j in juncs
+        p = incident(d, j, :junction)
+        length(p) > 0 || continue
+        statesp = subpart(d, p, :state)
+        nextval = state[first(statesp)] + mapreduce(i->newstate[i]-state[i], +, statesp, init=0)
+        newstate[statesp] .= nextval
+    end
+    return newstate
+end
+```
+
+## Future Work
+
+Adding more integrators beyond the simple Euler's method. We need to include higher order polynomial methods and simplectic and implicit methods for physical problems. 

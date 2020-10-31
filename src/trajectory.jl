@@ -4,7 +4,22 @@ using Catlab
 using Catlab.CategoricalAlgebra
 using ..DiscDynam
 
-export trajectory
+export trajectory, eulers
+
+
+function eulers(dotf::Function)
+    return (x0, h) -> x0 + h*dotf(x0)
+end 
+
+function eulers(dotf::Function, max_step::Number)
+    function step(x0,h)
+        x = x0 + (h%max_step)*dotf(x0)
+        for _ in 1:(h/max_step)
+            x = x + max_step*dotf(x)
+        end
+        return x
+    end
+end 
 
 """     trajectory(ds::AbstractDynamUWD, N, args...)
 

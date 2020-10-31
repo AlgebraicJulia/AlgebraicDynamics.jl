@@ -10,4 +10,5 @@ include("linrels.jl")
 include("systems.jl")
 include("hypergraphs.jl")
 include("discdynam.jl")
+include("trajectory.jl")
 end # module

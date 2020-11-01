@@ -15,7 +15,8 @@ import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
 export TheoryDynamUWD, DynamUWD, AbstractDynamUWD, Cospan, FinFunction,
   update!, isconsistent, compose,
   Dynam, dynamics, dynamics!,
-  functor, @relation, set_values!
+  functor, @relation, set_values!,
+  get_exposed
 
 # @present TheoryUWD(FreeSchema) begin
 #   Box::Ob
@@ -212,4 +213,15 @@ function set_values!(d::AbstractDynamUWD{T}, values::Array{<:T}) where T
     set_subpart!(d, subpart(d, :junction), :jvalue,
                     subpart(d, subpart(d, :state), :value))
 end
+
+""" get_exposed(d::AbstractDynamUWD, values::Array)
+
+Given values of the internal states of the dynam d, 
+returns the values exposed on the outer_junctions.
+"""
+function get_exposed(d::AbstractDynamUWD, values::Array)
+  jvalues = view(values, map(first, incident(d, parts(d, :Junction), :junction)))
+  return view(jvalues, subpart(d, :outer_junction))
+end
+
 end #module

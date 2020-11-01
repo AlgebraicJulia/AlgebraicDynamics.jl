@@ -16,8 +16,6 @@ add_parts!(d, :State,     5, system=[1,1,2,2,2], value=[1,1,1,1,3])
 add_parts!(d, :Port,      4, box=[1, 1, 2, 2], junction=[1, 2, 2, 3], state=[1,2,3,4])
 add_parts!(d, :OuterPort, 2, outer_junction=[1,3])
 
-
-
 @test isconsistent(d)
 @test update!(d) == [1,3,3,0,3]
 @test update!(d) == [3,4,4,-3,3]
@@ -28,10 +26,12 @@ x = [1,1,1,1,3]
 y = zero(x)
 update!(y, d, x)
 @test y == [1,3,3,0,3]
+@test get_exposed(d, y) == [1, 0]
 y′ = zero(x)
 
 update!(y′, d, y)
 @test y′ == [3,4,4,-3,3]
+@test get_exposed(d, y′) == [3, -3]
 
 f(x) = [x[2], x[1]]
 g(x) = [x[1]+x[2], x[2]-x[1]]
@@ -277,8 +277,9 @@ end
     input = subpart(d, :value)
     output = zero(input)
     @test update!(output, d, input, 10, 2) == [-10, 18, 18, -4, -4, 3]
+    @test get_exposed(d, output) == [-10, 18, -4, 3]
     @test update!(output, d, input, 0, 0) == [0, 2, 2, -4, -4, 3]
-
+    @test get_exposed(d, output) == [0, 2, -4, 3]
 
 end
 

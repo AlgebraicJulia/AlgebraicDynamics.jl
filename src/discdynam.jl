@@ -240,55 +240,6 @@ function closeDynam(dynam::OpenDynam)
   composed
 end
 
-# Can either compose this by using heirarchical definition
-# Or can keep everything expanded out
-
-# How about a heriarchical definition here, then we can have a "flatten" function called on a Dynam?
-
-function compose(M::Cospan, systems::DynamUWD...)
-  # Generate product and cospan of systems
-  sys_prod =  coproduct([sys for sys in systems]).cocone.apex
-  sys_left =  FinFunction(subpart(sys_prod, :junction),       nparts(sys_prod, :Junction))
-  sys_right = FinFunction(subpart(sys_prod, :outer_junction), nparts(sys_prod, :Junction))
-  N = Cospan(sys_left, sys_right)
-
-  # Compose cospans
-  comp = compose(N, M)
-
-  dyn = DynamUWD()
-  # Add in junctions
-  inv_comp = zeros(Int, length(comp.apex))
-  inv_comp[left(comp).func] = 1:length(left(comp).func)
-  for i in 1:length(comp.apex)
-    add_part!(dyn, :Junction, sys_prod.tables.Junction[inv_comp[i]])
-  end
-
-  # Add other objects
-  copy_parts!(dyn, sys_prod, (Box=:, State=:))
-  add_parts!(dyn, :Port, nparts(sys_prod, :Port),
-                  box=subpart(sys_prod, :box),
-                  junction=left(comp).func[subpart(sys_prod, :junction)],
-                  state=subpart(sys_prod, :state))
-  add_parts!(dyn, :OuterPort, length(right(M).func),
-                  outer_junction=right(comp).func[right(M).func])
-
-  set_subpart!(dyn, subpart(dyn, :junction), :jvalue,
-                  subpart(dyn, subpart(dyn, :state), :value))
-  dyn
-end
-
-# Curried form of compose
-function compose(cosp::Cospan)
-  function operation(systems::DynamUWD...)
-    compose(cosp, systems...)
-  end
-end
-
-function compose(M::Cospan, N::Cospan)
-  ιM, ιN = colim = pushout(right(M), left(N))
-  cospan = Cospan(ob(colim), ιM, ιN)
-end
-
 function set_values!(d::AbstractDynamUWD{T}, values::Array{<:T}) where T
     @assert length(values) == nparts(d, :State)
     set_subpart!(d, :value, values)

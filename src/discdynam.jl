@@ -56,7 +56,8 @@ This function converts a closed dynamic system to an open dynamical system
 port will have its own cospan.
 
 """
-function Open(dynam::DynamUWD, bundling=nothing)
+function Open(dynam_orig::DynamUWD, bundling=nothing)
+  dynam = deepcopy(dynam_orig)
   cur_jncs = nparts(dynam, :Junction)
   cur_ports = nparts(dynam, :OuterPort)
 
@@ -165,7 +166,7 @@ function Dynam(dynam::Function, states::Int, portmap::Array{Int,1}, values::Arra
     pt_ind = add_parts!(d_box, :Port, length(portmap), box=ones(Int, length(portmap)),
                                 junction=collect(1:length(portmap)),
                                 state=portmap)
-    set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, incident(d_box, 1:length(portmap), :junction)[1], :state), :value))
+    set_subpart!(d_box, :jvalue, subpart(d_box, subpart(d_box, first.(incident(d_box, 1:length(portmap), :junction)), :state), :value))
     add_parts!(d_box, :OuterPort, length(portmap), outer_junction=1:length(portmap))
     add_parts!(d_box, :CompositePort, length(portmap), composite=c_ind, composite_junction=1:length(portmap))
     d_box
@@ -205,7 +206,9 @@ function functor(seq::RelationDiagram, dynam::Dict{Symbol, <:OpenDynam}; bundlin
 end
 
 function functor(dynam::Dict{Symbol, <:OpenDynam})
-  return (rel;kw...) -> functor(rel, dynam; kw...)
+  function def_functor(rel;kw...)
+    functor(rel, dynam; kw...)
+  end
 end
 
 function functor(seq::RelationDiagram, dynam::Dict{Symbol, <:DynamUWD}; kw...)
@@ -213,11 +216,7 @@ function functor(seq::RelationDiagram, dynam::Dict{Symbol, <:DynamUWD}; kw...)
 
   # Convert dynam array to opendynam
   for k in keys(dynam)
-    cur_dyn = dynam[k]
-    cur_jncs = nparts(cur_dyn, :Junction)
-    cur_ports = nparts(cur_dyn, :Port)
-    legs = map(i -> FinFunction([subpart(cur_dyn, i, :junction)], cur_jncs), 1:cur_ports)
-    op_dynam[k] = OpenDynam{Real, Union{Function, DynamUWD}}(cur_dyn, legs...)
+    op_dynam[k] = Open(dynam[k])
   end
 
   # Use operad of wiring diagram `seq` on op_dynam
@@ -226,7 +225,9 @@ function functor(seq::RelationDiagram, dynam::Dict{Symbol, <:DynamUWD}; kw...)
 end
 
 function functor(dynam::Dict{Symbol, <:DynamUWD})
-  return (rel;kw...) -> functor(rel, dynam; kw...)
+  function def_functor(rel;kw...)
+    functor(rel, dynam; kw...)
+  end
 end
 
 function closeDynam(dynam::OpenDynam)

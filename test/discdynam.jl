@@ -143,7 +143,7 @@ end
     g_dyn = to_dynam(g_rel)
 
     cosp = Cospan(FinFunction([1,2,2,3], 3), FinFunction([1,3], 3))
-    fg_dyn = AlgebraicDynamics.DiscDynam.compose(cosp)(f_dyn, g_dyn)
+    fg_dyn = compose(cosp)(f_dyn, g_dyn)
 
     output = zeros(5)
     input = [1,1,1,1,3]
@@ -255,7 +255,7 @@ end
 
     cspn = Cospan(FinFunction([1,2,1,2], 2), FinFunction([1,2], 2))
 
-    d = AlgebraicDynamics.DiscDynam.compose(cspn)(f_dyn, g_dyn)
+    d = compose(cspn)(f_dyn, g_dyn)
 
     input = subpart(d,:value)
     output = zero(input)
@@ -272,7 +272,7 @@ end
     l_dyn = Dynam(l, 2, [1,2], [-3, -4])
 
     cspn = Cospan(FinFunction([1,2,2,3, 3, 4], 4), FinFunction([1,2,3,4], 4))
-    d = AlgebraicDynamics.DiscDynam.compose(cspn)(h_dyn, k_dyn, l_dyn)
+    d = compose(cspn)(h_dyn, k_dyn, l_dyn)
 
     input = subpart(d, :value)
     output = zero(input)

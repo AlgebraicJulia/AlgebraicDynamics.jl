@@ -220,7 +220,7 @@ Given values of the internal states of the dynam d,
 returns the values exposed on the outer_junctions.
 """
 function get_exposed(d::AbstractDynamUWD, values::Array)
-  jvalues = view(values, map(first, incident(d, parts(d, :Junction), :junction)))
+  jvalues = view(values, subpart(d, map(first, incident(d, parts(d, :Junction), :junction)), :state))
   return view(jvalues, subpart(d, :outer_junction))
 end
 

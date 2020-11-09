@@ -12,11 +12,11 @@ function eulers(dotf::Function)
 end 
 
 function eulers(dotf::Function, max_step::Number)
-    function step(x0,h)
-        x = x0 + (h%max_step)*dotf(x0)
+    function step(x,h)
         for _ in 1:(h/max_step)
             x = x + max_step*dotf(x)
         end
+        x = x + (h%max_step)*dotf(x)
         return x
     end
 end 

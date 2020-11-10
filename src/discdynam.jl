@@ -7,7 +7,6 @@ using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 using Catlab.Theories
 using Catlab.CategoricalAlgebra
 import Catlab.CategoricalAlgebra.FinSets: Cospan, FinFunction
-using ..Functors
 
 import Catlab.Programs.RelationalPrograms: @relation
 import Catlab.WiringDiagrams.UndirectedWiringDiagrams: TheoryUWD
@@ -45,6 +44,8 @@ end
 
 const AbstractDynamUWD = AbstractACSetType(TheoryDynamUWD)
 const DynamUWD = ACSetType(TheoryDynamUWD, index=[:box, :junction, :outer_junction, :state, :system])
+const OpenDynamOb, OpenDynam = OpenACSetTypes(DynamUWD, :Junction)
+
 DynamUWD() = DynamUWD{Real, Union{Function, DynamUWD}}()
 """    isconsistent(d::AbstractDynamUWD)
 
@@ -141,20 +142,37 @@ states(d::DynamUWD) = nparts(d, :State)
 portmap(d::DynamUWD) = subpart(d, :state)
 values(d::DynamUWD) = subpart(d, :value)
 
-function functor(transform::Dict{Symbol, <:AbstractDynamUWD})
-  function ob_to_dynam(rel::UntypedRelationDiagram)
-    cur_dyn = DynamUWD()
-    src = transform[subpart(rel, 1, :name)]
-    copy_parts!(cur_dyn, src, (Box=:, Port=:, State=:))
-    add_parts!(cur_dyn, :Junction, nparts(rel, :Junction))
-    p_to_junc = subpart(rel, :junction)
-    set_subpart!(cur_dyn, :junction, p_to_junc)
-    set_subpart!(cur_dyn, :jvalue,
-                subpart(src, [incident(cur_dyn, i, :junction)[1] for i in 1:nparts(rel, :Junction)], :jvalue))
-    add_parts!(cur_dyn, :OuterPort, nparts(rel, :OuterPort), outer_junction=subpart(rel, :outer_junction))
-    cur_dyn
+function functor(seq::RelationDiagram, dynam::Dict{Symbol, <:DynamUWD})
+  op_dynam = Dict{Symbol, OpenDynam}()
+
+  # Convert dynam array to opendynam
+  for k in keys(dynam)
+    cur_dyn = dynam[k]
+    cur_jncs = nparts(cur_dyn, :Junction)
+    cur_ports = nparts(cur_dyn, :Port)
+    legs = map(i -> FinFunction([subpart(cur_dyn, i, :junction)], cur_jncs), 1:cur_ports)
+    op_dynam[k] = OpenDynam{Real, Union{Function, DynamUWD}}(cur_dyn, legs...)
   end
-  Functor(ob_to_dynam, DynamUWD)
+
+  # Use operad of wiring diagram `seq` on op_dynam
+  comp_diag = oapply(seq, op_dynam)
+  return closeDynam(comp_diag)
+end
+
+function functor(dynam::Dict{Symbol, <:DynamUWD})
+  return rel -> functor(rel, dynam)
+end
+
+function closeDynam(dynam::OpenDynam)
+  composed = dynam.cospan.apex
+
+  # Fix outer_ports
+  num_outer_ports = sum([length(nparts(i.dom, :Junction)) for i in dynam.cospan.legs])
+  rem_parts!(composed, :OuterPort, 1:nparts(composed, :OuterPort))
+  add_parts!(composed, :OuterPort, num_outer_ports)
+  outer_juncs = vcat([leg.components[:Junction].func for leg in dynam.cospan.legs]...)
+  set_subparts!(composed, 1:num_outer_ports, outer_junction=outer_juncs)
+  composed
 end
 
 # Can either compose this by using heirarchical definition

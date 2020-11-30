@@ -11,6 +11,9 @@ import Catlab.Graphs: Graph
 import Catlab.CategoricalAlgebra.CSets: migrate!
 using Catlab.Graphics
 using Catlab.Graphics.Graphviz
+using Base.Iterators
+
+export VectorField, nstates, nparams, simulate, barbell, meshpath, gridpath, grid
 
 import Base: show
 

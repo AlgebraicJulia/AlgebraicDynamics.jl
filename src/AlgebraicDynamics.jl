@@ -9,4 +9,7 @@ include("linrels.jl")
 include("systems.jl")
 include("hypergraphs.jl")
 include("discdynam.jl")
+
+
+include("cportgraphs.jl")
 end # module

@@ -77,17 +77,26 @@ function oapply(d::OpenCPortGraph, x::VectorField)
     oapply(d, collect(repeated(x, nparts(d, :B))))
 end
 
+fillreadins!(readins, ind_map, readouts) = begin
+    for i in 1:length(ind_map)
+      if ind_map[i] != 0
+        readins[ind_map[i]] += readouts[i]
+      end
+    end
+    return readins
+end
+#=
 fillreadins!(readins, d, readouts) = begin
     for b in parts(d, :B)
         ports = incident(d, b, :box)
         for p in ports
-            ws = incident(d, p, :tgt) 
+            ws = incident(d, p, :tgt)
             qs = d[ws, :src]
             readins[p] += sum(readouts[qs])
         end
     end
     return readins
-end
+end=#
 
 function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
     x -> FinSet(x.nstates)
@@ -97,6 +106,16 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
     state(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
     readouts = zeros(T, length(apex(Ports)))
     readins  = zeros(T, length(apex(Ports)))
+    ind_map = zeros(Int, length(apex(Ports)))
+    for b in parts(d, :B)
+        ports = incident(d, b, :box)
+        for p in ports
+            ws = incident(d, p, :tgt)
+            qs = d[ws, :src]
+            ind_map[qs] .= p
+        end
+    end
+
     ϕ = zeros(T, length(apex(S)))
     υ = (u::AbstractVector, p::AbstractVector, t::Real) -> begin
         # length(p) == length(d[:, :con]) || error("Expected $(length(d[:, :con])) parameters, have $(length(p))")
@@ -104,8 +123,8 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
         paramfun(b) = readins[incident(d, b, :box)]
         fillreadouts!(readouts, d, xs, Ports, statefun)
         # communicate readouts to the ports at the other end of the wires, external connections directly fill ports
-        readins .= 0 
-        fillreadins!(readins, d, readouts)
+        readins .= 0
+        fillreadins!(readins, ind_map, readouts)
         readins[d[:, :con]] .+= p
         fillstates!(ϕ, d, xs, S, statefun, paramfun, t)
         return ϕ

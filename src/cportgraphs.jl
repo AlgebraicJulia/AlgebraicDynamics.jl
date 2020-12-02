@@ -74,11 +74,11 @@ end
 end
 
 function oapply(d::OpenCPortGraph, x::VectorField)
-    oapply(d, collect(repeated(x, nparts(d, :B))))
+    oapply(d, collect(repeated(x, nparts(d, :Box))))
 end
 
 fillreadins!(readins, d, readouts) = begin
-    for b in parts(d, :B)
+    for b in parts(d, :Box)
         ports = incident(d, b, :box)
         for p in ports
             ws = incident(d, p, :tgt) 
@@ -93,7 +93,7 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
     x -> FinSet(x.nstates)
     S = coproduct((FinSet∘nstates).(xs))
     Params = coproduct((FinSet∘nparams).(xs))
-    Ports = coproduct([FinSet.(nports(d, b)) for b in parts(d, :B)])
+    Ports = coproduct([FinSet.(nports(d, b)) for b in parts(d, :Box)])
     state(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
     readouts = zeros(T, length(apex(Ports)))
     readins  = zeros(T, length(apex(Ports)))
@@ -115,33 +115,33 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
         fillreadouts!(readouts, d, xs, Ports, statefun)
         return readouts[d[:, :con]]
     end
-    return VectorField{T}(υ,readout, nparts(d, :OP), apex(S).set)
+    return VectorField{T}(υ,readout, nparts(d, :OuterPort), apex(S).set)
 end
 
 
 barbell(k::Int) = begin
   g = OpenCPortGraph()
-  add_parts!(g, :B, 2)
-  add_parts!(g, :P, 2k; box=[fill(1,k); fill(2,k)])
-  add_parts!(g, :W, k; src=1:k, tgt=k+1:2k)
-  add_parts!(g, :W, k; tgt=1:k, src=k+1:2k)
+  add_parts!(g, :Box, 2)
+  add_parts!(g, :Port, 2k; box=[fill(1,k); fill(2,k)])
+  add_parts!(g, :Wire, k; src=1:k, tgt=k+1:2k)
+  add_parts!(g, :Wire, k; tgt=1:k, src=k+1:2k)
   return g
 end
 
 meshpath(n::Int) = begin
     gt = @acset OpenCPortGraph begin
-        B = 1
-        P = 3
-        W = 0
-        OP = 2
+        Box = 1
+        Port = 3
+        Wire = 0
+        OuterPort = 2
         box= ones(Int, 3)
         con= [3,2]
     end
     gm = @acset OpenCPortGraph begin
-        B = 1
-        P = 4
-        W = 0
-        OP = 2
+        Box = 1
+        Port = 4
+        Wire = 0
+        OuterPort = 2
         box= ones(Int, 4)
         con= [4,2]
     end
@@ -154,39 +154,39 @@ meshpath(n::Int) = begin
     for i in 1:n-1
         xi = subs[i]
         xj = subs[i+1]
-        p = legs(X)[i][:P](nparts(xi, :P)-1)
-        q = legs(X)[i+1][:P](1)
-        add_parts!(apex(X), :W, 2, src=[p,q], tgt=[q,p])
+        p = legs(X)[i][:Port](nparts(xi, :Port)-1)
+        q = legs(X)[i+1][:Port](1)
+        add_parts!(apex(X), :Wire, 2, src=[p,q], tgt=[q,p])
     end
-    c₁ = apex(X)[1:2:nparts(apex(X),:OP) ,:con]
-    c₂ = apex(X)[2:2:nparts(apex(X),:OP) ,:con]
+    c₁ = apex(X)[1:2:nparts(apex(X),:OuterPort) ,:con]
+    c₂ = apex(X)[2:2:nparts(apex(X),:OuterPort) ,:con]
     apex(X)[:,:con] = vcat(c₁,c₂)
     return X
 end
 
 function gridpath(n::Int, width::Int)
     node = @acset OpenCPortGraph begin
-        B = 1
-        P = 0
-        W = 0
+        Box = 1
+        Port = 0
+        Wire = 0
         box = 1
     end
-    add_parts!(node, :P, 2width, box=1)
+    add_parts!(node, :Port, 2width, box=1)
     X = coproduct(collect(repeated(node, n)))
     L = legs(X)
     A = apex(X)
     for i in 1:n-1
         for j in 1:width
-            s = L[i][:P](j)
-            t = L[i+1][:P](j+width)
-            add_part!(A, :W, src=s, tgt=t)
-            add_part!(A, :W, src=t, tgt=s)
+            s = L[i][:Port](j)
+            t = L[i+1][:Port](j+width)
+            add_part!(A, :Wire, src=s, tgt=t)
+            add_part!(A, :Wire, src=t, tgt=s)
         end
     end
-    upstream = L[1][:P](width+1:2width)
-    add_parts!(A, :OP, width, con=upstream)
-    downstream = L[end][:P](1:width)
-    add_parts!(A, :OP, width, con=downstream)
+    upstream = L[1][:Port](width+1:2width)
+    add_parts!(A, :OuterPort, width, con=upstream)
+    downstream = L[end][:Port](1:width)
+    add_parts!(A, :OuterPort, width, con=downstream)
     return X
 end
 

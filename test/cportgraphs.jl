@@ -45,24 +45,24 @@ nstates = AlgebraicDynamics.CPortGraphs.nstates
 
     @show simulate(composite, 10, h, u₀)
     d₀ = OpenCPortGraph()
-    add_parts!(d₀, :B, 1)
+    add_parts!(d₀, :Box, 1)
     d₁ = barbell(2)
-    F = ACSetTransformation((B=[2],), d₀, d₁)
-    G = ACSetTransformation((B=[1],), d₀, d₁)
+    F = ACSetTransformation((Box=[2],), d₀, d₁)
+    G = ACSetTransformation((Box=[1],), d₀, d₁)
     # |1| <-> |3| <-> |5|
     # |2| <-> |4| <-> |6|
     d₂ = apex(pushout(F,G))
     Catlab.Theories.id(OpenCPortGraph, n) = begin
         g = OpenCPortGraph()
-        add_parts!(g, :B, 1)
-        add_parts!(g, :P, n, box=1)
-        add_parts!(g, :OP, n, con=1:n)
+        add_parts!(g, :Box, 1)
+        add_parts!(g, :Port, n, box=1)
+        add_parts!(g, :OuterPort, n, con=1:n)
         return g
     end
     lob(n) = let 
         b = barbell(n)
-        p = add_parts!(b, :P, n, box=1)
-        add_parts!(b, :OP, n, con=p)
+        p = add_parts!(b, :Port, n, box=1)
+        add_parts!(b, :OuterPort, n, con=p)
         b
     end
     d₂′ = ocompose(barbell(2), [id(OpenCPortGraph, 2), lob(2)])
@@ -93,18 +93,18 @@ nstates = AlgebraicDynamics.CPortGraphs.nstates
 
     begin
         # g = OpenCPortGraph()
-        # add_parts!(g,  9, :B)
-        # add_parts!(g, 21, :P, box=[1,1,2,2,2,3,3,4,4,4,5,5,5,5,6,6,6,7,7,8,8,8,9,9])
-        # add_parts!(g, 12, :W, src=1:21, [3,7,])
+        # add_parts!(g,  9, :Box)
+        # add_parts!(g, 21, :Port, box=[1,1,2,2,2,3,3,4,4,4,5,5,5,5,6,6,6,7,7,8,8,8,9,9])
+        # add_parts!(g, 12, :Wire, src=1:21, [3,7,])
 
         g = OpenCPortGraph()
     end
 
     gl = @acset OpenCPortGraph begin
-        B = 3
-        P = 7
-        W = 4
-        OP = 3
+        Box = 3
+        Port = 7
+        Wire = 4
+        OuterPort = 3
         box = [1,1,2,2,2,3,3]
         src = [2, 3, 5, 6]
         tgt = [3, 2, 6, 5] 
@@ -112,10 +112,10 @@ nstates = AlgebraicDynamics.CPortGraphs.nstates
     end
 
     gm = @acset OpenCPortGraph begin
-        B = 3
-        P = 10
-        W = 4
-        OP = 6
+        Box = 3
+        Port = 10
+        Wire = 4
+        OuterPort = 6
         box = [1,1,1,2,2,2,2,3,3,3]
         src = [2, 4, 6, 8]
         tgt = [4, 2, 8, 6] 
@@ -123,10 +123,10 @@ nstates = AlgebraicDynamics.CPortGraphs.nstates
     end
 
     gr = @acset OpenCPortGraph begin
-        B = 3
-        P = 7
-        W = 4
-        OP = 3
+        Box = 3
+        Port = 7
+        Wire = 4
+        OuterPort = 3
         box = [1,1,2,2,2,3,3]
         src = [1, 3, 4, 6]
         tgt = [3, 1, 6, 4] 
@@ -180,10 +180,10 @@ nstates = AlgebraicDynamics.CPortGraphs.nstates
     # end
 
     d4 = @acset OpenCPortGraph begin
-        B = 3
-        P = 18
-        W = 12
-        OP = 6
+        Box = 3
+        Port = 18
+        Wire = 12
+        OuterPort = 6
         box = Iterators.flatten([repeated(i, 6) for i in 1:3])
         con = [1,2,3,16,17,18]
         src = [4,5,6,7,8,9,10,11,12,13,14,15]
@@ -310,9 +310,9 @@ end
 @testset "Grids" begin
     function testgridsize(n,m)
         g = grid(n,m)
-        @test nparts(g, :B) == n*m
-        @test nparts(g, :P) == 6n + 4n*(m-2)
-        @test nparts(g, :W) == 2*((n-1)*m + (m-1)*n)
+        @test nparts(g, :Box) == n*m
+        @test nparts(g, :Port) == 6n + 4n*(m-2)
+        @test nparts(g, :Wire) == 2*((n-1)*m + (m-1)*n)
     end
     for (i,j) in Iterators.product(1:6, 2:4)
         testgridsize(i,j)
@@ -389,7 +389,7 @@ using Base.Iterators
         l = 2^(depth-1)
         ft,fm,fb = RDA(parameters...)
         G = grid(n, l)
-        F = oapply(G, take(cycle(flatten(([ft], repeated(fm, n-2), [fb]))), nparts(G, :B))|> collect)
+        F = oapply(G, take(cycle(flatten(([ft], repeated(fm, n-2), [fb]))), nparts(G, :Box))|> collect)
         inputs = ones(n)
         @time traj = simulate(F, nsteps, stepsize, zeros(l*n), vcat(inputs, zeros(n)))
         # printsim(traj, t->t[end:end], u->u, (n,l))

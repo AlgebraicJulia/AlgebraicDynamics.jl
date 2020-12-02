@@ -155,54 +155,58 @@ function simulate(diff_64x64_periodic, state, coords)
   end;
 end
 
-res = Dict{String, Dict{String, Real}}()
-#precomp run
-nesting = 2
-res["nest_pre_comp"] = Dict{String, Real}()
-
-gen_sys_val = @timed generate_sys()
-res["nest_pre_comp"]["generators"] = gen_sys_val[2] 
-diff_slw, diff_fst = gen_sys_val[1]
-
-comb_sys_val = @timed combine_sys(diff_slw, diff_fst, nesting)
-system = comb_sys_val[1]
-res["nest_pre_comp"]["construction"] = comb_sys_val[2]
-
-init_val = @timed initialize(nesting) 
-
-res["nest_pre_comp"]["init_sys"] = init_val[2]
-state, coords = init_val[1]
-sim_val = @timed simulate(system, state, coords)
-res["nest_pre_comp"]["solving"] = sim_val[2]
-
-println(res["nest_pre_comp"]["generators"])
-println(res["nest_pre_comp"]["construction"])
-println(res["nest_pre_comp"]["init_sys"])
-println(res["nest_pre_comp"]["solving"])
-println("Finished nesting of pre_comp")
-
-
-for nesting in 2:6
-  res["nest_$nesting"] = Dict{String, Real}()
-
+function benchmark()
+  res = Dict{String, Dict{String, Real}}()
+  #precomp run
+  nesting = 2
+  res["nest_pre_comp"] = Dict{String, Real}()
+  
   gen_sys_val = @timed generate_sys()
-  res["nest_$nesting"]["generators"] = gen_sys_val[2] 
+  res["nest_pre_comp"]["generators"] = gen_sys_val[2] 
   diff_slw, diff_fst = gen_sys_val[1]
-
+  
   comb_sys_val = @timed combine_sys(diff_slw, diff_fst, nesting)
   system = comb_sys_val[1]
-  res["nest_$nesting"]["construction"] = comb_sys_val[2]
-
+  res["nest_pre_comp"]["construction"] = comb_sys_val[2]
+  
   init_val = @timed initialize(nesting) 
-
-  res["nest_$nesting"]["init_sys"] = init_val[2]
+  
+  res["nest_pre_comp"]["init_sys"] = init_val[2]
   state, coords = init_val[1]
   sim_val = @timed simulate(system, state, coords)
-  res["nest_$nesting"]["solving"] = sim_val[2]
-
-  println(res["nest_$nesting"]["generators"])
-  println(res["nest_$nesting"]["construction"])
-  println(res["nest_$nesting"]["init_sys"])
-  println(res["nest_$nesting"]["solving"])
-  println("Finished nesting of $nesting")
+  res["nest_pre_comp"]["solving"] = sim_val[2]
+  
+  println(res["nest_pre_comp"]["generators"])
+  println(res["nest_pre_comp"]["construction"])
+  println(res["nest_pre_comp"]["init_sys"])
+  println(res["nest_pre_comp"]["solving"])
+  println("Finished nesting of pre_comp")
+  
+  
+  for nesting in 2:6
+    res["nest_$nesting"] = Dict{String, Real}()
+  
+    gen_sys_val = @timed generate_sys()
+    res["nest_$nesting"]["generators"] = gen_sys_val[2] 
+    diff_slw, diff_fst = gen_sys_val[1]
+  
+    comb_sys_val = @timed combine_sys(diff_slw, diff_fst, nesting)
+    system = comb_sys_val[1]
+    res["nest_$nesting"]["construction"] = comb_sys_val[2]
+  
+    init_val = @timed initialize(nesting) 
+  
+    res["nest_$nesting"]["init_sys"] = init_val[2]
+    state, coords = init_val[1]
+    sim_val = @timed simulate(system, state, coords)
+    res["nest_$nesting"]["solving"] = sim_val[2]
+  
+    println(res["nest_$nesting"]["generators"])
+    println(res["nest_$nesting"]["construction"])
+    println(res["nest_$nesting"]["init_sys"])
+    println(res["nest_$nesting"]["solving"])
+    println("Finished nesting of $nesting")
+  end
 end
+
+benchmark()

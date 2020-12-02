@@ -119,7 +119,7 @@ function benchmark()
   println(res["nest_pre_comp"]["solving"])
   println("Finished nesting of pre_comp")
   
-  for nesting in 2:8
+  for nesting in 2:6
     res["nest_$nesting"] = Dict{String, Real}()
   
     gen_sys_val = @timed generate_sys(2^nesting)

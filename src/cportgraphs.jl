@@ -55,22 +55,39 @@ nports(d::OpenCPortGraph, b::Int) = incident(d, b, :box) |> length
 nports(d::OpenCPortGraph, b) = map(length, incident(d, b, :box))
 nports(d::OpenCPortGraph, b::Colon) = map(length, incident(d, :, :box))
 
+#colimitmap!(f::Function, output, C::Colimit, input) = begin
+#    for (i,x) in enumerate(input)
+#        y = f(i, x)
+#        I = legs(C)[i](1:length(y))
+#        length(legs(C)[i].func) == length(y) || error("colimitmap! attempting to fill $(length(legs(C)[i].func)) slots with $(length(y)) values at $i: $(legs(C)[i].func)")
+#        output[I] .= y
+#    end
+#    return output
+#end
+
+# Made colimitmap! actually work in-place
+# TODO: This expects functions it's calling to handle the possible difference
+# in size between the legs of the colimit and the output size (when using for
+# fillreadouts, the readout function has to make sure to only affect it's
+# output ports, not its input port, even though the cospan is for all ports)
 colimitmap!(f::Function, output, C::Colimit, input) = begin
     for (i,x) in enumerate(input)
-        y = f(i, x)
-        I = legs(C)[i](1:length(y))
-        # length(I) == length(y) || error("colimitmap! attempting to fill $(length(I)) slots with $(length(y)) values")
-        output[I] .= y
+        I = legs(C)[i].func
+        f(view(output, I), i, x)
+        #I = legs(C)[i](1:length(y))
+        #length(legs(C)[i].func) == length(y) || error("colimitmap! attempting to fill $(length(legs(C)[i].func)) slots with $(length(y)) values at $i: $(legs(C)[i].func)")
+        #output[I] .= y
     end
     return output
 end
 
-@inline fillreadouts!(y, d, xs, Ports, statefun) = colimitmap!(y, Ports, xs) do i,x
-    return x.readout(statefun(i))
+# TODO: Probably want an out-of-place option for fillreadouts and fillstates
+@inline fillreadouts!(y, d, xs, Ports, statefun) = colimitmap!(y, Ports, xs) do du,i,x
+    val = x.readout(du, statefun(i))
 end
 
-@inline fillstates!(y, d, xs, States, statefun, paramfun, t) = colimitmap!(y, States, xs) do i, x
-    return x.update(statefun(i), paramfun(i), t)
+@inline fillstates!(y, d, xs, States, statefun, paramfun, t) = colimitmap!(y, States, xs) do du, i, x
+    return x.update(du, statefun(i), paramfun(i), t)
 end
 
 function oapply(d::OpenCPortGraph, x::VectorField)
@@ -103,7 +120,7 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
     S = coproduct((FinSet∘nstates).(xs))
     Params = coproduct((FinSet∘nparams).(xs))
     Ports = coproduct([FinSet.(nports(d, b)) for b in parts(d, :B)])
-    state(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
+    state(u::Vector, b::Int) = view(u, legs(S)[b](1:xs[b].nstates))
     readouts = zeros(T, length(apex(Ports)))
     readins  = zeros(T, length(apex(Ports)))
     ind_map = zeros(Int, length(apex(Ports)))
@@ -116,11 +133,15 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
         end
     end
 
+    port_to_box = [incident(d, b, :box) for b in 1:nparts(d, :B)]
     ϕ = zeros(T, length(apex(S)))
+
+    # TODO: These are not in-place, and so nesting multiple oapplys is temporarily broken.
+    # Flat examples do work.
     υ = (u::AbstractVector, p::AbstractVector, t::Real) -> begin
         # length(p) == length(d[:, :con]) || error("Expected $(length(d[:, :con])) parameters, have $(length(p))")
         statefun(b) = state(u,b)
-        paramfun(b) = readins[incident(d, b, :box)]
+        paramfun(b) = view(readins, port_to_box[b])
         fillreadouts!(readouts, d, xs, Ports, statefun)
         # communicate readouts to the ports at the other end of the wires, external connections directly fill ports
         readins .= 0

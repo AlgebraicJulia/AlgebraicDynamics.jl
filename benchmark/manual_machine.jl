@@ -18,15 +18,21 @@ using Catlab.Graphics.Graphviz
 using Base.Iterators
 using Catlab.Theories
 
+# TODO: Make this more elegantly in-place (currently a little hacky)
 RDA(α₀, α₁, α₂) = begin
-  diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
-  advop(u,p,t)  = begin  α₂ .* (p .- u) end
-  fc = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t),
-                            u->repeated(u[1], 2),
+  diffop(du, u,p,t) = begin du .+= α₁ .* (sum(p) .- u .* length(p)) end
+  advop(du, u,p,t)  = begin du .+= α₂ .* (p .- u) end
+  update(du, u, p, t) = begin
+    du .= α₀ .* u
+    diffop(du, u, p, t)
+    advop(du, u, p[2], t)
+  end
+  fc = VectorField{Float64}(update,
+                            (du,u)->du[1:2] .= u[1],
                             2,
                             1)
-  fw = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 3), 3, 1)
-  fm = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 4), 4, 1)
+  fw = VectorField{Float64}(update, (du,u)->(du[1:3] .= u[1]), 3, 1)
+  fm = VectorField{Float64}(update, (du,u)->(du[1:4] .= u[1]), 4, 1)
   return fc, fw, fm
 end
 

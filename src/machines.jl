@@ -1,78 +1,101 @@
 module Machines
 
-using Catlab.WiringDiagrams
+using Catlab.WiringDiagrams.DirectedWiringDiagrams
+using  Catlab.CategoricalAlgebra
+using  Catlab.CategoricalAlgebra.FinSets
+import Catlab.CategoricalAlgebra: coproduct
+import Catlab.WiringDiagrams: oapply
+export Machine, oapply
 
-export RealMachine, oapply
+struct Machine{T}
+    nparams::Int
+    nstates::Int
+    noutputs::Int
+    update::Function
+    readout::Function
+end
+  
+show(io::IO, vf::Machine) = print("Machine(ℝ^$(vf.nstates) × ℝ^$(vf.nparams) → ℝ^$(vf.nstates))")
 
-struct RealMachine{T,U}
-  parameters::Int
-  states::Int
-  outputs::Int
-  update::T
-  readout::U
+nstates(f::Machine) = f.nstates
+nparams(f::Machine) = f.nparams
+noutputs(f::Machine) = f.noutputs
+
+function oapply(d::WiringDiagram, x::Machine)
+    oapply(d, collect(repeated(x, nparts(d, :B))))
 end
 
+colimitmap!(f::Function, output, C::Colimit, input) = begin
+    for (i,x) in enumerate(input)
+        y = f(i, x)
+        I = legs(C)[i](1:length(y))
+        # length(I) == length(y) || error("colimitmap! attempting to fill $(length(I)) slots with $(length(y)) values")
+        output[I] .= y
+    end
+    return output
+end
 
-function oapply(composite::WiringDiagram, dynamics::Vector{RealMachine{Function, Function}})
-    nboxes(composite) == length(dynamics)  || error("there are $nboxes(composite) boxes but $length(dynamics) machines")
+@inline fillreadouts!(y, d, xs, Outputs, statefun) = colimitmap!(y, Outputs, xs) do i,x
+    return x.readout(statefun(i))
+end
 
-    for b in 1:nboxes(composite)
-        params = dynamics[b].parameters 
-        in_ports = length(input_ports(composite, box_ids(composite)[b])) 
-        params == in_ports || error("there are $in_ports input ports for box $b but $params parameters for machine $b")
+@inline fillstates!(y, d, xs, States, statefun, paramfun) = colimitmap!(y, States, xs) do i, x
+    return x.update(statefun(i), paramfun(i))
+end
 
-        outputs = dynamics[b].outputs 
-        out_ports = length(output_ports(composite, box_ids(composite)[b])) 
-        outputs == out_ports || error("there are $out_ports output ports for box $b but $outputs outputs for machine $b")
+@inline fillwire(w, d, readouts, Outputs, p) = begin
+    if w.source.box == input_id(d)
+        return p[w.source.port]
+    end
+    return readouts[legs(Outputs)[w.source.box - 2](w.source.port)] # FIX - box re-indexing
+end
+
+fillreadins!(readins, d, readouts, Outputs, Params, p) = begin
+    for (i,w) in enumerate(wires(d))
+        if w.target.box == output_id(d)
+            continue
+        end
+        readins[legs(Params)[w.target.box - 2](w.target.port)] = fillwire(w, d, readouts, Outputs, p)
+    end
+    return readins
+end
+
+function oapply(d::WiringDiagram, xs::Vector{Machine{T}}) where T
+    #nboxes(composite) == length(dynamics)  || error("there are $nboxes(composite) boxes but $length(dynamics) machines")
+
+    S = coproduct((FinSet∘nstates).(xs))
+
+    Params = coproduct((FinSet∘nparams).(xs))
+    Outputs = coproduct((FinSet∘noutputs).(xs))
+
+    readouts = zeros(T, length(apex(Outputs)))
+    readins = zeros(T, length(apex(Params)))
+
+    ys = zeros(T, length(apex(S)))
+    states(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
+
+
+    v = (u::AbstractVector, p::AbstractVector, t::Real=0.0) -> begin
+        get_states(b) = states(u,b)
+        get_params(b) = view(readins, legs(Params)[b](:))
+        fillreadouts!(readouts, d, xs, Outputs, get_states)
+        fillreadins!(readins, d, readouts, Outputs, Params, p)
+        fillstates!(ys, d, xs, S, get_states, get_params)
+        return ys
     end
 
-    parameters = length(output_ports(composite, input_id(composite)))
-    outputs = length(input_ports(composite, output_id(composite)))
-    states = sum(d -> d.states, dynamics)
-    
-    state_ids = zeros(Int64, length(dynamics) + 1)
-    state_ids[1] = 1
-    for i in 1:length(dynamics)
-        state_ids[i+1] = state_ids[i] + dynamics[i].states
-    end
-
-    function internal_readout(p,x)
-        r = Dict(input_id(composite) => p) # dictionary indexed by box id and values - the state one the output ports of the box
-        for b in 1:nboxes(composite)
-
-            r[box_ids(composite)[b]] = dynamics[b].readout(view(x, state_ids[b]:(state_ids[b + 1] - 1)))
+    function readout(u::AbstractVector, p::AbstractVector, t::Real=0.0)
+        get_states(b) = states(u,b)
+        fillreadouts!(readouts, d, xs, Outputs, get_states)
+        r = zeros(T, length(d.output_ports))
+        for w in in_wires(d, output_id(d))
+            r[w.target.port] += fillwire(w, d, readouts, Outputs, p)
         end
         return r
     end
 
-    function update(p, x, args...)
-        r = internal_readout(p,x)
-
-        dx = zero(x)
-        for b in 1:nboxes(composite)
-
-            params = zeros(dynamics[b].parameters)
-            for w in in_wires(composite, box_ids(composite)[b]) # get incoming wires
-                params[w.target.port] = r[w.source.box][w.source.port]
-            end
-
-            state_idx = state_ids[b]:(state_ids[b + 1] - 1)
-            dx[state_idx] += dynamics[b].update(params,  view(x, state_idx), args...)
-        end
-        return dx
-    end
-
-    function readout(x)
-        out = zeros(outputs)
-        p = zeros(parameters)
-        r = internal_readout(p, x)
-        for w in in_wires(composite, output_id(composite))
-            out[w.target.port] += r[w.source.box][w.source.port]
-        end
-        return out
-    end
+    return Machine{T}(length(d.input_ports), length(apex(S)), length(d.output_ports), v, readout)
     
-    return RealMachine{Function, Function}(parameters, states, outputs, update, readout)
 end
 
 end #module

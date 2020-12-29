@@ -9,42 +9,52 @@ using Catlab.Theories
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply
 
-export ResourceSharer, nstates, nports, portmap, portfunction, 
+export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
+ nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 import Base: show
 
 const UWD = UndirectedWiringDiagram
+abstract type AbstractResourceSharer{T} end
 
-struct ResourceSharer{T}
+struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   nports::Int
   nstates::Int
   dynamics::Function
   portmap::Vector{Int64}
 end
 
-ResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
-    ResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
+struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
+    nports::Int
+    nstates::Int
+    dynamics::Function
+    portmap::Vector{Int64}
+  end
 
-nstates(r::ResourceSharer) = r.nstates
-nports(r::ResourceSharer)  = r.nports
-portmap(r::ResourceSharer) = r.portmap
-portfunction(r::ResourceSharer) = FinFunction(r.portmap, nstates(r))
-eval_dynamics(r::ResourceSharer, u, args...) = r.dynamics(u, args...)
-eval_dynamics!(du, r::ResourceSharer, u, args...) = begin
+ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
+    ContinuousResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
+
+nstates(r::AbstractResourceSharer) = r.nstates
+nports(r::AbstractResourceSharer)  = r.nports
+portmap(r::AbstractResourceSharer) = r.portmap
+portfunction(r::AbstractResourceSharer) = FinFunction(r.portmap, nstates(r))
+eval_dynamics(r::AbstractResourceSharer, u, args...) = r.dynamics(u, args...)
+eval_dynamics!(du, r::AbstractResourceSharer, u, args...) = begin
     du .= eval_dynamics(r, u, args...)
 end
-exposed_states(r::ResourceSharer, u) = getindex(u, portmap(r))
+exposed_states(r::AbstractResourceSharer, u) = getindex(u, portmap(r))
 
-show(io::IO, vf::ResourceSharer) = print("ResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
+show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
+show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 
 
-function fills(r::ResourceSharer, d::AbstractUWD, b::Int)
+function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
   b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer that $b boxes")
   return nports(r) == length(incident(d, b, :box))
 end
 
-function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer{T}}) where T
+function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer}
     for box in parts(d, :Box)
         fills(xs[box], d, box) || error("$xs[box] does not fill box $box")
     end
@@ -57,10 +67,10 @@ function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer{T}}) where T
 end
 
 
-oapply(d::AbstractUWD, xs::Vector{ResourceSharer{T}}) where T = 
+oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
 
-function oapply(d::AbstractUWD, xs::Vector{ResourceSharer{T}}, S′::Pushout) where T
+function oapply(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}}, S′::Pushout) where T
   state_map = legs(S′)[1]
   S = coproduct((FinSet∘nstates).(xs))
   states(b::Int) = legs(S)[b].func
@@ -80,7 +90,7 @@ function oapply(d::AbstractUWD, xs::Vector{ResourceSharer{T}}, S′::Pushout) wh
   junction_map = legs(S′)[2]
   outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
 
-  return ResourceSharer{T}(
+  return ContinuousResourceSharer{T}(
     nparts(d, :OuterPort), 
     length(apex(S′)), 
     v, 

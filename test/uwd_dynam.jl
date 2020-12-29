@@ -7,7 +7,7 @@ const UWD = UndirectedWiringDiagram
 @testset "UWDDynam" begin
   dx(x) = [x[1]^2, 2*x[1]-x[2]]
 
-  r = ResourceSharer{Float64}(2, dx)
+  r = ContinuousResourceSharer{Float64}(2, dx)
   #identity
   d = UWD(2)
   add_box!(d, 2)
@@ -39,7 +39,7 @@ const UWD = UndirectedWiringDiagram
 
 
   # copy
-  r = ResourceSharer{Float64}(1, 2, dx, [2])
+  r = ContinuousResourceSharer{Float64}(1, 2, dx, [2])
   d = UWD(2)
   add_box!(d, 1)
   add_junctions!(d, 1)
@@ -53,7 +53,7 @@ const UWD = UndirectedWiringDiagram
   @test exposed_states(r2, x0) == [x0[2], x0[2]]
   
   # copy states and merge back together
-  r = ResourceSharer{Float64}(2, 2, dx, [1,1])
+  r = ContinuousResourceSharer{Float64}(2, 2, dx, [1,1])
   d = UWD(1)
   add_box!(d, 2)
   add_junctions!(d, 1)
@@ -69,8 +69,8 @@ const UWD = UndirectedWiringDiagram
 
   # copy states and merge with otherwise
   dy(y) = [1 - y[1]^2]
-  r = ResourceSharer{Float64}(1, dy)
-  rcopy = ResourceSharer{Float64}(2, 1, dy, [1,1])
+  r = ContinuousResourceSharer{Float64}(1, dy)
+  rcopy = ContinuousResourceSharer{Float64}(2, 1, dy, [1,1])
   d = UWD(2)
   add_box!(d, 1); add_box!(d, 2); add_box!(d, 1)
   add_junctions!(d, 2)
@@ -98,8 +98,8 @@ const UWD = UndirectedWiringDiagram
   @test exposed_states(r2, [7.0, 11.0]) == [7.0, 11.0]
 
   # lots of boxes
-  r = ResourceSharer{Float64}(2, dx)
-  s = ResourceSharer{Float64}(1, dy)
+  r = ContinuousResourceSharer{Float64}(2, dx)
+  s = ContinuousResourceSharer{Float64}(1, dy)
   d = UWD(5)
   add_box!(d, 2); add_box!(d, 1); add_box!(d, 2)
   add_junctions!(d, 4)
@@ -127,7 +127,7 @@ const UWD = UndirectedWiringDiagram
 
   dtot = ocompose(d, 2, din)
 
-  s = ResourceSharer{Float64}(1, 2, dx, [2])
+  s = ContinuousResourceSharer{Float64}(1, 2, dx, [2])
 
   r1 = oapply(dtot, [s,s,r])
   r2 = oapply(d, [s, oapply(din, [s,r])])
@@ -158,9 +158,9 @@ end # test set
 # dotrf(x,p,t) = [-β*x[1]*x[2], γ*x[1]*x[2]]
 # dotf(x,p,t)  = -δ*x
 
-# rabbit_growth       = ResourceSharer{Float64}(1, 1, dotr,  [1])
-# rabbitfox_predation = ResourceSharer{Float64}(2, 2, dotrf, [1,2])
-# fox_decline         = ResourceSharer{Float64}(1, 1, dotf,  [1])
+# rabbit_growth       = ContinuousResourceSharer{Float64}(1, 1, dotr,  [1])
+# rabbitfox_predation = ContinuousResourceSharer{Float64}(2, 2, dotrf, [1,2])
+# fox_decline         = ContinuousResourceSharer{Float64}(1, 1, dotf,  [1])
 
 # xs = [rabbit_growth, rabbitfox_predation, fox_decline]
 

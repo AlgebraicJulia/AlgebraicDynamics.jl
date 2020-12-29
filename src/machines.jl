@@ -47,18 +47,6 @@ eulers(f::ContinuousMachine{T}) where T = DiscreteMachine{T}(
     f.readout
 )
 
-# trajectories
-# trajectory(f::DiscreteMachine{T}, N::Int, u0::Vector, ps) where T = begin
-#     # it would be good to return a DynamicalSystems dataset
-#     for i in 1:N
-
-#     end
-# end
-
-trajectory(f::DiscreteMachine{T}, N::Int, u0::Vector) where T = begin
-    nparams(f) == 0 || @warn "setting the $(nparams(f)) to zero"
-    trajectory(f, N, u0, zeros(N, nparams(f)))
-end
 
 # oapply
 function oapply(d::WiringDiagram, x::AbstractMachine)

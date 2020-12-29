@@ -48,6 +48,18 @@ exposed_states(r::AbstractResourceSharer, u) = getindex(u, portmap(r))
 show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 
+#eulers
+eulers(f::ContinuousResourceSharer{T}, h::Float) where T = DiscreteResourceSharer{T}(
+    nports(f), nstates(f), 
+    (u, args...) -> u + h*eval_dynamics(f, u, args...),
+    f.portmap
+)
+
+eulers(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
+    nports(f), nstates(f), 
+    (u, h, args...) -> u + h*eval_dynamics(f, u, args...),
+    f.portmap
+)
 
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
   b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer that $b boxes")

@@ -70,12 +70,27 @@ end
 oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
 
-function oapply(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}}, S′::Pushout) where T
-  state_map = legs(S′)[1]
-  S = coproduct((FinSet∘nstates).(xs))
-  states(b::Int) = legs(S)[b].func
+function oapply(d::AbstractUWD, xs::Vector{ResourceSharer}, S′::Pushout) where {ResourceSharer <: AbstractResourceSharer}
+    
+    S = coproduct((FinSet∘nstates).(xs))
+    states(b::Int) = legs(S)[b].func
 
-  function v(u′, args...)
+    v = induced_dynamics(d, xs, legs(S′)[1], states)
+
+    junction_map = legs(S′)[2]
+    outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
+
+    return ResourceSharer(
+        nparts(d, :OuterPort), 
+        length(apex(S′)), 
+        v, 
+        compose(outer_junction_map, junction_map).func)
+end
+
+
+function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}}, state_map::FinFunction, states::Function) where T
+  
+    function v(u′, args...)
       u = getindex(u′,  state_map.func)
       du = zero(u)
       # apply dynamics
@@ -85,16 +100,22 @@ function oapply(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}}, S′::P
       # add along junctions
       du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
       return du′
-  end
-  
-  junction_map = legs(S′)[2]
-  outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
+    end
 
-  return ContinuousResourceSharer{T}(
-    nparts(d, :OuterPort), 
-    length(apex(S′)), 
-    v, 
-    compose(outer_junction_map, junction_map).func)
+end
+
+function induced_dynamics(d::AbstractUWD, xs::Vector{DiscreteResourceSharer{T}}, state_map::FinFunction, states::Function) where T
+    function v(u′, args...)
+        u0 = getindex(u′,  state_map.func)
+        u1 = zero(u0)
+        # apply dynamics
+        for b in parts(d, :Box)
+          eval_dynamics!(view(u1, states(b)), xs[b], view(u0, states(b)), args...)
+        end
+        Δu = u1 - u0
+        # add along junctions
+        return u′+ [sum(Array{T}(view(Δu, preimage(state_map, i)))) for i in codom(state_map)]
+    end
 end
 
 end #module

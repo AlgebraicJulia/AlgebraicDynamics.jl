@@ -2,20 +2,19 @@ using AlgebraicDynamics.Machines
 using Catlab.WiringDiagrams
 using Test
 
-
-@testset "Machines" begin
+@testset "ContinuousMachine" begin
 # Identity 
 A = [:A]
 uf(x,p) = [p[1] - x[1]]
 rf(x) = x
-mf = Machine{Float64}(1,1,1, uf, rf)
+mf = ContinuousMachine{Float64}(1,1,1, uf, rf)
 
 f = Box(:f, A, A)
 m_id = oapply(singleton_diagram(f), [mf])
 
 x0 = 1
 p0 = 200
-@test m_id.update([x0], [p0]) == [p0 - x0]
+@test m_id.dynamics([x0], [p0]) == [p0 - x0]
 @test m_id.readout([x0], [p0]) == [x0]
 
 # composite
@@ -32,7 +31,7 @@ m12 = oapply(d, [mf, mf])
 x0 = -1
 y0 = 29
 p0 = 200
-@test m12.update([x0, y0], [p0]) == [p0 - x0, x0 - y0]
+@test m12.dynamics([x0, y0], [p0]) == [p0 - x0, x0 - y0]
 @test m12.readout([x0,y0], [p0]) == [y0]
 
 
@@ -51,7 +50,7 @@ m = oapply(d, [mf, mf])
 x0 = -1
 y0 = 29
 p0 = 200
-@test m.update([x0, y0], [p0]) == [p0 - x0, p0 - y0]
+@test m.dynamics([x0, y0], [p0]) == [p0 - x0, p0 - y0]
 @test m.readout([x0,y0], [p0]) == [x0 + y0]
 
 @test m.nparams == 1

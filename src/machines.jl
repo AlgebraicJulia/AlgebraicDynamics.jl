@@ -5,23 +5,63 @@ using  Catlab.CategoricalAlgebra
 using  Catlab.CategoricalAlgebra.FinSets
 import Catlab.CategoricalAlgebra: coproduct
 import Catlab.WiringDiagrams: oapply
-export Machine, oapply
+export AbstractMachine, ContinuousMachine, DiscreteMachine, oapply
 
-struct Machine{T}
+abstract type AbstractMachine{T} end
+
+struct ContinuousMachine{T} <: AbstractMachine{T}
     nparams::Int
     nstates::Int
     noutputs::Int
-    update::Function
+    dynamics::Function
+    readout::Function
+end
+
+struct DiscreteMachine{T} <: AbstractMachine{T}
+    nparams::Int
+    nstates::Int
+    noutputs::Int
+    dynamics::Function
     readout::Function
 end
   
-show(io::IO, vf::Machine) = print("Machine(ℝ^$(vf.nstates) × ℝ^$(vf.nparams) → ℝ^$(vf.nstates))")
+show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(vf.nstates) × ℝ^$(vf.nparams) → ℝ^$(vf.nstates))")
+show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(vf.nstates) × ℝ^$(vf.nparams) → ℝ^$(vf.nstates))")
 
-nstates(f::Machine) = f.nstates
-nparams(f::Machine) = f.nparams
-noutputs(f::Machine) = f.noutputs
+nstates(f::AbstractMachine) = f.nstates
+nparams(f::AbstractMachine) = f.nparams
+noutputs(f::AbstractMachine) = f.noutputs
+eval_dynamics(f::AbstractMachine, u, p, args...) = f.dynamics(u,p, args...)
+readout(f::AbstractMachine, u, p, args...) = f.readout(u, p, args...)
 
-function oapply(d::WiringDiagram, x::Machine)
+#eulers
+eulers(f::ContinuousMachine{T}, h::Float) where T = DiscreteMachine{T}(
+    nparams(f), nstates(f), noutputs(f), 
+    (u, p, args...) -> u + h*eval_dynamics(f, u, p, args...),
+    f.readout
+)
+
+eulers(f::ContinuousMachine{T}) where T = DiscreteMachine{T}(
+    nparams(f), nstates(f), noutputs(f), 
+    (u, p, h, args...) -> u + h*eval_dynamics(f, u, p, args...),
+    f.readout
+)
+
+# trajectories
+# trajectory(f::DiscreteMachine{T}, N::Int, u0::Vector, ps) where T = begin
+#     # it would be good to return a DynamicalSystems dataset
+#     for i in 1:N
+
+#     end
+# end
+
+trajectory(f::DiscreteMachine{T}, N::Int, u0::Vector) where T = begin
+    nparams(f) == 0 || @warn "setting the $(nparams(f)) to zero"
+    trajectory(f, N, u0, zeros(N, nparams(f)))
+end
+
+# oapply
+function oapply(d::WiringDiagram, x::AbstractMachine)
     oapply(d, collect(repeated(x, nparts(d, :B))))
 end
 
@@ -40,7 +80,7 @@ end
 end
 
 @inline fillstates!(y, d, xs, States, statefun, paramfun) = colimitmap!(y, States, xs) do i, x
-    return x.update(statefun(i), paramfun(i))
+    return x.dynamics(statefun(i), paramfun(i))
 end
 
 @inline fillwire(w, d, readouts, Outputs, p) = begin
@@ -60,7 +100,7 @@ fillreadins!(readins, d, readouts, Outputs, Params, p) = begin
     return readins
 end
 
-function oapply(d::WiringDiagram, xs::Vector{Machine{T}}) where T
+function oapply(d::WiringDiagram, xs::Vector{Machine}) where {T, Machine <: AbstractMachine{T}}
     #nboxes(composite) == length(dynamics)  || error("there are $nboxes(composite) boxes but $length(dynamics) machines")
 
     S = coproduct((FinSet∘nstates).(xs))
@@ -94,7 +134,7 @@ function oapply(d::WiringDiagram, xs::Vector{Machine{T}}) where T
         return r
     end
 
-    return Machine{T}(length(d.input_ports), length(apex(S)), length(d.output_ports), v, readout)
+    return Machine(length(d.input_ports), length(apex(S)), length(d.output_ports), v, readout)
     
 end
 

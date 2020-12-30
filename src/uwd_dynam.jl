@@ -13,7 +13,7 @@ export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
-import Base: show
+import Base: show, eltype
 
 const UWD = UndirectedWiringDiagram
 abstract type AbstractResourceSharer{T} end
@@ -47,6 +47,7 @@ exposed_states(r::AbstractResourceSharer, u) = getindex(u, portmap(r))
 
 show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
+eltype(r::AbstractResourceSharer{T}) where T = T
 
 #eulers
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
@@ -66,7 +67,7 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 
 
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
-        b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer that $b boxes")
+        b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
         return nports(r) == length(incident(d, b, :box))
       end
 

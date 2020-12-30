@@ -9,6 +9,7 @@ const UWD = UndirectedWiringDiagram
   dy(y) = [1 - y[1]^2]
 
   r = ContinuousResourceSharer{Float64}(2, dx)
+  @test eltype(r) == Float64
   #identity
   d = UWD(2)
   add_box!(d, 2)

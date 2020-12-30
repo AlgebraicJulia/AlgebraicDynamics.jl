@@ -6,6 +6,7 @@ const UWD = UndirectedWiringDiagram
 
 @testset "UWDDynam" begin
   dx(x) = [x[1]^2, 2*x[1]-x[2]]
+  dy(y) = [1 - y[1]^2]
 
   r = ContinuousResourceSharer{Float64}(2, dx)
   #identity
@@ -23,6 +24,15 @@ const UWD = UndirectedWiringDiagram
   @test eval_dynamics(r, x0) == eval_dynamics(r2, x0)
   @test exposed_states(r, x0) == exposed_states(r2, x0)
 
+  h = 0.1
+  drs = oapply(d, [euler_approx(r, h)])
+  drs2 = euler_approx(r2, h)
+  @test eval_dynamics(drs, x0) == eval_dynamics(drs2, x0)
+  drs3 = euler_approx(r2)
+  drs4 = oapply(d, [euler_approx(r)])
+  @test eval_dynamics(drs, x0) == eval_dynamics(drs3, x0, h)
+  @test eval_dynamics(drs, x0) == eval_dynamics(drs4, x0, h)
+
   # merge
   d = UWD(1)
   add_box!(d, 2)
@@ -36,7 +46,6 @@ const UWD = UndirectedWiringDiagram
   @test portmap(r2) == [1]
   @test eval_dynamics(r2, [5.0]) == [30.0]
   @test exposed_states(r2, [5.0]) == [5.0]
-
 
   # copy
   r = ContinuousResourceSharer{Float64}(1, 2, dx, [2])
@@ -68,7 +77,6 @@ const UWD = UndirectedWiringDiagram
 
 
   # copy states and merge with otherwise
-  dy(y) = [1 - y[1]^2]
   r = ContinuousResourceSharer{Float64}(1, dy)
   rcopy = ContinuousResourceSharer{Float64}(2, 1, dy, [1,1])
   d = UWD(2)
@@ -109,8 +117,19 @@ const UWD = UndirectedWiringDiagram
   @test nstates(r2) == 4
   @test nports(r2) == 5
   @test portmap(r2) == [1,1, 3, 4,4]
-  @test eval_dynamics(r2, [2.0, 7.0, 3.0, 5.0]) == [3.0, 49.0, 11.0, 0.0]
-  @test exposed_states(r2, [2.0, 7.0, 3.0, 5.0]) == [2.0, 2.0, 3.0, 5.0, 5.0]
+  x0 = [2.0, 7.0, 3.0, 5.0]
+  @test eval_dynamics(r2, x0) == [3.0, 49.0, 11.0, 0.0]
+  @test exposed_states(r2, x0) == [2.0, 2.0, 3.0, 5.0, 5.0]
+  
+  h = 0.1
+  dr = oapply(d, euler_approx([r,s,r], h))
+  dr2 = euler_approx(r2, h)
+  dr3 = oapply(d, euler_approx([r,s,r]))
+  dr4 = euler_approx(r2)
+  @test eval_dynamics(dr, x0) == [2.3, 11.9, 4.1, 5.0]
+  @test eval_dynamics(dr, x0) == eval_dynamics(dr2, x0)
+  @test eval_dynamics(dr, x0) == eval_dynamics(dr3, x0, h)
+  @test eval_dynamics(dr, x0) == eval_dynamics(dr4, x0, h)
 
   # substitute and oapply commute
   d = UWD(4)
@@ -138,30 +157,4 @@ const UWD = UndirectedWiringDiagram
   x0 = [2.0, 3.0, 5.0, 7.0, 11.0]
   @test eval_dynamics(r1, x0) == eval_dynamics(r2, x0)
 
-
-
-
-
-  
 end # test set
-
-
-
-# d = UWD(2)
-# add_parts!(d, :Box, 3)
-# add_parts!(d, :Junction, 2, outer_junction = [1,2])
-# add_parts!(d, :Port, 4, box=[1,2,2,3], junction=[1,1,2,2])
-
-# α, β, γ, δ = 0.3, 0.015, 0.015, 0.7
-
-# dotr(x,p,t)  = α*x
-# dotrf(x,p,t) = [-β*x[1]*x[2], γ*x[1]*x[2]]
-# dotf(x,p,t)  = -δ*x
-
-# rabbit_growth       = ContinuousResourceSharer{Float64}(1, 1, dotr,  [1])
-# rabbitfox_predation = ContinuousResourceSharer{Float64}(2, 2, dotrf, [1,2])
-# fox_decline         = ContinuousResourceSharer{Float64}(1, 1, dotf,  [1])
-
-# xs = [rabbit_growth, rabbitfox_predation, fox_decline]
-
-# rf = oapply(d, xs)

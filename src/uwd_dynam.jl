@@ -10,7 +10,7 @@ using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply
 
 export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
- nstates, nports, portmap, portfunction, 
+euler_approx, nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 import Base: show
@@ -49,35 +49,26 @@ show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 
 #eulers
-eulers(f::ContinuousResourceSharer{T}, h::Float) where T = DiscreteResourceSharer{T}(
+euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
     (u, args...) -> u + h*eval_dynamics(f, u, args...),
     f.portmap
 )
 
-eulers(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
+euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
     (u, h, args...) -> u + h*eval_dynamics(f, u, args...),
     f.portmap
 )
 
+euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T = 
+    map(f->euler_approx(f,args...), fs)
+
+
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
-  b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer that $b boxes")
-  return nports(r) == length(incident(d, b, :box))
-end
-
-function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer}
-    for box in parts(d, :Box)
-        fills(xs[box], d, box) || error("$xs[box] does not fill box $box")
-    end
-    
-    S = coproduct((FinSet∘nstates).(xs))  
-    P = coproduct((FinSet∘nports).(xs))
-    total_portfunction = copair([compose( portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
-    
-    return pushout(total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
-end
-
+        b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer that $b boxes")
+        return nports(r) == length(incident(d, b, :box))
+      end
 
 oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
@@ -97,6 +88,19 @@ function oapply(d::AbstractUWD, xs::Vector{ResourceSharer}, S′::Pushout) where
         length(apex(S′)), 
         v, 
         compose(outer_junction_map, junction_map).func)
+end
+
+
+function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer}
+    for box in parts(d, :Box)
+        fills(xs[box], d, box) || error("$xs[box] does not fill box $box")
+    end
+    
+    S = coproduct((FinSet∘nstates).(xs))  
+    P = coproduct((FinSet∘nports).(xs))
+    total_portfunction = copair([compose( portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
+    
+    return pushout(total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
 end
 
 

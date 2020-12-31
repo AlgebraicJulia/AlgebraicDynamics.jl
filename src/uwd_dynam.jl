@@ -13,6 +13,7 @@ export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
+using Base.Iterators
 import Base: show, eltype
 
 const UWD = UndirectedWiringDiagram
@@ -65,14 +66,24 @@ euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}
 euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T = 
     map(f->euler_approx(f,args...), fs)
 
+euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
+    Dict(name => euler_approx(f, args...) for (name, f) in fs)
+
 
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
-        b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
-        return nports(r) == length(incident(d, b, :box))
-      end
+    b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
+    return nports(r) == length(incident(d, b, :box))
+end
+
+oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
+    oapply(d, collect(repeated(x, nboxes(d))))
+oapply(d::HypergraphDiagram, xs::AbstractDict) = 
+    oapply(d, [xs[name] for name in subpart(d, :name)])
 
 oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
+
+
 
 function oapply(d::AbstractUWD, xs::Vector{ResourceSharer}, S′::Pushout) where {ResourceSharer <: AbstractResourceSharer}
     

@@ -55,6 +55,9 @@ euler_approx(f::ContinuousMachine{T}) where T = DiscreteMachine{T}(
 euler_approx(fs::Vector{ContinuousMachine{T}}, args...) where T = 
     map(f->euler_approx(f,args...), fs)
 
+euler_approx(fs::AbstractDict{S, ContinuousMachine{T}}, args...) where {S, T} = 
+    Dict(name => euler_approx(f, args...) for (name, f) in fs)
+
 # oapply
 function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     b <= nboxes(d) || error("Trying to fill box $b, when $d has fewer than $b boxes")

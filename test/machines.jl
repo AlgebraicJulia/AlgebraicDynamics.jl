@@ -141,4 +141,12 @@ euler_m = oapply(d, euler_approx([m1, m2, m3], h))
 euler_m2 = oapply(d, euler_approx([m1, m2, m3]))
 @test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_m2, x, p, h)
 
+h = 0.02
+xs = Dict(:h => m3, :f => m1, :g => m2)
+euler_m = oapply(d, euler_approx(xs, h))
+@test eval_dynamics(euler_m, x, p) == x + h*eval_dynamics(m, x, p)
+@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_approx(m, h), x, p)
+euler_m2 = oapply(d, euler_approx(xs))
+@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_m2, x, p, h)
+
 end

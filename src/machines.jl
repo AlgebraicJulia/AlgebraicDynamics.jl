@@ -1,4 +1,6 @@
 module Machines
+""" This module implements operad algebras corresponding to the directed composition of open dynamical systems.
+"""
 
 using Catlab.WiringDiagrams.DirectedWiringDiagrams
 using  Catlab.CategoricalAlgebra
@@ -12,8 +14,16 @@ nstates, nparams, noutputs, eval_dynamics, readout, euler_approx
 using Base.Iterators
 import Base: show, eltype
 
+"""A directed open dynamical system
+
+In the operad algebra, `m::AbstractMachine` fills 
+boxes of type (`m.nparams`, `m.outputs`).
+"""
 abstract type AbstractMachine{T} end
 
+
+""" A directed open continuous dynamical system.
+"""
 struct ContinuousMachine{T} <: AbstractMachine{T}
     nparams::Int
     nstates::Int
@@ -22,6 +32,8 @@ struct ContinuousMachine{T} <: AbstractMachine{T}
     readout::Function
 end
 
+""" A directed open discrete dynamical system.
+"""
 struct DiscreteMachine{T} <: AbstractMachine{T}
     nparams::Int
     nstates::Int
@@ -40,7 +52,9 @@ noutputs(f::AbstractMachine) = f.noutputs
 eval_dynamics(f::AbstractMachine, u, p, args...) = f.dynamics(u,p, args...)
 readout(f::AbstractMachine, u, args...) = f.readout(u, args...)
 
-#eulers
+
+"""Transforms a continuous machine into a discrete machine according to Euler's method.
+"""
 euler_approx(f::ContinuousMachine{T}, h::Float64) where T = DiscreteMachine{T}(
     nparams(f), nstates(f), noutputs(f), 
     (u, p, args...) -> u + h*eval_dynamics(f, u, p, args...),
@@ -58,14 +72,19 @@ euler_approx(fs::Vector{ContinuousMachine{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousMachine{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-# oapply
+"""Checks if a machine is of the correct signature to fill a box in a wiring diagram.
+"""
 function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     b <= nboxes(d) || error("Trying to fill box $b, when $d has fewer than $b boxes")
     b = box_ids(d)[b]
     return nparams(m) == length(input_ports(d,b)) && noutputs(m) == length(output_ports(d,b))
 end
 
+"""Implements the operad algebra given a composition pattern (implemented by a wiring diagram)
+and primitive systems (implemented by a collected of machines).
 
+Each box of the wiring diagram is filled by a machine of the appropriate type. Returns the composite machine.
+"""
 function oapply(d::WiringDiagram, x::AbstractMachine)
     oapply(d, collect(repeated(x, nboxes(d))))
 end

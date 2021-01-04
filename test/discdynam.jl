@@ -121,10 +121,10 @@ end
 @testset "Composition of Systems" begin
     f(x) = [x[1]*x[2], x[1]+x[2]]
     g(x) = [x[1]+x[2], x[2]-x[1], x[3]]
-    f_rel = @relation (x, y) where (x, y) begin
+    f_rel = @relation (x, y) begin
         f(x, y)
     end
-    g_rel = @relation (x, y) where (x, y) begin
+    g_rel = @relation (x, y) begin
         g(x, y)
     end
 
@@ -142,8 +142,11 @@ end
     f_dyn = to_dynam(f_rel)
     g_dyn = to_dynam(g_rel)
 
-    cosp = Cospan(FinFunction([1,2,2,3], 3), FinFunction([1,3], 3))
-    fg_dyn = AlgebraicDynamics.DiscDynam.compose(cosp)(f_dyn, g_dyn)
+    cosp = @relation (x, y, z) begin
+      f(x,y)
+      g(y,z)
+    end
+    fg_dyn = functor(cosp, Dict(:f=>f_dyn, :g=>g_dyn))
 
     output = zeros(5)
     input = [1,1,1,1,3]
@@ -253,9 +256,12 @@ end
     f_dyn = Dynam(f, 2, [1,2], [-1,1])
     g_dyn = Dynam(g, 2, [1,2], [-1,1])
 
-    cspn = Cospan(FinFunction([1,2,1,2], 2), FinFunction([1,2], 2))
+    cspn = @relation (x, y) begin
+      f(x,y)
+      g(x,y)
+    end
 
-    d = AlgebraicDynamics.DiscDynam.compose(cspn)(f_dyn, g_dyn)
+    d = functor(cspn, Dict(:f=>f_dyn, :g=>g_dyn))
 
     input = subpart(d,:value)
     output = zero(input)
@@ -271,8 +277,13 @@ end
     k_dyn = Dynam(k, 2, [1,2], [-2, -3])
     l_dyn = Dynam(l, 2, [1,2], [-3, -4])
 
-    cspn = Cospan(FinFunction([1,2,2,3, 3, 4], 4), FinFunction([1,2,3,4], 4))
-    d = AlgebraicDynamics.DiscDynam.compose(cspn)(h_dyn, k_dyn, l_dyn)
+    cspn2 = @relation (w,x,y,z) begin
+      h(w,x)
+      k(x,y)
+      l(y,z)
+    end
+
+    d = functor(cspn2, Dict(:h=>h_dyn, :k=>k_dyn, :l=>l_dyn))
 
     input = subpart(d, :value)
     output = zero(input)

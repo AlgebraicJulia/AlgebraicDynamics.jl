@@ -16,8 +16,16 @@ using Base.Iterators
 import Base: show, eltype
 
 const UWD = UndirectedWiringDiagram
+
+"""An undirected open dynamical system
+
+In the operad algebra, `r::AbstractResourceSharer` has type signature
+`r.nports`.
+"""
 abstract type AbstractResourceSharer{T} end
 
+"""An undirected open continuous system
+"""
 struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   nports::Int
   nstates::Int
@@ -25,6 +33,8 @@ struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   portmap::Vector{Int64}
 end
 
+"""An undirected open discrete system
+"""
 struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
     nports::Int
     nstates::Int
@@ -49,7 +59,9 @@ show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 eltype(r::AbstractResourceSharer{T}) where T = T
 
-#eulers
+"""Transforms a continuous resource sharer into a discrete
+resource sharer via Euler's method.
+"""
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
     (u, args...) -> u + h*eval_dynamics(f, u, args...),
@@ -68,12 +80,21 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-
+""" Checks if a resource sharer is of the correct type signature to 
+fill a box in an undirected wiring diagram.
+"""
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
     b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
     return nports(r) == length(incident(d, b, :box))
 end
 
+"""Implements the operad algebra Dynam given a composition pattern (implemented
+by an undirected wiring diagram) and primit systems (implemented by
+a collection of resource sharers) 
+
+Each box of the undirected wiring diagram is filled by a machine of the appropriate
+type signature. Returns the composite machine.
+"""
 oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
     oapply(d, collect(repeated(x, nboxes(d))))
 oapply(d::HypergraphDiagram, xs::AbstractDict) = 

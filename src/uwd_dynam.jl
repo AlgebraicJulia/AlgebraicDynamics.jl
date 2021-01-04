@@ -5,7 +5,6 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 using Catlab.Theories
 
-
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply
 
@@ -31,7 +30,7 @@ struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
     nstates::Int
     dynamics::Function
     portmap::Vector{Int64}
-  end
+end
 
 ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
     ContinuousResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
@@ -105,7 +104,7 @@ end
 
 function induced_states(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer}
     for box in parts(d, :Box)
-        fills(xs[box], d, box) || error("$xs[box] does not fill box $box")
+        fills(xs[box], d, box) || error("$(xs[box]) does not fill box $box")
     end
     
     S = coproduct((FinSet∘nstates).(xs))  

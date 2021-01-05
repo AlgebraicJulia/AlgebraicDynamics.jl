@@ -16,8 +16,8 @@ import Base: show, eltype
 
 """A directed open dynamical system
 
-In the operad algebra, `m::AbstractMachine` fills 
-boxes of type (`m.nparams`, `m.outputs`).
+In the operad algebra, `m::AbstractMachine` has type signature 
+(`m.nparams`, `m.outputs`).
 """
 abstract type AbstractMachine{T} end
 
@@ -53,7 +53,8 @@ eval_dynamics(f::AbstractMachine, u, p, args...) = f.dynamics(u,p, args...)
 readout(f::AbstractMachine, u, args...) = f.readout(u, args...)
 
 
-"""Transforms a continuous machine into a discrete machine according to Euler's method.
+"""Transforms a continuous machine into a discrete machine 
+via Euler's method.
 """
 euler_approx(f::ContinuousMachine{T}, h::Float64) where T = DiscreteMachine{T}(
     nparams(f), nstates(f), noutputs(f), 
@@ -72,7 +73,8 @@ euler_approx(fs::Vector{ContinuousMachine{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousMachine{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""Checks if a machine is of the correct signature to fill a box in a wiring diagram.
+"""Checks if a machine is of the correct signature to fill a 
+box in a directed wiring diagram.
 """
 function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     b <= nboxes(d) || error("Trying to fill box $b, when $d has fewer than $b boxes")
@@ -80,10 +82,13 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     return nparams(m) == length(input_ports(d,b)) && noutputs(m) == length(output_ports(d,b))
 end
 
-"""Implements the operad algebra given a composition pattern (implemented by a wiring diagram)
-and primitive systems (implemented by a collected of machines).
+"""Implements the operad algebras CDS and DDS given a 
+composition pattern (implemented by a directed wiring diagram)
+and primitive systems (implemented by a collection of 
+machines).
 
-Each box of the wiring diagram is filled by a machine of the appropriate type. Returns the composite machine.
+Each box of the wiring diagram is filled by a machine with the 
+appropriate type signature. Returns the composite machine.
 """
 function oapply(d::WiringDiagram, x::AbstractMachine)
     oapply(d, collect(repeated(x, nboxes(d))))

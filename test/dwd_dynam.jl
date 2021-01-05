@@ -2,7 +2,6 @@ using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
 using Test
 
-@testset "ContinuousMachine" begin
 # Identity 
 A = [:A]
 uf(x,p) = [p[1] - x[1]]
@@ -148,5 +147,3 @@ euler_m = oapply(d, euler_approx(xs, h))
 @test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_approx(m, h), x, p)
 euler_m2 = oapply(d, euler_approx(xs))
 @test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_m2, x, p, h)
-
-end

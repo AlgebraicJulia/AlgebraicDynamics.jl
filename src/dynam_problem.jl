@@ -16,17 +16,12 @@ using Base.Iterators
 ODEProblem(r::ContinuousResourceSharer, args...) = ODEProblem(r.dynamics, args...)
 
 ODEProblem(m::ContinuousMachine, fs::Vector{T}, args...) where {T<:Function} = begin
-  nparams(m) == length(fs) || error("Need a function to fill every exogenous variable")
+  ninputs(m) == length(fs) || error("Need a function to fill every exogenous variable")
   ODEProblem((u,p,t) -> m.dynamics(u, [f(t) for f in fs], p, t), args...)
 end
 
 ODEProblem(m::ContinuousMachine, f::Function, args...) = 
-  ODEProblem(m, collect(repeated(f, nparams(m))), args...)
-
-
-function oapply(d::WiringDiagram, xs::AbstractDict)
-  oapply(d, [xs[box.value] for box in boxes(d)])
-end
+  ODEProblem(m, collect(repeated(f, ninputs(m))), args...)
 
 
 dx(x) = [1 - x[1]^2, 2*x[1]-x[2]]

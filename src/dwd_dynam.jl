@@ -1,4 +1,4 @@
-module Machines
+module DWDDynam
 """ This module implements operad algebras corresponding to the directed composition of open dynamical systems.
 """
 
@@ -7,6 +7,8 @@ using  Catlab.CategoricalAlgebra
 using  Catlab.CategoricalAlgebra.FinSets
 import Catlab.CategoricalAlgebra: coproduct
 import Catlab.WiringDiagrams: oapply
+
+import ..UWDDynam: nstates, eval_dynamics, euler_approx
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, 
 nstates, nparams, noutputs, eval_dynamics, readout, euler_approx

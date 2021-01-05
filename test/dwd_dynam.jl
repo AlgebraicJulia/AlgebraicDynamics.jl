@@ -1,4 +1,4 @@
-using AlgebraicDynamics.Machines
+using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
 using Test
 

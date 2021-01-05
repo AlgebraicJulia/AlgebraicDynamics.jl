@@ -58,7 +58,7 @@ p0 = 200
 @test m.dynamics([x0, y0], [p0]) == [p0 - x0, p0 - y0]
 @test m.readout([x0,y0]) == [x0 + y0]
 
-@test m.nparams == 1
+@test m.ninputs == 1
 @test m.nstates == 2
 @test m.noutputs == 1
 
@@ -123,7 +123,7 @@ m3 = ContinuousMachine{Float64}(1,2,1,
 
 xs = Dict(:f => m1, :g => m2, :h => m3, :j => mf)
 m = oapply(d, xs)
-@test nparams(m) == 2
+@test ninputs(m) == 2
 @test nstates(m) == 5
 @test noutputs(m) == 3
 x = [2.0, 3.0, 5.0, -7.0, -0.5]

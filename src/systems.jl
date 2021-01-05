@@ -6,6 +6,8 @@ using Catlab.Programs
 using RecursiveArrayTools
 using OrdinaryDiffEq
 
+import ..UWDDynam: nstates
+
 export FreeSMC, System, dom_ids, codom_ids, nstates, states,
  forward, initforward, problem
 

@@ -10,6 +10,7 @@ using RecursiveArrayTools
 using OrdinaryDiffEq
 
 include("uwd_dynam.jl")
+include("dwd_dynam.jl")
 include("discdynam.jl")
 include("hypergraphs.jl")
 include("linrels.jl")

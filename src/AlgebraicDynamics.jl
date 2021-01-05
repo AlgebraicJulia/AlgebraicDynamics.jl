@@ -5,11 +5,8 @@ using Catlab.Theories
 using Catlab.WiringDiagrams
 using Catlab.Programs
 
-include("linrels.jl")
-include("systems.jl")
-include("hypergraphs.jl")
-include("discdynam.jl")
-
-
 include("cportgraphs.jl")
+include("uwd_dynam.jl")
+include("dwd_dynam.jl")
+
 end # module

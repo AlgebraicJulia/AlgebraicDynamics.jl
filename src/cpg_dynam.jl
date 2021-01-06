@@ -1,22 +1,28 @@
-module CPortGraphs
-using Catlab
+module CPortGraphDynam
+
 using Catlab.WiringDiagrams
 using Catlab.WiringDiagrams.CPortGraphs
 using  Catlab.CategoricalAlgebra
 using  Catlab.CategoricalAlgebra.FinSets
-import Catlab.CategoricalAlgebra: coproduct
-import Catlab.WiringDiagrams: oapply
 using Catlab.Graphs
 import Catlab.Graphs: Graph
+using Catlab.Graphics.GraphvizGraphs: to_graphviz
+
+import Catlab.WiringDiagrams: oapply
+
+import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
+import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, 
+ninputs, noutputs
 import Catlab.CategoricalAlgebra.CSets: migrate!
-using Catlab.Graphics
-using Catlab.Graphics.Graphviz
+
 using Base.Iterators
+import Base: show, eltype
 
-export VectorField, nstates, nparams, simulate, barbell, meshpath, gridpath, grid
 
-import Base: show
-
+ContinuousMachine{T}(nports::Int, nstates::Int, d::Function, r::Function) where T =
+    ContinuousMachine{T}(nports, nstates, nports, d, r)
+DiscreteMachine{T}(nports::Int, nstates::Int, d::Function, r::Function) where T =
+    DiscreteMachine{T}(nports, nstates, nports, d, r)
 
 migrate!(g::Graph, pg::OpenCPortGraph) = migrate!(g, migrate!(CPortGraph(), pg))
 
@@ -24,32 +30,6 @@ draw(g::Graph) = to_graphviz(g, prog="neato", edge_labels=true, node_labels=true
 draw(pg::OpenCPortGraph) = draw(migrate!(Graph(), pg))
 
 concat(xs::Vector) = (collect ∘ Iterators.flatten)(xs)
-
-
-struct VectorField{T}
-    update::Function
-    readout::Function
-    nparams::Int
-    nstates::Int
-end
-
-show(io::IO, vf::VectorField) = print("VectorField(ℝ^$(vf.nstates) × $(vf.nparams) → ℝ^$(vf.nstates))")
-
-nstates(f::VectorField) = f.nstates
-nparams(f::VectorField) = f.nparams
-
-function feeders(d::OpenCPortGraph, b::Int)
-    ports = incident(d, b, :box)
-    out = Int[]
-    for p in ports
-        wires = incident(d, p, :tgt)
-        feeders = d[wires, :src]
-        for f in feeders
-            push!(out, f)
-        end
-    end
-    return out
-end
 
 nports(d::OpenCPortGraph, b::Int) = incident(d, b, :box) |> length
 nports(d::OpenCPortGraph, b) = map(length, incident(d, b, :box))
@@ -69,11 +49,11 @@ end
     return x.readout(statefun(i))
 end
 
-@inline fillstates!(y, d, xs, States, statefun, paramfun, t) = colimitmap!(y, States, xs) do i, x
-    return x.update(statefun(i), paramfun(i), t)
+@inline fillstates!(y, d, xs, States, statefun, inputfun, t) = colimitmap!(y, States, xs) do i, x
+    return x.dynamics(statefun(i), inputfun(i), t)
 end
 
-function oapply(d::OpenCPortGraph, x::VectorField)
+function oapply(d::OpenCPortGraph, x::AbstractMachine)
     oapply(d, collect(repeated(x, nparts(d, :Box))))
 end
 
@@ -89,25 +69,34 @@ fillreadins!(readins, d, readouts) = begin
     return readins
 end
 
-function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
+
+"""Implements the operad algebras CDS and DDS given a 
+composition pattern (implemented by an open circular port graph)
+and primitive systems (implemented by a collection of 
+machines).
+
+Each box of the open CPG is filled by a machine with the 
+appropriate type signature. Returns the composite machine.
+"""
+function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:AbstractMachine{T}}
     x -> FinSet(x.nstates)
     S = coproduct((FinSet∘nstates).(xs))
-    Params = coproduct((FinSet∘nparams).(xs))
+    Inputs = coproduct((FinSet∘ninputs).(xs))
     Ports = coproduct([FinSet.(nports(d, b)) for b in parts(d, :Box)])
     state(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
     readouts = zeros(T, length(apex(Ports)))
     readins  = zeros(T, length(apex(Ports)))
     ϕ = zeros(T, length(apex(S)))
-    υ = (u::AbstractVector, p::AbstractVector, t::Real) -> begin
+    v = (u::AbstractVector, p::AbstractVector, t::Real) -> begin
         # length(p) == length(d[:, :con]) || error("Expected $(length(d[:, :con])) parameters, have $(length(p))")
         statefun(b) = state(u,b)
-        paramfun(b) = readins[incident(d, b, :box)]
+        inputfun(b) = readins[incident(d, b, :box)]
         fillreadouts!(readouts, d, xs, Ports, statefun)
         # communicate readouts to the ports at the other end of the wires, external connections directly fill ports
         readins .= 0 
         fillreadins!(readins, d, readouts)
         readins[d[:, :con]] .+= p
-        fillstates!(ϕ, d, xs, S, statefun, paramfun, t)
+        fillstates!(ϕ, d, xs, S, statefun, inputfun, t)
         return ϕ
     end
     function readout(u)
@@ -115,7 +104,7 @@ function oapply(d::OpenCPortGraph, xs::Vector{VectorField{T}}) where T
         fillreadouts!(readouts, d, xs, Ports, statefun)
         return readouts[d[:, :con]]
     end
-    return VectorField{T}(υ,readout, nparts(d, :OuterPort), apex(S).set)
+    return Machine( nparts(d, :OuterPort), apex(S).set, v, readout)
 end
 
 
@@ -192,15 +181,4 @@ end
 
 grid(n::Int, m::Int) = ocompose(apex(gridpath(n,m)), collect(repeated(apex(meshpath(m)), n)))
 
-function simulate(f::VectorField{T}, nsteps::Int, h::Real, u₀::Vector, params=T[]) where T
-    t = 0
-    us = [u₀]
-    for i in 2:nsteps
-        u₀ = us[i-1]
-        u₁ = u₀ .+ h*f.update(u₀, params, t)
-        push!(us, u₁)
-        t += h
-    end
-    return us
-end
 end

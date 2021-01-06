@@ -9,5 +9,5 @@ end
 end
 
 @testset "CPGDynam" begin
-  include("cportgraphs.jl")
+  include("cpg_dynam.jl")
 end

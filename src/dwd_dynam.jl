@@ -5,7 +5,6 @@ module DWDDynam
 using Catlab.WiringDiagrams.DirectedWiringDiagrams
 using  Catlab.CategoricalAlgebra
 using  Catlab.CategoricalAlgebra.FinSets
-import Catlab.CategoricalAlgebra: coproduct
 import Catlab.WiringDiagrams: oapply
 
 import ..UWDDynam: nstates, eval_dynamics, euler_approx

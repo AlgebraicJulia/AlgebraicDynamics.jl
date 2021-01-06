@@ -15,8 +15,6 @@ eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 using Base.Iterators
 import Base: show, eltype
 
-const UWD = UndirectedWiringDiagram
-
 """An undirected open dynamical system
 
 In the operad algebra, `r::AbstractResourceSharer` has type signature
@@ -88,18 +86,36 @@ function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
     return nports(r) == length(incident(d, b, :box))
 end
 
-"""Implements the operad algebra Dynam given a composition pattern (implemented
-by an undirected wiring diagram) and primit systems (implemented by
-a collection of resource sharers) 
 
-Each box of the undirected wiring diagram is filled by a machine of the appropriate
-type signature. Returns the composite machine.
-"""
 oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
     oapply(d, collect(repeated(x, nboxes(d))))
+
+"""     oapply(d, generators::Dict)
+
+A version of oapply
+
+- d: An undirected wiring diagram whose boxes represent systems
+- generator: A dictionary mapping the name of each box to its corresponding
+resource sharer
+
+Each box of the undirected wiringdiagram must be filled by a resource sharer
+of the appropriate type signature.
+"""
 oapply(d::HypergraphDiagram, xs::AbstractDict) = 
     oapply(d, [xs[name] for name in subpart(d, :name)])
 
+"""     oapply(d, xs::Vector)
+
+Implements the operad algebra Dynam given a composition pattern (implemented
+by an undirected wiring diagram) and primitive systems (implemented by
+a collection of resource sharers). Returns the composite resource sharer.
+
+- d: An undirected wiring diagram whose boxes represent systems
+- xs: A vector representing the resources sharers which fill the boxes
+
+Each box of the undirected wiring diagram must be filled by a resource sharer of the appropriate
+type signature. 
+"""
 oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
 

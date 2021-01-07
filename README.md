@@ -55,7 +55,7 @@ end
 plot(u')
 ```
 
-![Lotka Volterra Solutions](/doc/img/lvsoln.png)
+![Lotka Volterra Solutions](/docs/img/lvsoln.png)
 
 
 This example is quite small and you could have worked it out by hand, but

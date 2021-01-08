@@ -8,7 +8,7 @@ import DynamicalSystems: trajectory
 
 using Base.Iterators
 
-function trajectory1d(update::Function, u0::Vector{S}, T::Int, p; dt::Int) where S
+function trajectory1d(update::Function, u0::Vector{S}, p, T::Int; dt::Int) where S
   dt = round(Int, dt)
   tvec = 0:dt:T
   L = length(tvec)
@@ -24,9 +24,9 @@ function trajectory1d(update::Function, u0::Vector{S}, T::Int, p; dt::Int) where
   return data
 end
 
-function trajectory(update::Function, u0::Vector{S}, T::Int, p; dt::Int) where S
+function trajectory(update::Function, u0::Vector{S}, p, T::Int; dt::Int) where S
   if length(u0) == 1 
-    return trajectory1d(update, u0, T, p; dt = dt)
+    return trajectory1d(update, u0, p, T; dt = dt)
   end
   dt = round(Int, dt)
   tvec = 0:dt:T
@@ -43,11 +43,11 @@ function trajectory(update::Function, u0::Vector{S}, T::Int, p; dt::Int) where S
   return Dataset(data)
 end
 
-trajectory(r::DiscreteResourceSharer, u0::Vector, T::Int, p; dt = 1) = 
-  trajectory((u,p,t) -> eval_dynamics(r, u, p, t), u0, T, p; dt = dt)
+trajectory(r::DiscreteResourceSharer, u0::Vector, p, T::Int; dt = 1) = 
+  trajectory((u,p,t) -> eval_dynamics(r, u, p, t), u0, p, T; dt = dt)
 
-trajectory(m::DiscreteMachine, fs::Vector, u0::Vector, T::Int, p; dt = 1) = 
-  trajectory((u,p,t) -> eval_dynamics(m, u, get_inputs(fs, t), p, t), u0, T, p; dt = dt)
+trajectory(m::DiscreteMachine, fs::Vector, u0::Vector, p, T; dt = 1) = 
+  trajectory((u,p,t) -> eval_dynamics(m, u, get_inputs(fs, t), p, t), u0, p, T; dt = dt)
 
-trajectory(m::DiscreteMachine, f::Function, u0::Vector, T::Int, p; dt = 1) = 
-  trajectory(m, collect(repeated(f, ninputs(m))), u0, T, p; dt = dt)
+trajectory(m::DiscreteMachine, f::Function, u0::Vector, p, T::Int; dt = 1) = 
+  trajectory(m, collect(repeated(f, ninputs(m))), u0, p, T; dt = dt)

@@ -84,19 +84,24 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""Integration with OrdinaryDiffEq
+"""ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
+
+Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
 ODEProblem(r::ContinuousResourceSharer, args...) = ODEProblem(r.dynamics, args...)
 
-"""Integration with DynamicalSystems
-"""
+"""DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 
+Constructs a DiscreteDynamicalSystem from the eom `r.dynamics(u,p,t)`. 
+
+Pass `nothing` in place of `p` if your system does not have parameters.
+"""
 DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, state::Vector, args...) where T = begin
     if nstates(r) == 1
       DiscreteDynamicalSystem1d(r, state[1], args...)
     else
       !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-      DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,u,p,t), state, args...)
+      DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(r)}(eval_dynamics(r,u,p,t)), state, args...)
     end
   end
   

@@ -9,6 +9,10 @@ import Catlab.WiringDiagrams: oapply
 
 import ..UWDDynam: nstates, eval_dynamics, euler_approx
 
+using OrdinaryDiffEq, DynamicalSystems
+import OrdinaryDiffEq: ODEProblem
+import DynamicalSystems: DiscreteDynamicalSystem
+
 export AbstractMachine, ContinuousMachine, DiscreteMachine, 
 nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
 
@@ -73,6 +77,63 @@ euler_approx(fs::Vector{ContinuousMachine{T}}, args...) where T =
 
 euler_approx(fs::AbstractDict{S, ContinuousMachine{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
+
+
+# Integration with ODEProblem in OrdinaryDiffEq.jl
+get_inputs(fs::Vector, t) = [f(t) for f in fs]
+
+"""ODEProblem(m::ContinuousMachine, fs::Vector, u0::Vector, tspan)
+The dynamics of `m` must be of the form `du/dt = f(u,x,p,t)` 
+where `x` are exogenous variables and `p` are parameters
+
+Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`.
+`x` are the exogenous variables which are determined by evaluating the functions `fs` at time `t`.
+"""
+ODEProblem(m::ContinuousMachine, fs::Vector, args...)  = begin
+    ninputs(m) == length(fs) || error("Need a function to fill every input")
+    ODEProblem((u,p,t) -> m.dynamics(u, get_inputs(fs, t), p, t), args...)
+  end
+  
+ODEProblem(m::ContinuousMachine, f::Function, args...) = 
+    ODEProblem(m, collect(repeated(f, ninputs(m))), args...)
+
+# Integration with DiscreteDynamicalSystem in DynamicalSystems.jl
+"""DiscreteDynamicalSystem(m::DiscreteMachine, fs::Vector, u0::Vector, p)
+
+The dynamics of `m` must be of the form `du/dt = f(u,x,p,t)` 
+where `x` are exogenous variables and `p` are parameters
+
+Constructs an DiscreteDynamicalSystem from the eom defined by 
+`(u,p,t) -> m.dynamics(u, x, p, t)`.
+`x` are the exogenous variables which are determined by evaluating the functions `fs` at time `t`.
+
+Pass `nothing` in place of `p` if your system does not have parameters.
+"""
+DiscreteDynamicalSystem(m::DiscreteMachine, f::Function, args...) = 
+  DiscreteDynamicalSystem(m, collect(repeated(f, ninputs(m))), args...)
+  
+DiscreteDynamicalSystem(m::DiscreteMachine{T}, fs::Vector, state::Vector, args...) where T = begin
+  ninputs(m) == length(fs) || error("Need a function to fill every input")
+  if nstates(m) == 1
+    DiscreteDynamicalSystem1d(m, fs, state[1], args...)
+  else
+    !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
+    DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(m)}(eval_dynamics(m, u, get_inputs(fs, t), p, t)), state, args...)
+  end
+end
+
+DiscreteDynamicalSystem(m::DiscreteMachine, fs::Vector, state, args...) = 
+  DiscreteDynamicalSystem1D(m, fs, state, args...) 
+
+# if the system is 1D then the state must be represented by a number NOT by a 1D array
+DiscreteDynamicalSystem1d(m::DiscreteMachine{T}, fs::Vector, state, args...) where T = begin
+  nstates(m) == 1 || error("The resource sharer must have exactly 1 state")
+  !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
+  DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(m, [u], get_inputs(fs, t), p, t)[1], state, args...)
+end
+
+
+
 
 """Checks if a machine is of the correct signature to fill a 
 box in a directed wiring diagram.
@@ -145,7 +206,7 @@ function oapply(d::WiringDiagram, xs::Vector{Machine}) where {T, Machine <: Abst
     Outputs = coproduct((FinSet∘noutputs).(xs))
     ys = zeros(T, length(apex(S)))
 
-    states(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
+    states(u::AbstractVector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
 
     v = (u::AbstractVector, p::AbstractVector, args...) -> begin
         readouts = zeros(T, length(apex(Outputs)))

@@ -8,6 +8,10 @@ using Catlab.Theories
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply
 
+using OrdinaryDiffEq, DynamicalSystems
+import OrdinaryDiffEq: ODEProblem
+import DynamicalSystems: DiscreteDynamicalSystem
+
 export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
@@ -42,6 +46,8 @@ end
 
 ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
     ContinuousResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
+DiscreteResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
+    DiscreteResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
 
 nstates(r::AbstractResourceSharer) = r.nstates
 nports(r::AbstractResourceSharer)  = r.nports
@@ -77,6 +83,39 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 
 euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
+
+"""ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
+
+Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
+"""
+ODEProblem(r::ContinuousResourceSharer, args...) = ODEProblem(r.dynamics, args...)
+
+"""DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
+
+Constructs a DiscreteDynamicalSystem from the eom `r.dynamics(u,p,t)`. 
+
+Pass `nothing` in place of `p` if your system does not have parameters.
+"""
+DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, state::Vector, args...) where T = begin
+    if nstates(r) == 1
+      DiscreteDynamicalSystem1d(r, state[1], args...)
+    else
+      !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
+      DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(r)}(eval_dynamics(r,u,p,t)), state, args...)
+    end
+  end
+  
+  DiscreteDynamicalSystem(r::DiscreteResourceSharer, state, args...) = 
+    DiscreteDynamicalSystem1d(r, state, args...) 
+  
+  # if the system is 1D then the state must be represented by a number NOT by a 1D array
+  DiscreteDynamicalSystem1d(r::DiscreteResourceSharer{T}, state, args...) where T = begin
+    nstates(r) == 1 || error("The resource sharer must have exactly 1 state")
+    !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
+    DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,[u],p,t)[1], state, args...)
+  end
+
+
 
 """ Checks if a resource sharer is of the correct type signature to 
 fill a box in an undirected wiring diagram.

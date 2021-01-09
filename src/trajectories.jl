@@ -1,12 +1,27 @@
 using AlgebraicDynamics.UWDDynam
 using AlgebraicDynamics.DWDDynam
-using AlgebraicDynamics.DWDDynam: get_inputs
 
 using StaticArrays
 using DynamicalSystems
 import DynamicalSystems: trajectory
 
 using Base.Iterators
+
+
+
+trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) = 
+  trajectory((u,p,t) -> eval_dynamics(r, u, p, t), u0, p, T; dt = dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector,  p, T::Int; dt::Int= 1) = 
+  trajectory((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, p, T; dt = dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, x,  p, T::Int; dt::Int = 1) = 
+  trajectory(m, u0, collect(repeated(x, ninputs(m))), p, T; dt = dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, p, T::Int; dt::Int = 1) = 
+  trajectory(m, u0, [], p, T; dt = dt)
+
+
 
 function trajectory1d(update::Function, u0::Vector{S}, p, T::Int; dt::Int) where S
   dt = round(Int, dt)
@@ -42,12 +57,3 @@ function trajectory(update::Function, u0::Vector{S}, p, T::Int; dt::Int) where S
   end
   return Dataset(data)
 end
-
-trajectory(r::DiscreteResourceSharer, u0::Vector, p, T::Int; dt = 1) = 
-  trajectory((u,p,t) -> eval_dynamics(r, u, p, t), u0, p, T; dt = dt)
-
-trajectory(m::DiscreteMachine, fs::Vector, u0::Vector, p, T; dt = 1) = 
-  trajectory((u,p,t) -> eval_dynamics(m, u, get_inputs(fs, t), p, t), u0, p, T; dt = dt)
-
-trajectory(m::DiscreteMachine, f::Function, u0::Vector, p, T::Int; dt = 1) = 
-  trajectory(m, collect(repeated(f, ninputs(m))), u0, p, T; dt = dt)

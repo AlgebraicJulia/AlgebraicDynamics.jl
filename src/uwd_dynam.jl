@@ -27,6 +27,8 @@ In the operad algebra, `r::AbstractResourceSharer` has type signature
 abstract type AbstractResourceSharer{T} end
 
 """An undirected open continuous system
+
+The dynamics must be of the form du/dt = f(u,p,t)
 """
 struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   nports::Int
@@ -36,6 +38,8 @@ struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
 end
 
 """An undirected open discrete system
+
+The dynamics must be of the form u1 = f(u0,p,t)
 """
 struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
     nports::Int
@@ -53,11 +57,14 @@ nstates(r::AbstractResourceSharer) = r.nstates
 nports(r::AbstractResourceSharer)  = r.nports
 portmap(r::AbstractResourceSharer) = r.portmap
 portfunction(r::AbstractResourceSharer) = FinFunction(r.portmap, nstates(r))
-eval_dynamics(r::AbstractResourceSharer, u, args...) = r.dynamics(u, args...)
-eval_dynamics!(du, r::AbstractResourceSharer, u, args...) = begin
-    du .= eval_dynamics(r, u, args...)
+exposed_states(r::AbstractResourceSharer, u::AbstractVector) = getindex(u, portmap(r))
+
+eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = r.dynamics(u, p, t)
+eval_dynamics!(du, r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = begin
+    du .= eval_dynamics(r, u, p, t)
 end
-exposed_states(r::AbstractResourceSharer, u) = getindex(u, portmap(r))
+eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u, [], 0)
+eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
 
 show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
@@ -68,13 +75,13 @@ resource sharer via Euler's method.
 """
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
-    (u, args...) -> u + h*eval_dynamics(f, u, args...),
+    (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
     f.portmap
 )
 
 euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
-    (u, h, args...) -> u + h*eval_dynamics(f, u, args...),
+    (u, p, t) -> u + p[end]*eval_dynamics(f, u, p[1:end-1], t),
     f.portmap
 )
 
@@ -88,7 +95,8 @@ euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S
 
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
-ODEProblem(r::ContinuousResourceSharer, args...) = ODEProblem(r.dynamics, args...)
+ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) = 
+    ODEProblem(r.dynamics, u0, tspan, p)
 
 """DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 
@@ -96,23 +104,23 @@ Constructs a DiscreteDynamicalSystem from the eom `r.dynamics(u,p,t)`.
 
 Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, state::Vector, args...) where T = begin
+DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, u0::AbstractVector, p; t0::Int = 0) where T = begin
     if nstates(r) == 1
-      DiscreteDynamicalSystem1d(r, state[1], args...)
+      DiscreteDynamicalSystem1d(r, u0[1], p; t0 = t0)
     else
       !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-      DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(r)}(eval_dynamics(r,u,p,t)), state, args...)
+      DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(r)}(eval_dynamics(r,u,p,t)), u0, p; t0=t0)
     end
   end
   
-  DiscreteDynamicalSystem(r::DiscreteResourceSharer, state, args...) = 
-    DiscreteDynamicalSystem1d(r, state, args...) 
+  DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Real, p; t0::Int = 0) = 
+    DiscreteDynamicalSystem1d(r, u0, p; t0 = t0) 
   
   # if the system is 1D then the state must be represented by a number NOT by a 1D array
-  DiscreteDynamicalSystem1d(r::DiscreteResourceSharer{T}, state, args...) where T = begin
+  DiscreteDynamicalSystem1d(r::DiscreteResourceSharer{T}, u0::Real, p; t0::Int = 0) where T = begin
     nstates(r) == 1 || error("The resource sharer must have exactly 1 state")
     !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-    DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,[u],p,t)[1], state, args...)
+    DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,[u],p,t)[1], u0, p; t0 = t0)
   end
 
 
@@ -193,12 +201,12 @@ end
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}}, state_map::FinFunction, states::Function) where T
   
-    function v(u′, args...)
+    function v(u′::AbstractVector, p, t::Real)
       u = getindex(u′,  state_map.func)
       du = zero(u)
       # apply dynamics
       for b in parts(d, :Box)
-        eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), args...)
+        eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), p, t)
       end
       # add along junctions
       du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
@@ -208,12 +216,12 @@ function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}
 end
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{DiscreteResourceSharer{T}}, state_map::FinFunction, states::Function) where T
-    function v(u′, args...)
+    function v(u′::AbstractVector, p, t::Real)
         u0 = getindex(u′,  state_map.func)
         u1 = zero(u0)
         # apply dynamics
         for b in parts(d, :Box)
-          eval_dynamics!(view(u1, states(b)), xs[b], view(u0, states(b)), args...)
+          eval_dynamics!(view(u1, states(b)), xs[b], view(u0, states(b)), p, t)
         end
         Δu = u1 - u0
         # add along junctions

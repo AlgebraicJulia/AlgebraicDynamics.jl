@@ -73,9 +73,8 @@ eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t::R
 end
     
 
-
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector) = 
-    eval_dynamics(f, u, xs, [], 0)
+    eval_dynamics(f, u, xs, nothing, 0)
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p) = 
     eval_dynamics(f, u, xs, p, 0)
 

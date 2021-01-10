@@ -72,7 +72,6 @@ eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t::R
     f.dynamics(u, xs, p, t)
 end
     
-
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector) = 
     eval_dynamics(f, u, xs, nothing, 0)
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p) = 

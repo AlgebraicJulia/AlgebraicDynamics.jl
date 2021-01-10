@@ -12,6 +12,7 @@ using DynamicalSystems
 
 using Test
 using PrettyTables
+using Base.Iterators: repeated
 
 
 function simulate(f::ContinuousMachine{T}, nsteps::Int, h::Real, u0::Vector, xs=T[]) where T
@@ -89,14 +90,6 @@ traj = simulate(threecity, 100, 0.01, [100,1,0,100,0,0,100,0,0.0] )
 #     return (i1=u[2], i2=u[5], i3=u[8])
 # end |> pretty_table
 
-# begin
-#     g = OpenCPortGraph()
-#     add_parts!(g,  9, :Box)
-#     add_parts!(g, 21, :Port, box=[1,1,2,2,2,3,3,4,4,4,5,5,5,5,6,6,6,7,7,8,8,8,9,9])
-#     add_parts!(g, 12, :Wire, src=1:21, [3,7,])
-
-#     g = OpenCPortGraph()
-# end
 
 gl = @acset OpenCPortGraph begin
     Box = 3
@@ -147,7 +140,6 @@ g3 = migrate!(Graph(), pg3)
 @test g3[19:24, :tgt] == [4,5,6,1,2,3]
 @test incident(pg3, 5, :box) == 11:14
 
-import Base.Iterators: repeated
 
 α₁ = 1
 fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 4))
@@ -208,14 +200,6 @@ F2 = oapply(d4, [F, F, F])
 F3 = oapply(d4, [F2,F2,F2])
 @test (nstates(F3), ninputs(F3)) == (81, 6)
 @test eval_dynamics(F3, ones(Float64, 81), ones(Float64, 6), nothing, 0.0) == zeros(81)
-
-u₀ = zeros(81)
-u₀[2] = 10
-@time traj = simulate(F3, 50, 0.01, u₀, 10*ones(6))
-@time traj = simulate(F3, 50, 0.01, u₀, 10*ones(6))
-# for u in traj
-#     pretty_table(reshape(u[1:27], (3,9)), equal_columns_width=true, noheader=true)
-# end
 end
 
 @testset "Advection-Diffusion" begin
@@ -311,89 +295,3 @@ for (i,j) in Iterators.product(1:6, 2:4)
     testgridsize(i,j)
 end
 end
-
-# @testset "Taller Pipe" begin
-# G = grid(5,5)
-# # draw(G)
-
-# RDA(α₀, α₁, α₂) = begin
-#     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
-#     advop(u,p,t)  = begin  α₂ .* (p .- u) end 
-#     ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 3))
-#     fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 4))
-#     fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 3))
-#     return ft, fm, fb
-# end
-
-# function executerda(size, parameters)
-#     function gensim(n::Int, depth::Int)
-#         ft,fm,fb = RDA(parameters...)
-#         F = oapply(apex(meshpath(n)), vcat([ft], collect(repeated(fm, n-2)), [fb]))
-#         l = 2^(depth-1)
-#         oapply(apex(gridpath(l, n)), collect(repeated(F, l)))
-#     end
-
-#     function runsim(F, n, depth)
-#         inputs = zeros(n)
-#         inputs[1] = 1
-#         inputs[2] = 1
-#         inputs[end] = 1
-#         # inputs[floor(Int, n/2)] = 1 
-#         l = 2^(depth-1)
-#         traj = simulate(F, 12, 0.1, zeros(l*n), vcat(inputs, zeros(n)))
-#         printsim(traj, t->t[end:end], u->u, (n,l))
-#         return traj
-#     end
-#     runsim(gensim(size...), size...)
-# end
-
-# executerda((5,4), [0.0,0.0,4.0]);
-# executerda((5,4), [0.0,0.1,4.0]);
-# executerda((5,4), [0.4,1.0,4.0]);
-# executerda((5,4), [0.4,1.0,6.0]);
-# executerda((6,5), [0.4,1.0,6.0]);
-# @time executerda((32,5), [0.4,1.0,6.0]);
-# @time executerda((32,5), [0.4,1.0,6.0]);
-# end
-
-# using Base.Iterators
-# @testset "RDA Benchmark" begin
-# RDA(α₀, α₁, α₂) = begin
-#     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
-#     advop(u,p,t)  = begin  α₂ .* (p .- u) end 
-#     ft = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 3), 3, 1)
-#     fm = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 4), 4, 1)
-#     fb = VectorField{Float64}((u,p,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p[2],t), u->repeated(u[1], 3), 3, 1)
-#     return ft, fm, fb
-# end
-
-# function executerda(size, parameters, nsteps=10, stepsize=0.1)
-#     n, depth = size
-#     ft,fm,fb = RDA(parameters...)
-#     F = oapply(apex(meshpath(n)), vcat([ft], collect(repeated(fm, n-2)), [fb]))
-#     l = 2^(depth-1)
-#     F₁ = oapply(apex(gridpath(l, n)), collect(repeated(F, l)))
-#     inputs = ones(n)
-#     @time traj = simulate(F₁, nsteps, stepsize, zeros(l*n), vcat(inputs, zeros(n)))
-#     # printsim(traj, t->t[end:end], u->u, (n,l))
-# end
-# function executerda_ocomposed(size, parameters, nsteps=10, stepsize=0.1)
-#     n, depth = size
-#     l = 2^(depth-1)
-#     ft,fm,fb = RDA(parameters...)
-#     G = grid(n, l)
-#     F = oapply(G, take(cycle(flatten(([ft], repeated(fm, n-2), [fb]))), nparts(G, :Box))|> collect)
-#     inputs = ones(n)
-#     @time traj = simulate(F, nsteps, stepsize, zeros(l*n), vcat(inputs, zeros(n)))
-#     # printsim(traj, t->t[end:end], u->u, (n,l))
-# end
-# println("Benchmark Nested")
-# executerda((64,7), [0.4,1.0,4.0], 10, 0.1)
-# executerda((64,7), [0.4,1.0,4.0], 10, 0.1)
-# executerda((64,7), [0.4,1.0,4.0], 10, 0.1)
-
-# println("Benchmark Flattened")
-# executerda_ocomposed((64,7), [0.4,1.0,4.0], 10, 0.1)
-# executerda_ocomposed((64,7), [0.4,1.0,4.0], 10, 0.1)
-# executerda_ocomposed((64,7), [0.4,1.0,4.0], 10, 0.1)
-# end

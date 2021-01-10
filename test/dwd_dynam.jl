@@ -4,8 +4,8 @@ using Test
 
 # Identity 
 A = [:A]
-uf(x,p) = [p[1] - x[1]]
-rf(x) = x
+uf(u, x, p, t) = [x[1] - u[1]]
+rf(u) = u
 mf = ContinuousMachine{Float64}(1,1,1, uf, rf)
 
 f = Box(:f, A, A)
@@ -14,8 +14,8 @@ m_id = oapply(d_id, [mf])
 
 x0 = 1
 p0 = 200
-@test m_id.dynamics([x0], [p0]) == [p0 - x0]
-@test m_id.readout([x0]) == [x0]
+@test eval_dynamics(m_id, [x0], [p0]) == [p0 - x0]
+@test readout(m_id, [x0]) == [x0]
 
 # unfed parameter 
 d12 = WiringDiagram(A, A)
@@ -35,8 +35,8 @@ m12 = oapply(d12, [mf, mf])
 x0 = -1
 y0 = 29
 p0 = 200
-@test m12.dynamics([x0, y0], [p0]) == [p0 - x0, x0 - y0]
-@test m12.readout([x0,y0]) == [y0]
+@test eval_dynamics(m12, [x0, y0], [p0]) == [p0 - x0, x0 - y0]
+@test readout(m12, [x0,y0]) == [y0]
 
 
 # break and back together
@@ -54,8 +54,8 @@ m = oapply(d, Dict(:f => mf))
 x0 = -1
 y0 = 29
 p0 = 200
-@test m.dynamics([x0, y0], [p0]) == [p0 - x0, p0 - y0]
-@test m.readout([x0,y0]) == [x0 + y0]
+@test eval_dynamics(m, [x0, y0], [p0]) == [p0 - x0, p0 - y0]
+@test readout(m, [x0,y0]) == [x0 + y0]
 
 @test m.ninputs == 1
 @test m.nstates == 2
@@ -110,40 +110,40 @@ add_wires!(d, Pair[
 ])
 
 m1 = ContinuousMachine{Float64}(2,1,1, 
-        (x, p) -> [p[1] * p[2]  - x[1]], 
-        x -> 2*x)
+        (u, x, p, t) -> [x[1] * x[2]  - u[1]], 
+        u -> 2*u)
 m2 = ContinuousMachine{Float64}(1, 2, 2, 
-        (x, p) -> [x[1]*x[2], p[1]^2*x[2]], 
-        x -> x)
+        (u, x, p, t) -> [u[1]*u[2], x[1]^2*u[2]], 
+        u -> u)
 
 m3 = ContinuousMachine{Float64}(1,2,1, 
-        (x, p) -> [x[1]^2 - p[1], x[2] - x[1]], 
-        x -> [x[1] + x[2]])
+        (u, x, p, t) -> [u[1]^2 - x[1], u[2] - u[1]], 
+        u -> [u[1] + u[2]])
 
 xs = Dict(:f => m1, :g => m2, :h => m3, :j => mf)
 m = oapply(d, xs)
 @test ninputs(m) == 2
 @test nstates(m) == 5
 @test noutputs(m) == 3
-x = [2.0, 3.0, 5.0, -7.0, -0.5]
-p = [0.1, 11.0]
-@test eval_dynamics(m, x, p) == 
-    [-x[1], x[2]*x[3], (p[1]+x[3]+x[4]+x[5])^2*x[3], x[4]^2 - p[2], x[5] - x[4]]
-@test readout(m, x) == [2*x[1] + x[2], x[2], x[4] + x[5]]
-@test readout(oapply(d_id, m3), [x[4], x[5]]) == [x[4] + x[5]]
+u = [2.0, 3.0, 5.0, -7.0, -0.5]
+x = [0.1, 11.0]
+@test eval_dynamics(m, u, x) == 
+    [-u[1], u[2]*u[3], (x[1]+u[3]+u[4]+u[5])^2*u[3], u[4]^2 - x[2], u[5] - u[4]]
+@test readout(m, u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
+@test readout(oapply(d_id, m3), [u[4], u[5]]) == [u[4] + u[5]]
 
 # eulers
 h = 0.15
 euler_m = oapply(d, euler_approx([m1, m2, m3], h))
-@test eval_dynamics(euler_m, x, p) == x + h*eval_dynamics(m, x, p)
-@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_approx(m, h), x, p)
+@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
 euler_m2 = oapply(d, euler_approx([m1, m2, m3]))
-@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_m2, x, p, h)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])
 
 h = 0.02
 xs = Dict(:h => m3, :f => m1, :g => m2)
 euler_m = oapply(d, euler_approx(xs, h))
-@test eval_dynamics(euler_m, x, p) == x + h*eval_dynamics(m, x, p)
-@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_approx(m, h), x, p)
+@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
 euler_m2 = oapply(d, euler_approx(xs))
-@test eval_dynamics(euler_m, x, p) == eval_dynamics(euler_m2, x, p, h)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])

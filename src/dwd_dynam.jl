@@ -19,7 +19,9 @@ nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
 using Base.Iterators
 import Base: show, eltype
 
-"""A directed open dynamical system
+"""AbstractMachine{T}
+
+A directed open dynamical system
 
 In the operad algebra, `m::AbstractMachine` has type signature 
 (`m.ninputs`, `m.outputs`).
@@ -80,7 +82,9 @@ eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p) =
 
 
 
-"""Transforms a continuous machine into a discrete machine 
+"""euler_approx()
+
+Transforms a continuous machine into a discrete machine 
 via Euler's method.
 """
 euler_approx(f::ContinuousMachine{T}, h::Float64) where T = DiscreteMachine{T}(

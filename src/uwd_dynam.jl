@@ -19,7 +19,9 @@ eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 using Base.Iterators
 import Base: show, eltype
 
-"""An undirected open dynamical system
+"""     AbstractResourceSharer{T}
+
+An undirected open dynamical system with 
 
 In the operad algebra, `r::AbstractResourceSharer` has type signature
 `r.nports`.
@@ -91,7 +93,7 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
+"""     ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
 
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """

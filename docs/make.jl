@@ -2,9 +2,13 @@ using Documenter
 using Literate
 
 @info "Loading AlgebraicDynamics"
-using Pkg
-Pkg.activate("../")
 using AlgebraicDynamics
+using AlgebraicDynamics.UWDDynam
+using AlgebraicDynamics.DWDDynam
+using Catlab
+using Catlab.WiringDiagrams
+using OrdinaryDiffEq
+using DynamicalSystems
 
 # Set Literate.jl config if not being compiled on recognized service.
 config = Dict{String,String}()
@@ -41,6 +45,7 @@ makedocs(
   pages     = Any[
     "AlgebraicDynamics.jl" => "index.md",
     "Examples" => Any[
+      "examples/Lotka-Volterra.md",
       "examples/Ecosystem.md",
       "examples/CPG_examples.md"
     ],
@@ -48,9 +53,9 @@ makedocs(
   ]
 )
 
-# @info "Deploying docs"
-# deploydocs(
-#   target = "build",
-#   repo   = "github.com/AlgebraicJulia/AlgebraicDynamics.jl.git",
-#   branch = "gh-pages"
-# )
+@info "Deploying docs"
+deploydocs(
+  target = "build",
+  repo   = "github.com/AlgebraicJulia/AlgebraicDynamics.jl.git",
+  branch = "gh-pages"
+)

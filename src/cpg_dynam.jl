@@ -53,9 +53,7 @@ end
     return x.dynamics(statefun(i), inputfun(i), p, t)
 end
 
-function oapply(d::OpenCPortGraph, x::AbstractMachine)
-    oapply(d, collect(repeated(x, nparts(d, :Box))))
-end
+
 
 fillreadins!(readins, d, readouts) = begin
     for b in parts(d, :Box)
@@ -69,13 +67,14 @@ fillreadins!(readins, d, readouts) = begin
     return readins
 end
 
+"""    oapply(d::OpenCPortGraph, ms::Vector)
 
-"""Implements the operad algebras CDS and DDS given a 
-composition pattern (implemented by an open circular port graph)
+Implements the operad algebras for directed composition of dynamical systems given a 
+composition pattern (implemented by an open circular port graph `d`)
 and primitive systems (implemented by a collection of 
-machines).
+machines `ms`).
 
-Each box of the open CPG is filled by a machine with the 
+Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
 function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:AbstractMachine{T}}
@@ -107,7 +106,18 @@ function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:Abstr
     return Machine( nparts(d, :OuterPort), apex(S).set, v, readout)
 end
 
+"""    oapply(d::OpenCPortGraph, m::AbstractMachine)
 
+A version of `oapply` where each box of `d` is filled with the machine `m`.
+"""
+function oapply(d::OpenCPortGraph, x::AbstractMachine)
+    oapply(d, collect(repeated(x, nparts(d, :Box))))
+end
+
+"""    barbell(n::Int)
+
+Constructs an open CPG with two boxes each with `n` ports. The ``i``th ports on each box are connected.
+"""
 barbell(k::Int) = begin
   g = OpenCPortGraph()
   add_parts!(g, :Box, 2)

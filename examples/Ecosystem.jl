@@ -2,9 +2,6 @@
 #
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/ecosystem.ipynb)
 
-using Pkg
-Pkg.activate("../")
-
 using AlgebraicDynamics
 using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.UWDDynam

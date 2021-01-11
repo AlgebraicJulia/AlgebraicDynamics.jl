@@ -19,18 +19,17 @@ eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 using Base.Iterators
 import Base: show, eltype
 
-"""     AbstractResourceSharer{T}
+"""
 
-An undirected open dynamical system with 
+An undirected open dynamical system operating on information of type `T`.
 
-In the operad algebra, `r::AbstractResourceSharer` has type signature
-`r.nports`.
+A resource sharer `r` has signature `r.nports`.
 """
 abstract type AbstractResourceSharer{T} end
 
-"""An undirected open continuous system
+""" 
 
-The dynamics must be of the form du/dt = f(u,p,t)
+An undirected open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),p,t)``.
 """
 struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   nports::Int
@@ -39,9 +38,9 @@ struct ContinuousResourceSharer{T} <: AbstractResourceSharer{T}
   portmap::Vector{Int64}
 end
 
-"""An undirected open discrete system
+""" 
 
-The dynamics must be of the form u1 = f(u0,p,t)
+An undirected open discrete system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, p, t)``.
 """
 struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
     nports::Int
@@ -61,6 +60,12 @@ portmap(r::AbstractResourceSharer) = r.portmap
 portfunction(r::AbstractResourceSharer) = FinFunction(r.portmap, nstates(r))
 exposed_states(r::AbstractResourceSharer, u::AbstractVector) = getindex(u, portmap(r))
 
+"""    eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t)
+
+Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p`, and time `t`.
+
+Omitting `t` and `p` is allowed if the dynamics of `r` does not depend on them.
+"""
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = r.dynamics(u, p, t)
 eval_dynamics!(du, r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = begin
     du .= eval_dynamics(r, u, p, t)
@@ -72,15 +77,20 @@ show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 eltype(r::AbstractResourceSharer{T}) where T = T
 
-"""Transforms a continuous resource sharer into a discrete
-resource sharer via Euler's method.
+"""    euler_approx(r::ContinuousResourceSharer, h)
+
+Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method with step size `h`. If the dynamics of `r` is given by ``\\dot{u}(t) = f(u(t),p,t)`` the the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, p, t)``.
 """
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
-    nports(f), nstates(f), 
-    (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
-    f.portmap
+        nports(f), nstates(f), 
+        (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
+        f.portmap
 )
 
+"""    euler_approx(r::ContinuousResourceSharer)
+
+Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method where the step size is introduced as a new parameter, the last in the list of parameters.
+"""
 euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
     (u, p, t) -> u + p[end]*eval_dynamics(f, u, p[1:end-1], t),
@@ -93,18 +103,16 @@ euler_approx(fs::Vector{ContinuousResourceSharer{T}}, args...) where T =
 euler_approx(fs::AbstractDict{S, ContinuousResourceSharer{T}}, args...) where {S, T} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""     ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
+"""    ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
 
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
 ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) = 
     ODEProblem(r.dynamics, u0, tspan, p)
 
-"""DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
+"""    DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 
-Constructs a DiscreteDynamicalSystem from the eom `r.dynamics(u,p,t)`. 
-
-Pass `nothing` in place of `p` if your system does not have parameters.
+Constructs a DiscreteDynamicalSystem from the equation of motion `r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
 """
 DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, u0::AbstractVector, p; t0::Int = 0) where T = begin
     if nstates(r) == 1
@@ -127,8 +135,9 @@ DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, u0::AbstractVector, p; t0:
 
 
 
-""" Checks if a resource sharer is of the correct type signature to 
-fill a box in an undirected wiring diagram.
+"""    fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
+
+Checks if `r` is of the correct signature to fill box `b` of the undirected wiring diagram `d`.
 """
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
     b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
@@ -136,37 +145,31 @@ function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
 end
 
 
-oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
-    oapply(d, collect(repeated(x, nboxes(d))))
 
-"""     oapply(d, generators::Dict)
+"""     oapply(d::AbstractUWD, rs::Vector)
 
-A version of oapply
+Implements the operad algebras for undirected composition of dynamical systems given a composition pattern (implemented
+by an undirected wiring diagram `d`) and primitive systems (implemented by
+a collection of resource sharers `rs`). Returns the composite resource sharer.
 
-- d: An undirected wiring diagram whose boxes represent systems
-- generator: A dictionary mapping the name of each box to its corresponding
-resource sharer
-
-Each box of the undirected wiringdiagram must be filled by a resource sharer
-of the appropriate type signature.
-"""
-oapply(d::HypergraphDiagram, xs::AbstractDict) = 
-    oapply(d, [xs[name] for name in subpart(d, :name)])
-
-"""     oapply(d, xs::Vector)
-
-Implements the operad algebra Dynam given a composition pattern (implemented
-by an undirected wiring diagram) and primitive systems (implemented by
-a collection of resource sharers). Returns the composite resource sharer.
-
-- d: An undirected wiring diagram whose boxes represent systems
-- xs: A vector representing the resources sharers which fill the boxes
-
-Each box of the undirected wiring diagram must be filled by a resource sharer of the appropriate
-type signature. 
+Each box of `d` must be filled by a resource sharer of the appropriate type signature. 
 """
 oapply(d::AbstractUWD, xs::Vector{ResourceSharer}) where {ResourceSharer <: AbstractResourceSharer} =
     oapply(d, xs, induced_states(d, xs))
+
+"""    oapply(d::AbstractUWD, r::AbstractResourceSharer)
+
+A version of `oapply` where each box of `d` is filled with the resource sharer `r`.
+"""
+oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
+    oapply(d, collect(repeated(x, nboxes(d))))
+    
+"""     oapply(d::AbstractUWD, generators::Dict)
+
+A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding resource sharer.
+"""
+oapply(d::AbstractUWD, xs::AbstractDict) = 
+    oapply(d, [xs[name] for name in subpart(d, :name)])
 
 
 

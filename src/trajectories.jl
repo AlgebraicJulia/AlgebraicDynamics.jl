@@ -8,10 +8,17 @@ import DynamicalSystems: trajectory
 using Base.Iterators
 
 
+"""    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
 
+Evolves the resouce sharer `r` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`.
+"""
 trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) = 
   trajectory((u,p,t) -> eval_dynamics(r, u, p, t), u0, p, T; dt = dt)
 
+"""    trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, p, nsteps::Int; dt::Int = 1)
+
+Evolves the machine `m` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`. Any inputs to `m` are determied by `xs`. If `m` has no inputs then you can omit `xs`.
+"""
 trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector,  p, T::Int; dt::Int= 1) = 
   trajectory((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, p, T; dt = dt)
 

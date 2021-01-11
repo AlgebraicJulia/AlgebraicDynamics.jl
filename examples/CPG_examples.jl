@@ -2,9 +2,6 @@
 #
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/cpg_examples.ipynb)
 
-using Pkg
-Pkg.activate("../")
-
 using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam
 using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath

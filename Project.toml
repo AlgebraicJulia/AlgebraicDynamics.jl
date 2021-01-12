@@ -1,6 +1,6 @@
 name = "AlgebraicDynamics"
 uuid = "5fd6ff03-a254-427e-8840-ba658f502e32"
-authors = ["James Fairbanks"]
+authors = ["James Fairbanks", "Sophie Libkind"]
 version = "0.1.0"
 
 [deps]
@@ -17,7 +17,17 @@ RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-julia = "1"
+Catlab = "^0.10.0"
+Compose = "^0.9.1"
+DifferentialEquations = "^6.16.0"
+DynamicalSystems = "^1.7.0"
+LinearMaps = "^3.1.0"
+OrdinaryDiffEq = "^5.49.0"
+Plots = "^1.10.0"
+PrettyTables = "^0.10.0"
+RecursiveArrayTools = "^2.10.0"
+StaticArrays = "^0.12.0"
+julia = "1.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

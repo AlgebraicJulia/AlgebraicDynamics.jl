@@ -19,13 +19,12 @@ using Plots, Plots.PlotMeasures
 
 # A standard Lotka Volterra predator-prey model is the composition of three primitive resource sharers:
 
-# 1. a model of rabbit growth --- this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
-# 2. a model of rabbit/fox predation --- this resource sharer has dynamics $$\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$$ and two ports which expose the rabbit and fox populations respectively
-# 3. a model of fox population decline --- this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
+# 1. a model of rabbit growth: this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
+# 2. a model of rabbit/fox predation: this resource sharer has dynamics $$\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$$ and two ports which expose the rabbit and fox populations respectively.
+# 3. a model of fox population decline: this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
 
-# However, there are not two independent rabbit populations --- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations --- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 
+# However, there are not two independent rabbit populations -- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations -- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 
 # The syntax for this undirected composition is defined by an undirected wiring diagram.
-
 
 
 ## Define the primitive systems
@@ -62,14 +61,14 @@ xlabel!("Time")
 ylabel!("Population size")
 
 # ### Rabbits, foxes, and hawks
-# Suppose we now have a three species ecosystem containing rabbits, foxes, and hawks. Foxes and hawks both prey upon rabbits but do not interact with each other. This ecosystem consists of five primitive systems which share variables: 
-# 1. rabbit growth - $\dot r(t) = \alpha r(t)$
-# 2. rabbit/fox predation - $\dot r(t) = -\beta r(t) f(t), \dot f(t) = \delta r(t)f(t)$
-# 3. fox decline - $\dot f(t) = -\gamma f(t)$
-# 4. rabbit/hawk predation - $\dot r(t) = -\beta' r(t)h(t), \dot h(t) = \delta' r(t)h(t)$
-# 5. hawk decline - $\dot h(t) = -\gamma' h(t)$
+# Suppose we now have a three species ecosystem containing rabbits, foxes, and hawks. Foxes and hawks both prey upon rabbits but do not interact with each other. This ecosystem consists of five primitive systems which share variables.
+# 1. rabbit growth:  $\dot r(t) = \alpha r(t)$
+# 2. rabbit/fox predation:  $\dot r(t) = -\beta r(t) f(t), \dot f(t) = \delta r(t)f(t)$
+# 3. fox decline:  $\dot f(t) = -\gamma f(t)$
+# 4. rabbit/hawk predation: $\dot r(t) = -\beta' r(t)h(t), \dot h(t) = \delta' r(t)h(t)$
+# 5. hawk decline:  $\dot h(t) = -\gamma' h(t)$
 
-# This means the desired composition pattern has five boxes and many ports and wires to keep track of. Instead of implementing this composition pattern by hand we construct it as a pushout.
+# This means the desired composition pattern has five boxes and many ports and wires to keep track of. Instead of implementing this composition pattern by hand, we construct it as a pushout.
 
 
 ## Define the composition pattern for rabbit growth
@@ -100,6 +99,7 @@ land_system = oapply(rabbitfoxhawk_pattern,
                         [rabbit_growth, rabbitfox_predation, fox_decline, 
                          rabbithawk_predation, hawk_decline])
 
+## Solve and plot
 β′, γ′, δ′ = .01, .01, .5
 params = vcat(params, [β′, γ′, δ′])
 
@@ -113,16 +113,16 @@ plot(sol, lw=2, title = "Land Ecosystem", bottom_margin=10mm, left_margin=10mm, 
 xlabel!("Time")
 ylabel!("Population size")
 
-# Notice that the hawks are going extinct in this model. We'll have to give hawks something to eat...
+# Unfortunately, the hawks are going extinct in this model. We'll have to give hawks something else to eat!
 #-
 # ## Ocean Ecosystem
 
-# Consider a ocean ecosystem containing three species — little fish, big fish, and sharks — with two predation interactions — sharks eat big fish and big fish eat little fish.
+# Consider a ocean ecosystem containing three species —- little fish, big fish, and sharks -— with two predation interactions —- sharks eat big fish and big fish eat little fish.
 
 # This ecosystem can be modeled as the composition of 3 machines:
-# 1. Evolution of the little fish population - this machine has one exogenous variable which represents a population of predators $h(t)$ that hunt little fish. This machine has one output which emits the little fish population. The dynamics of this machine is the driven ODE $$\dot f(t) = \alpha f(t) - \beta f(t)h(t)$$
-# 2. Evolution of the big fish population - this machine has two exogenous variables which represent a population of prey $e(t)$ that are eaten by big fish and a population of predators $h(t)$ which hunt big fish. This machine has one output which emits the big fish population. The dynamics of this machine is the drive ODE $$\dot F(t) = \gamma F(t)e(t) - \delta F(t) - \beta'F(t)h(t)$$
-# 3. Evolution of the shark population - this machine has one exogenous variable which represents a population of prey $e(t)$ that are eaten by sharks. This machine has one output which emits the shark population. The dynamics of this machine is the driven ODE $$\dot s(t) = \gamma's(t)e(t) - \delta's(t)$$
+# 1. Evolution of the little fish population:  this machine has one exogenous variable which represents a population of predators $h(t)$ that hunt little fish. This machine has one output which emits the little fish population. The dynamics of this machine is the driven ODE $$\dot f(t) = \alpha f(t) - \beta f(t)h(t)$$
+# 2. Evolution of the big fish population:  this machine has two exogenous variables which represent a population of prey $e(t)$ that are eaten by big fish and a population of predators $h(t)$ which hunt big fish. This machine has one output which emits the big fish population. The dynamics of this machine is the drive ODE $$\dot F(t) = \gamma F(t)e(t) - \delta F(t) - \beta'F(t)h(t)$$
+# 3. Evolution of the shark population:  this machine has one exogenous variable which represents a population of prey $e(t)$ that are eaten by sharks. This machine has one output which emits the shark population. The dynamics of this machine is the driven ODE $$\dot s(t) = \gamma's(t)e(t) - \delta's(t)$$
 
 
 ## Define the primitive systems
@@ -137,7 +137,7 @@ sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, s->s)
 # We compose these machines by (1) sending the output of the big fish machine as the input to both the little fish and shark machines and (2) sending the output of the little fish and shark machines as the inputs to the big fish machine.
 # The syntax for this directed composition is given by a directed wiring diagram.
 
-## define the composition pattern
+## Define the composition pattern
 ocean_pattern = WiringDiagram([], [])
 fish_box = add_box!(ocean_pattern, Box(:fish, [:pop], [:pop]))
 Fish_box = add_box!(ocean_pattern, Box(:Fish, [:pop, :pop], [:pop]))
@@ -150,10 +150,10 @@ add_wires!(ocean_pattern, Pair[
     (Fish_box, 1)  => (shark_box, 1)
 ])
 
-## compose
+## Compose
 ocean_system = oapply(ocean_pattern, [fish, FISH, sharks])
 
-## plot the solution
+## Solve and plot
 α, β, γ, δ, β′, γ′, δ′ = 0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35
 params = [α, β, γ, δ, β′, γ′, δ′]
 
@@ -170,14 +170,14 @@ ylabel!("Population size")
 # ## Total ecosystem
 # ### Another layer of composition
 
-# We will introduce a final predation interaction --- hawks eat little fish ---  which will combine the land and ocean ecosystems.
+# We will introduce a final predation interaction -- hawks eat little fish --  which will combine the land and ocean ecosystems.
 
 # There will be 16 parameters in to the total ecosystem.
 # - parameters 1-7 will determine the land ecosystem
 # - parameters 8 and 9 will determine the hawk/little fish predation. Parameter 8 gives the rate of hawk growth and parameter 8 gives the rate of little fish decline.
 # - parameter 10-16 will determine the ocean ecosystem.
 
-# The composition will be as resource shareres so the first thing we will do use the dynamics of the machine `ocean_system` to define dynamics of a resource sharer. We will also define a resource sharer modelling little fish
+# The composition will be as resource shareres so the first thing we will do is use the dynamics of the machine `ocean_system` to define the dynamics of a resource sharer. We will also define a resource sharer that models hawk/little fish predation.
 
 
 ## Define the additional primitive systems
@@ -195,7 +195,9 @@ set_junction!(eco_pattern, [1,2,3,3,4,4,5,6])
 ## Compose
 eco_system=oapply(eco_pattern, [land_system, fishhawk_predation, ocean_system_rs])
 
-# We can now plot the evolution of the total ecosystem
+# We can now plot the evolution of the total ecosystem.
+
+## Solve and plot
 u0 = [100.0, 50.0, 20.0, 100, 10, 2.0]
 tspan = (0.0, 100.0)
 
@@ -207,14 +209,14 @@ prob = ODEProblem(eco_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
-# Let's zoom in on a narrower time-window
+# Let's zoom in on a narrower time-window.
 tspan = (0.0, 30.0)
 
 prob = ODEProblem(eco_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
-# As a sanity check we can define the rates of hawk/little fish predation to 0. This decouples the land and ocean ecosystems. The plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.
+# As a sanity check we can define the rates for the hawk/little fish predation to be 0. This decouples the land and ocean ecosystems. As expected, the plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.
 
 tspan = (0.0, 100.0)
 params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5, 

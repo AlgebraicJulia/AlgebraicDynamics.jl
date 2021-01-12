@@ -168,7 +168,7 @@ oapply(d::AbstractUWD, x::AbstractResourceSharer) =
 
 A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding resource sharer.
 """
-oapply(d::AbstractUWD, xs::AbstractDict) = 
+oapply(d::AbstractUWD, xs::AbstractDict{S,T}) where {S, T <: AbstractResourceSharer} = 
     oapply(d, [xs[name] for name in subpart(d, :name)])
 
 

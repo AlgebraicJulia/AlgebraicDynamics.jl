@@ -4,9 +4,13 @@
 
 
 
-# We will give three examples of deriving the Lotka-Volterra equations $$\dot r(t) = \alpha r(t) - \beta r(t)f(t), \quad \dot f(t) = \gamma f(t) r(t) - \delta f(t)$$ as a composition of primitive systems. First, we will show it as the composition of resource sharers where the undirected composition pattern is an undirected wiring diagram. Second, we will show it as the composition of machines where the directed composition pattern is a wiring diagram. Lastly, we will show it as the composition of machines where the directed composition pattern is an open circular port graph (open CPG)
+# We will give three examples of deriving the Lotka-Volterra equations 
+# $$
+# \dot r(t) = \alpha r(t) - \beta r(t)f(t),\quad \dot f(t) = \gamma f(t) r(t) - \delta f(t)
+# $$ 
+# as a composition of primitive systems. First, we will show it as the composition of resource sharers where the undirected composition pattern is an undirected wiring diagram. Second, we will show it as the composition of machines where the directed composition pattern is a wiring diagram. Lastly, we will show it as the composition of machines where the directed composition pattern is an open circular port graph (open CPG).
 
-# Although these examples are quite small and you can easily work it out by hand, but this approach is based on the solid mathematical theory of operad algebras that allows you to scale to larger and more complex problems. 
+# Although these examples are quite small and you can easily work them out by hand,  this approach is based on the solid mathematical theory of operad algebras that allows you to scale to larger and more complex problems. 
 
 #-
 
@@ -15,11 +19,11 @@
 
 # A standard Lotka-Volterra predator-prey model is the composition of three resource sharers:
 
-# 1. a model of rabbit growth &mdash; this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
-# 2. a model of rabbit/fox predation &mdash; this resource sharer has dynamics $\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$ and two ports which expose the rabbit and fox populations respectively
-# 3. a model of fox population decline &mdash; this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
+# 1. a model of rabbit growth: this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
+# 2. a model of rabbit/fox predation: this resource sharer has dynamics $\do.t r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$ and two ports which expose the rabbit and fox populations respectively
+# 3. a model of fox population decline: this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
 
-# However, there are not two independent rabbit populations &mdash; one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations &mdash; one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 
+# However, there are not two independent rabbit populations --- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations --- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 
 
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
@@ -63,9 +67,9 @@ ylabel!("Population size")
 # ## Directed composition  
 # A standard Lotka-Volterra predator-prey model is the composition of two machines:
 
-# 1. Evolution of a rabbit population &mdash; this machine has one input which represents a population of predators, $h$, that hunt rabbits. This machine has one output which emits the rabbit population $r$. The dynamics of this machine is the driven ODE $\dot r(t) = \alpha r(t) - \beta r(t) h(t).$
+# 1. Evolution of a rabbit population: this machine has one input which represents a population of predators, $h(t)$, that hunt rabbits. This machine has one output which emits the rabbit population $r(t)$. The dynamics of this machine is the driven ODE $\dot r(t) = \alpha r(t) - \beta r(t) h(t).$
 
-# 2. Evoluation of a fox population &mdash; this machine has one input which represents a population of prey, $e$, that are eaten by foxes. This machine has one output which emits the fox population $f$. The dynamics of this machine is the driven ODE $\dot f(t) =\gamma f(t)e(t) - \delta f(t).$
+# 2. Evoluation of a fox population: this machine has one input which represents a population of prey, $e(t)$, that are eaten by foxes. This machine has one output which emits the fox population $f(t)$. The dynamics of this machine is the driven ODE $\dot f(t) =\gamma f(t)e(t) - \delta f(t).$
 
 
 
@@ -109,7 +113,7 @@ ylabel!("Population size")
 
 
 # ### Open CPG
-# We next implement the setting of inputs using an open CPG as our composition pattern. We will use a barbell CPG. A barbell has two boxes connected by $n$ wires. In this instance we will set $n$ to $1$ since only one piece of information travels between the two machines.
+# We next implement the setting of inputs using an open CPG as our composition pattern. We will use a barbell CPG. A barbell has two boxes connected by $n$ wires. In this instance we will set $n$ to $1$ since each machine receives and emits exactly one piece of information.
 
 using AlgebraicDynamics.CPortGraphDynam
 using AlgebraicDynamics.CPortGraphDynam: barbell

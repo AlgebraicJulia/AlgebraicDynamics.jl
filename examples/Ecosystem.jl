@@ -1,6 +1,6 @@
 # # [Ecosystem Models](@id ecosystem_example)
 #
-#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/ecosystem.ipynb)
+#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/Ecosystem.ipynb)
 
 using AlgebraicDynamics
 using AlgebraicDynamics.DWDDynam

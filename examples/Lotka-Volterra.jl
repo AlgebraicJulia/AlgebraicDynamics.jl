@@ -4,11 +4,7 @@
 
 
 
-# We will give three examples of deriving the Lotka-Volterra equations 
-# $$
-# \dot r(t) = \alpha r(t) - \beta r(t)f(t),\quad \dot f(t) = \gamma f(t) r(t) - \delta f(t)
-# $$ 
-# as a composition of primitive systems. First, we will show it as the composition of resource sharers where the undirected composition pattern is an undirected wiring diagram. Second, we will show it as the composition of machines where the directed composition pattern is a wiring diagram. Lastly, we will show it as the composition of machines where the directed composition pattern is an open circular port graph (open CPG).
+# We will give three examples of deriving the Lotka-Volterra equations $$ \dot r(t) = \alpha r(t) - \beta r(t)f(t), \dot f(t) = \gamma f(t) r(t) - \delta f(t)$$ as a composition of primitive systems. First, we will show it as the composition of resource sharers where the undirected composition pattern is an undirected wiring diagram. Second, we will show it as the composition of machines where the directed composition pattern is a wiring diagram. Lastly, we will show it as the composition of machines where the directed composition pattern is an open circular port graph (open CPG).
 
 # Although these examples are quite small and you can easily work them out by hand,  this approach is based on the solid mathematical theory of operad algebras that allows you to scale to larger and more complex problems. 
 
@@ -20,7 +16,7 @@
 # A standard Lotka-Volterra predator-prey model is the composition of three resource sharers:
 
 # 1. a model of rabbit growth: this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
-# 2. a model of rabbit/fox predation: this resource sharer has dynamics $\do.t r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$ and two ports which expose the rabbit and fox populations respectively
+# 2. a model of rabbit/fox predation: this resource sharer has dynamics $\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$ and two ports which expose the rabbit and fox populations respectively
 # 3. a model of fox population decline: this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
 
 # However, there are not two independent rabbit populations --- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations --- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 

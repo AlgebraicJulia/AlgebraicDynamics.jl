@@ -1,6 +1,6 @@
 # # [Open Circular Port Graph Examples](@id cpg_examples)
 #
-#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/cpg_examples.ipynb)
+#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/CPG_examples.ipynb)
 
 using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam

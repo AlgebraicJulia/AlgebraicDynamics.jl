@@ -207,14 +207,14 @@ params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5,
 
 prob = ODEProblem(eco_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
 # Let's zoom in on a narrower time-window.
 tspan = (0.0, 30.0)
 
 prob = ODEProblem(eco_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
 # As a sanity check we can define the rates for the hawk/little fish predation to be 0. This decouples the land and ocean ecosystems. As expected, the plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.
 
@@ -224,7 +224,7 @@ params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5,
           0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35]
 prob = ODEProblem(eco_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
 
 

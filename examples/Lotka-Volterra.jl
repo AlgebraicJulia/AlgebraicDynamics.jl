@@ -24,7 +24,7 @@
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
 using Catlab.WiringDiagrams
-using OrdinaryDiffEq, Plots
+using OrdinaryDiffEq, Plots, Plots.PlotMeasures
 
 const UWD = UndirectedWiringDiagram
 
@@ -55,7 +55,7 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(rabbitfox_system, u0, tspan)
 sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
 xlabel!("Time")
 ylabel!("Population size")
 
@@ -103,7 +103,7 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(rabbitfox_system, u0, tspan)
 sol = solve(prob, FRK65(0))
 
-plot(sol, lw=2, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
 xlabel!("Time")
 ylabel!("Population size")
 
@@ -127,6 +127,6 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(rabbitfox_system, u0, tspan)
 sol = solve(prob, FRK65(0))
 
-plot(sol, lw=2, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
+plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
 xlabel!("Time")
 ylabel!("Population size")

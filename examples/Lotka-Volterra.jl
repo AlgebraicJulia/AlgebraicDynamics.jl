@@ -16,7 +16,7 @@
 # A standard Lotka-Volterra predator-prey model is the composition of three resource sharers:
 
 # 1. a model of rabbit growth: this resource sharer has dynamics $\dot r(t) = \alpha r(t)$ and one port which exposes the rabbit population.
-# 2. a model of rabbit/fox predation: this resource sharer has dynamics $\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$ and two ports which expose the rabbit and fox populations respectively
+# 2. a model of rabbit/fox predation: this resource sharer has dynamics $$\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$$ and two ports which expose the rabbit and fox populations respectively
 # 3. a model of fox population decline: this resource sharer has dynamics $\dot f(t) = -\delta f(t)$ and one port which exposes the fox population.
 
 # However, there are not two independent rabbit populations --- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations --- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 

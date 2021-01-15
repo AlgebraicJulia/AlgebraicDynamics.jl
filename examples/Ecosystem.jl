@@ -8,7 +8,8 @@ using AlgebraicDynamics.UWDDynam
 
 using Catlab.CategoricalAlgebra
 using Catlab.WiringDiagrams
-const UWD = UndirectedWiringDiagram
+using Catlab.Graphics
+using Catlab.Programs
 
 using OrdinaryDiffEq
 using Plots, Plots.PlotMeasures
@@ -36,14 +37,19 @@ rabbit_growth = ContinuousResourceSharer{Float64}(1, dotr)
 rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
 fox_decline = ContinuousResourceSharer{Float64}(1, dotf)
 
-## Define the composition pattern
-rabbitfox_pattern = UWD(2)
-add_box!(rabbitfox_pattern, 1); add_box!(rabbitfox_pattern, 2); add_box!(rabbitfox_pattern, 1)
-add_junctions!(rabbitfox_pattern, 2)
-set_junction!(rabbitfox_pattern, [1,1,2,2]); set_junction!(rabbitfox_pattern, [1,2], outer=true)
+# Define the composition pattern
+rabbitfox_pattern = @relation (rabbits, foxes) begin
+    rabbit_growth(rabbits)
+    rabbitfox_predation(rabbits,foxes)
+    fox_decline(foxes)
+end
 
 ## Compose
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit_growth, rabbitfox_predation, fox_decline])
+
+# Previously, when we derived the Lotka-Volterra model via [undirected composition](https://algebraicjulia.github.io/AlgebraicDynamics.jl/dev/examples/Lotka-Volterra/#Undirected-composition), we by-hand defined the undirected wiring diagram that implements the composition pattern. In contrast, here we implement the same composition pattern as before but this time using the [`@relation` macro](https://algebraicjulia.github.io/Catlab.jl/stable/apis/programs/#Catlab.Programs.RelationalPrograms.@relation-Tuple). This strategy simplifies the definition and explicitly names the boxes and variables. We  visualize the composition pattern below.
+
+to_graphviz(rabbitfox_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len => ".75"))
 
 # We can now construct an `ODEProblem` from the resource sharer `rabbitfox_system` and plot the solution.
 
@@ -72,12 +78,14 @@ ylabel!("Population size")
 
 
 ## Define the composition pattern for rabbit growth
-rabbit_pattern = UWD(1)
-add_box!(rabbit_pattern, 1); add_junctions!(rabbit_pattern, 1)
-set_junction!(rabbit_pattern, [1]); set_junction!(rabbit_pattern, [1], outer=true)
+rabbit_pattern = @relation (rabbits,) -> rabbit_growth(rabbits)
 
-## Define the composition pattern for the rabbit/hawk Lotka-Volterra model
-rabbithawk_pattern = rabbitfox_pattern
+## Define the composition pattern for the rabbit/hawk Lotka Volterra model
+rabbithawk_pattern = @relation (rabbits, hawks) begin
+    rabbit_growth(rabbits)
+    rabbit_hawk_predation(rabbits,hawks)
+    hawk_decline(hawks)
+end
 
 ## Define transformations between the composition patterns
 rabbitfox_transform  = ACSetTransformation((Box=[1], Junction=[1], Port=[1], OuterPort=[1]), rabbit_pattern, rabbitfox_pattern)
@@ -85,6 +93,9 @@ rabbithawk_transform = ACSetTransformation((Box=[1], Junction=[1], Port=[1], Out
 
 ## Take the pushout to define the composition pattern for the rabbit, fox, hawk system
 rabbitfoxhawk_pattern = ob(pushout(rabbitfox_transform, rabbithawk_transform))
+
+## Visualize the compsition pattern
+to_graphviz(rabbitfoxhawk_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len => ".9"))
 
 #-
 ## Define the additional primitive systems
@@ -150,6 +161,11 @@ add_wires!(ocean_pattern, Pair[
     (Fish_box, 1)  => (shark_box, 1)
 ])
 
+## Visualize the composition pattern
+to_graphviz(ocean_pattern, orientation=TopToBottom)
+
+#-
+
 ## Compose
 ocean_system = oapply(ocean_pattern, [fish, FISH, sharks])
 
@@ -187,13 +203,18 @@ dothf(u,p,t) = [p[8]*u[1]*u[2], -p[9]*u[1]*u[2]]
 fishhawk_predation = ContinuousResourceSharer{Float64}(2, dothf)
 
 ## Define the composition pattern
-eco_pattern = UWD(0)
-add_box!(eco_pattern, 3); add_box!(eco_pattern, 2); add_box!(eco_pattern, 3)
-add_junctions!(eco_pattern, 6)
-set_junction!(eco_pattern, [1,2,3,3,4,4,5,6])
+eco_pattern = @relation () where (rabbits, foxes, hawks, littlefish, BigFish, sharks)  begin
+    turf(rabbits,foxes,hawks)
+    air(hawks, littlefish)
+    surf(littlefish, BigFish, sharks)
+end
 
+## Visualize the composition pattern
+to_graphviz(eco_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len => ".75"))
+
+#-
 ## Compose
-eco_system=oapply(eco_pattern, [land_system, fishhawk_predation, ocean_system_rs])
+ecosystem=oapply(eco_pattern, [land_system, fishhawk_predation, ocean_system_rs])
 
 # We can now plot the evolution of the total ecosystem.
 
@@ -205,14 +226,14 @@ params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5,
           0.001, 0.003, 
           0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35]
 
-prob = ODEProblem(eco_system, u0, tspan, params)
+prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
 # Let's zoom in on a narrower time-window.
 tspan = (0.0, 30.0)
 
-prob = ODEProblem(eco_system, u0, tspan, params)
+prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 
@@ -222,7 +243,7 @@ tspan = (0.0, 100.0)
 params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5, 
           0, 0, 
           0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35]
-prob = ODEProblem(eco_system, u0, tspan, params)
+prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
 

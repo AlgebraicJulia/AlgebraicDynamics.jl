@@ -37,7 +37,7 @@ rabbit_growth = ContinuousResourceSharer{Float64}(1, dotr)
 rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
 fox_decline = ContinuousResourceSharer{Float64}(1, dotf)
 
-# Define the composition pattern
+## Define the composition pattern
 rabbitfox_pattern = @relation (rabbits, foxes) begin
     rabbit_growth(rabbits)
     rabbitfox_predation(rabbits,foxes)

@@ -34,10 +34,10 @@ The general process for composing  dynamical systems is as follows:
 
 Once you have built the composite system, you can solve and plot its solution. 
 - For continuous machines and resource sharers, you can construct an `ODEProblem`. Be sure to import [OrdinaryDiffEq](https://diffeq.sciml.ai/stable/tutorials/ode_example/). When the composition pattern is a wiring diagram, we recommend solvers `Tsit5()` with `dtmax` specified and `FRK65(w=0)`.
-- For discrete machines and resource sharers, you can construct a `DiscreteDynamicalSystem` or explicitly compute a trajectory using `trajectory`. In either case be sure to import [DynamicalSystems](https://juliadynamics.github.io/DynamicalSystems.jl/latest/).
+- For discrete machines and resource sharers, you can construct a `DiscreteDynamicalSystem` or explicitly compute a trajectory using `trajectory`. In either case, be sure to import [DynamicalSystems](https://juliadynamics.github.io/DynamicalSystems.jl/latest/).
     
 
 ## Future Work
 - Add more integrators beyond the simple Euler's method
-- Include higher order polynomial methods and simplectic and implicit methods for physical problems
+- Include higher order polynomial methods and symplectic and implicit methods for physical problems
 - Integrate with [AlgebraicPetri.jl](https://algebraicjulia.github.io/AlgebraicPetri.jl/dev/)

@@ -74,7 +74,7 @@ ylabel!("Population size")
 
 using AlgebraicDynamics.DWDDynam
 
-# Define the primitive systems
+## Define the primitive systems
 α, β, γ, δ = 0.3, 0.015, 0.015, 0.7
 
 dotr(u, x, p, t) = [α*u[1] - β*u[1]*x[1]]
@@ -83,7 +83,7 @@ dotf(u, x, p, t) = [γ*u[1]*x[1] - δ*u[1]]
 rabbit = ContinuousMachine{Float64}(1,1,1, dotr, u -> u)
 fox    = ContinuousMachine{Float64}(1,1,1, dotf, u -> u)
 
-# Define the composition pattern
+## Define the composition pattern
 rabbitfox_pattern = WiringDiagram([], [])
 rabbit_box = add_box!(rabbitfox_pattern, Box(:rabbit, [:pop], [:pop]))
 fox_box = add_box!(rabbitfox_pattern, Box(:fox, [:pop], [:pop]))
@@ -93,10 +93,10 @@ add_wires!(rabbitfox_pattern, Pair[
     (fox_box, 1) => (rabbit_box, 1)
 ])
 
-# Compose
+## Compose
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
-# Solve and plot
+## Solve and plot
 u0 = [10.0, 100.0]
 tspan = (0.0, 100.0)
 
@@ -114,13 +114,13 @@ ylabel!("Population size")
 using AlgebraicDynamics.CPortGraphDynam
 using AlgebraicDynamics.CPortGraphDynam: barbell
 
-# Define the composition pattern
+## Define the composition pattern
 rabbitfox_pattern = barbell(1) 
 
-# Compose
+## Compose
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
-# Solve and plot
+## Solve and plot
 u0 = [10.0, 100.0]
 tspan = (0.0, 100.0)
 

@@ -186,16 +186,16 @@ end
     return x.dynamics(statefun(i), inputfun(i), p, t)
 end
 
-@inline fillwire(w, d, readouts, Outputs) = readouts[legs(Outputs)[w.source.box - 2](w.source.port)] # FIX - box re-indexing
+@inline fillwire(w, d, readouts, Outputs) = readouts[legs(Outputs)[w.source.box](w.source.port)] # FIX - box re-indexing
 
 fillreadins!(readins, d, readouts, Outputs, Inputs, ins) = begin
     for (i,w) in enumerate(wires(d))
         if w.target.box == output_id(d)
             continue
         elseif w.source.box == input_id(d)
-            readins[legs(Inputs)[w.target.box - 2](w.target.port)] += ins[w.source.port]
+            readins[legs(Inputs)[w.target.box](w.target.port)] += ins[w.source.port]
         else
-            readins[legs(Inputs)[w.target.box - 2](w.target.port)] += fillwire(w, d, readouts, Outputs)
+            readins[legs(Inputs)[w.target.box](w.target.port)] += fillwire(w, d, readouts, Outputs)
         end
         
     end
@@ -244,15 +244,15 @@ function oapply(d::WiringDiagram, xs::Vector{Machine}) where {T, Machine <: Abst
         get_states(b) = states(u,b)
 
         fillreadouts!(readouts, d, xs, Outputs, get_states)
-        r = zeros(T, length(d.output_ports))
+        r = zeros(T, length(output_ports(d)))
         for w in in_wires(d, output_id(d))
             r[w.target.port] += fillwire(w, d, readouts, Outputs)
         end
         return r
     end
 
-    return Machine(length(d.input_ports), length(apex(S)), length(d.output_ports), v, readout)
-    
+    return Machine(length(input_ports(d)), length(apex(S)),
+                   length(output_ports(d)), v, readout)
 end
 
 """    oapply(d::WiringDiagram, m::AbstractMachine)

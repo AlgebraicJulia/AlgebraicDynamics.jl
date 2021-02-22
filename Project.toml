@@ -17,7 +17,7 @@ RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-Catlab = "^0.10.0"
+Catlab = "^0.11"
 Compose = "^0.9.1"
 DifferentialEquations = "^6.16.0"
 DynamicalSystems = "^1.6.0"

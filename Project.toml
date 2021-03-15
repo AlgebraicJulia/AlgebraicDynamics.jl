@@ -1,10 +1,11 @@
 name = "AlgebraicDynamics"
 uuid = "5fd6ff03-a254-427e-8840-ba658f502e32"
 authors = ["James Fairbanks", "Sophie Libkind"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
+CombinatorialSpaces = "b1c52339-7909-45ad-8b6a-6e388f7c67f2"
 Compose = "a81c6b42-2e10-5240-aca2-a61377ecd94b"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
@@ -18,6 +19,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 Catlab = "^0.11"
+CombinatorialSpaces = "0.2.0"
 Compose = "^0.9.1"
 DifferentialEquations = "^6.16.0"
 DynamicalSystems = "^1.6.0"

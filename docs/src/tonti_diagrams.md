@@ -1,4 +1,4 @@
-# Combinatorial maps
+# Tonti Diagrams 
 
 ```@autodocs
 Modules = [ AlgebraicDynamics.Tonti ]

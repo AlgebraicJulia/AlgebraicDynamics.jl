@@ -50,6 +50,7 @@ makedocs(
       "examples/CPG_examples.md"
     ],
     "Library Reference" => "api.md",
+    "Tonti Diagrams" => "tonti_diagrams.md",
   ]
 )
 

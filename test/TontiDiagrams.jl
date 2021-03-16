@@ -15,7 +15,7 @@ glue_sorted_triangle!(s, 2,3,4)
 
 sd = EmbeddedDeltaDualComplex2D{Bool, Float64, Point{3,Float64}}(s)
 subdivide_duals!(sd, Barycenter())
-star0 = ⋆(0,sd)
+star0 = CombinatorialSpaces.⋆(0,sd)
 
 @test gen_form(s, x->1) == [1,1,1,1]
 

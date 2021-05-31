@@ -1,11 +1,12 @@
 module TontiTest
-  using AlgebraicDynamics.Tonti
+  using AlgebraicDynamics.TontiDiagrams
   using CombinatorialSpaces
   using GeometryBasics
   using Random
   using Test
-  td = TontiDiagram(2, [:C =>:IP,  :dC =>:TP,  :ΔC=>:IL,
-                         :∑ϕ=>:TS2, :ϕ=>:TL2]);
+  td = TontiDiagram();
+  add_variables!(td, (:C,0,true),  (:dC,0,true),  (:ΔC,1,true),
+                 (:∑ϕ,2,false), (:ϕ,1,false))
 
   s = EmbeddedDeltaSet2D{Bool, Point{3,Float64}}()
   points = [(0,0,0),(0,0,1),(0,1,0),(0,1,1)]
@@ -14,26 +15,21 @@ module TontiTest
   glue_sorted_triangle!(s, 1,2,3)
   glue_sorted_triangle!(s, 2,3,4)
 
-  sd = EmbeddedDeltaDualComplex2D{Bool, Float64, Point{3,Float64}}(s)
-  subdivide_duals!(sd, Barycenter())
-  star0 = ⋆(0,sd)
+  sp = Space(s)
 
   @test gen_form(s, x->1) == [1,1,1,1]
 
-  addSpace!(td, s)
-  addTime!(td)
+  add_derivatives!(td, sp, :C=>:ΔC, :ϕ =>:∑ϕ)
+  add_time_dep!(td, :dC, :C)
+
   const k = 0.003
 
-  diffusion(diff) = ΔC -> diff*ΔC
-  mass_conv() = ∑ϕ->∑ϕ
+  add_transition!(td, [:ΔC], (ϕ,ΔC)->(ϕ .= sp.hodge[1,2] * (k .* ΔC)), [:ϕ])
+  add_transition!(td, [:∑ϕ], (dC, ∑ϕ)->(dC .= sp.hodge[2,3] * ∑ϕ), [:dC]);
 
-  addTransform!(td, s, [:ΔC], diffusion(k), [:ϕ])
-  addTransform!(td, s, [:∑ϕ], mass_conv(), [:dC]);
+  data_range, sim= vectorfield(td, sp)
 
-  sim, data_syms = vectorfield(td, s)
-
-  @test data_syms[1][1] == :C
-  @test data_syms[1][2] == 4
+  @test data_range[:C] == (1,4)
 
   Random.seed!(42)
   u  = gen_form(s,x->rand())
@@ -47,5 +43,5 @@ module TontiTest
     # Check that mass is conserved
   end
   @test all(tempu .!= u)
-  @test all(sum(star0*tempu)-sum(star0*u) < 1e-6)
+  @test all(sum(sp.hodge[1,1]*tempu)-sum(sp.hodge[1,1]*u) < 1e-6)
 end

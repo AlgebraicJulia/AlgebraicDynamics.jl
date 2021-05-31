@@ -1,6 +1,6 @@
 # Tonti Diagrams 
 
 ```@autodocs
-Modules = [ AlgebraicDynamics.Tonti ]
+Modules = [ AlgebraicDynamics.TontiDiagrams ]
 Private = false
 ```

@@ -1,3 +1,9 @@
+# # [Tonti Diagram tooling Examples](@id tonti_examples)
+#
+#md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/Tonti_examples.ipynb)
+
+
+
 using Catlab.Graphs
 using Catlab.Graphics
 using Catlab.CategoricalAlgebra
@@ -101,7 +107,7 @@ u[c_range] .= c
 u[v_range] .= v
 u[p_range] .= p
 
-tspan=(0.0,25.0)
+tspan=(0.0,15.0)
 prob = ODEProblem(sim, u, tspan)
 sol = solve(prob, Tsit5(), progress=true, progress_steps=1);
 

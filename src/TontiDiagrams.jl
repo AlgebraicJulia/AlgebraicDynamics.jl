@@ -19,6 +19,7 @@ using Catlab.Programs
 using Catlab.WiringDiagrams
 using CombinatorialSpaces
 using CombinatorialSpaces: ⋆
+using DifferentialEquations
 
 export TheoryTontiDiagram, TontiDiagram, Space,
         add_variable!, add_variables!,
@@ -177,7 +178,7 @@ The resulting function has a signature of the form `f!(du, u, p, t)` and can be
 passed to the DifferentialEquations.jl solver package.
 """
 function vectorfield(td, sp::Space)
-  v_mem, t_mem = init_mem(td, sp)
+  fv_mem, ft_mem = init_mem(td, sp)
   dg = Graph(td)
 
   order = topological_sort(dg)
@@ -187,12 +188,19 @@ function vectorfield(td, sp::Space)
   input_vars = Dict{Symbol, Tuple{Int64,Int64}}()
   cur_head = 1
   for i in state_vars
-    v_size = length(v_mem[i])
+    v_size = length(fv_mem[i])
     input_vars[td[i,:symbol]] = (cur_head,cur_head+v_size-1)
     cur_head += v_size
   end
 
+  data_buffer = Dict{Type, Tuple{Array, Array}}(Float64=>(fv_mem, ft_mem))
   function system(du, u, t, p)
+    if !(eltype(u) ∈ keys(data_buffer))
+      data_buffer[eltype(u)] = init_mem(td, sp, type=eltype(u))
+    end
+
+    v_mem, t_mem = data_buffer[eltype(u)]
+
     for cur in order
       # Check if current is a variable or transition
       if cur > nparts(td, :V)
@@ -394,26 +402,27 @@ function init_mem(td, s::EmbeddedDeltaSet1D)
   # Fill out this function
 end
 
-function init_mem(td, sp::Space)
+function init_mem(td, sp::Space; type=Float64)
   s = sp.s
   primal_size = [nv(s), ne(s), ntriangles(s)]
   dual_size   = [ntriangles(s), ne(s), nv(s)]
 
-  t_mem = Array{Array{Float64,1},1}()
-  v_mem = Array{Array{Float64,1},1}()
+  t_mem = Array{Array{type,1},1}()
+  v_mem = Array{Array{type,1},1}()
 
   for i in 1:nparts(td, :O)
     var = td[i,:ov]
-    push!(t_mem, zeros(Float64,
+    push!(t_mem, zeros(type,
                       td[var,:complex] ? primal_size[td[var,:dimension]+1] :
                       dual_size[td[var,:dimension]+1]))
   end
 
   for v in 1:nparts(td,:V)
-    push!(v_mem, zeros(Float64,
+    push!(v_mem, zeros(type,
                       td[v,:complex] ? primal_size[td[v,:dimension]+1] :
                       dual_size[td[v,:dimension]+1]))
   end
+
   v_mem, t_mem
 end
 

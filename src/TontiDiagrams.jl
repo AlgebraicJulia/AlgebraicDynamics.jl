@@ -15,6 +15,7 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 using Catlab.Graphs
 import Catlab.Graphs: Graph
+using Catlab.Graphics
 using Catlab.Programs
 using Catlab.WiringDiagrams
 using CombinatorialSpaces
@@ -66,6 +67,8 @@ See Catlab.jl documentation for a description of the @present syntax.
   complex::Attr(V,Comp)
   dimension::Attr(V,Dimension)
   symbol::Attr(V, Label)
+  tlabel::Attr(T, Label)
+  bclabel::Attr(BC, Label)
 end
 
 """ Space
@@ -297,10 +300,10 @@ add_variables!(td, (:x, 0, 1), (:y, 0, 1). (:m, 0, 1))
 add_transition!(td, [:x, :y], (m,x,y)->(m .= sqrt.(x .* y)), [:m])
 ```
 """
-function add_transition!(td, dom_sym::Array{Symbol,1}, func!, codom_sym::Array{Symbol,1})
+function add_transition!(td, dom_sym::Array{Symbol,1}, func!, codom_sym::Array{Symbol,1}; label=Symbol(""))
   dom = [findfirst(v->v == s, td[:symbol]) for s in dom_sym]
   codom = [findfirst(v->v == s, td[:symbol]) for s in codom_sym]
-  t = add_part!(td, :T, tfunc=func!)
+  t = add_part!(td, :T, tfunc=func!, tlabel=label)
   add_parts!(td, :I, length(dom), iv=dom, it=t)
   add_parts!(td, :O, length(codom), ov=codom, ot=t)
 end
@@ -328,7 +331,7 @@ function add_derivative!(td, sp, dom_sym, codom_sym)
   # This will later be replaced as we pre-initialize all boundary operators
   bound = sp.boundary[(td[dom,:complex] ? 1 : 2), td[dom,:dimension]+1]
   func(x,y) = (x.=bound*y)
-  add_transition!(td, [dom_sym],func,[codom_sym])
+  add_transition!(td, [dom_sym],func,[codom_sym]; label=:d)
 end
 
 """ add_derivatives!(td::TontiDiagram, sp::Space, vars:Pair{Symbol, Symbol}...)
@@ -370,9 +373,9 @@ any relevant boundary conditions.
 TODO:
 Add time dependency of boundary condition function to allow for time-varying BCs.
 """
-function add_bc!(td, var_sym, func)
+function add_bc!(td, var_sym, func; label=:BC)
   var = findfirst(v->v==var_sym, td[:symbol])
-  add_part!(td, :BC, bcfunc=func, bcv=var)
+  add_part!(td, :BC, bcfunc=func, bcv=var, bclabel=label)
 end
 
 # Note: This function can be made more efficient if combined with existing
@@ -395,7 +398,7 @@ function add_laplacian!(td, sp, dom_sym, codom_sym; coef=1.0)
 
   lap_op = sp.laplacian[td[dom,:dimension]+1] # laplace_beltrami(Val{td[dom,:dimension]},sd)
   func(x,y) = (x .= coef * (lap_op*y))
-  add_transition!(td, [dom_sym], func, [codom_sym])
+  add_transition!(td, [dom_sym], func, [codom_sym]; label=:Δ)
 end
 
 function init_mem(td, s::EmbeddedDeltaSet1D)
@@ -426,7 +429,7 @@ function init_mem(td, sp::Space; type=Float64)
   v_mem, t_mem
 end
 
-function Graph(td)
+function Graph(td; extended=false)
   g = Graph()
   add_vertices!(g, nparts(td, :V) + nparts(td, :T))
   nvars = nparts(td, :V)
@@ -435,6 +438,14 @@ function Graph(td)
   end
   for o in 1:nparts(td, :O)
     add_edge!(g, td[o,:ot] + nvars, td[o,:ov])
+  end
+  if extended
+    for bc in 1:nparts(td, :BC)
+      add_edge!(g, td[bc, :bcv], td[bc, :bcv])
+    end
+    for t in 1:nparts(td, :TD)
+      add_edge!(g, td[t, :deriv], td[t, :integ])
+    end
   end
   g
 end
@@ -446,6 +457,62 @@ simplex, returning a 0-form.
 """
 function gen_form(s::EmbeddedDeltaSet2D, f::Function)
   map(f, point(s))
+end
+
+
+function propertygraph(td::TontiDiagram;
+                       prog::AbstractString="neato", graph_attrs::AbstractDict=Dict(),
+                       node_attrs::AbstractDict=Dict(), edge_attrs::AbstractDict=Dict(:len=>"1.5"),
+                       node_labels::Bool=true, edge_labels::Bool=false)
+
+  nvars = nparts(td, :V)
+  isVar(v) = (v <= nvars)
+  g = Graph(td, extended = true)
+
+  dim_colors = ["green", "yellow", "red", "blue"]
+
+	node_labeler(v) = begin
+    if isVar(v)
+      Dict(:label=>"$(td[v, :symbol])",
+           :style=>td[v,:complex] ? "filled" : "filled, dotted",
+           :width=>"0.75", :height=>"0.75", :fixedsize=>"false",
+           :shape=>"circle",
+           :fillcolor=>dim_colors[td[v,:dimension]+1],
+           )
+    else
+      Dict(:label=>"$(td[v - nvars, :tlabel])",
+           :width=>"0.75", :height=>"0.75", :fixedsize=>"false",
+           :shape=>"square"
+           )
+    end
+  end
+
+  edge_labeler(e) = begin
+    if e <= nparts(td, :I) + nparts(td, :O)
+      Dict(:color=>"black")
+    else
+      e -= nparts(td, :I) + nparts(td, :O)
+      if e <= nparts(td, :BC)
+        Dict(:color=>"black",
+             :label=>"$(td[e, :bclabel])")
+      else
+        e -= nparts(td, :BC)
+        Dict(:color=>"black", :style=>"dotted")
+      end
+    end
+  end
+
+
+  PropertyGraph{Any}(g, node_labeler, edge_labeler;
+                        prog = prog,
+                        graph = merge!(Dict(:rankdir => "TB"), graph_attrs),
+                        node = merge!(Graphics.GraphvizGraphs.default_node_attrs(node_labels), node_attrs),
+                        edge = merge!(Dict(:arrowsize => "0.5"), edge_attrs),
+                        )
+end
+
+function Graphics.to_graphviz(td::TontiDiagram; kwargs...)
+  propertygraph(td; kwargs...) |> to_graphviz
 end
 
 end

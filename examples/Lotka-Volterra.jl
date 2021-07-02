@@ -24,16 +24,15 @@
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
 using Catlab.WiringDiagrams
+using LabelledArrays
 using OrdinaryDiffEq, Plots, Plots.PlotMeasures
 
 const UWD = UndirectedWiringDiagram
 
 ## Define the primitive systems
-α, β, γ, δ = 0.3, 0.015, 0.015, 0.7
-
-dotr(u,p,t) = α*u
-dotrf(u,p,t) = [-β*u[1]*u[2], γ*u[1]*u[2]]
-dotf(u,p,t) = -δ*u
+dotr(u,p,t) = p.α*u
+dotrf(u,p,t) = [-p.β*u[1]*u[2], p.γ*u[1]*u[2]]
+dotf(u,p,t) = -p.δ*u
 
 rabbit_growth = ContinuousResourceSharer{Float64}(1, dotr)
 rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
@@ -49,10 +48,11 @@ set_junction!(rabbitfox_pattern, [1,1,2,2]); set_junction!(rabbitfox_pattern, [1
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit_growth, rabbitfox_predation, fox_decline])
 
 ## Solve and plot
-u0 = [10.0, 100.0]
-tspan = (0.0, 100.0)
+u0 = [10.0, 100.0]                              
+params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+tspan = (0.0, 100.0)    
 
-prob = ODEProblem(rabbitfox_system, u0, tspan)
+prob = ODEProblem(rabbitfox_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
@@ -75,10 +75,8 @@ ylabel!("Population size")
 using AlgebraicDynamics.DWDDynam
 
 ## Define the primitive systems
-α, β, γ, δ = 0.3, 0.015, 0.015, 0.7
-
-dotr(u, x, p, t) = [α*u[1] - β*u[1]*x[1]]
-dotf(u, x, p, t) = [γ*u[1]*x[1] - δ*u[1]]
+dotr(u, x, p, t) = [p.α*u[1] - p.β*u[1]*x[1]]
+dotf(u, x, p, t) = [p.γ*u[1]*x[1] - p.δ*u[1]]
 
 rabbit = ContinuousMachine{Float64}(1,1,1, dotr, u -> u)
 fox    = ContinuousMachine{Float64}(1,1,1, dotf, u -> u)
@@ -98,9 +96,10 @@ rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
 ## Solve and plot
 u0 = [10.0, 100.0]
+params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)
 
-prob = ODEProblem(rabbitfox_system, u0, tspan)
+prob = ODEProblem(rabbitfox_system, u0, tspan, params)
 sol = solve(prob, FRK65(0))
 
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
@@ -122,9 +121,10 @@ rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
 ## Solve and plot
 u0 = [10.0, 100.0]
+params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)
 
-prob = ODEProblem(rabbitfox_system, u0, tspan)
+prob = ODEProblem(rabbitfox_system, u0, tspan, params)
 sol = solve(prob, FRK65(0))
 
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])

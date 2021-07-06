@@ -11,8 +11,22 @@ using Catlab.WiringDiagrams
 using Catlab.Graphics
 using Catlab.Programs
 
+using LabelledArrays
 using OrdinaryDiffEq
 using Plots, Plots.PlotMeasures
+
+
+# There will be 16 parameters in to the total ecosystem. With four distinct types:
+# - $\alpha$ represents the rate at which a species population grows
+# - $\beta$ represents the rate at which a population of prey declines in a predation interaction
+# - $\gamma$ represents the rate at which a population of predators grows in a predation interaction
+# - $\delta$ represents the rate at with a species population declines
+
+params = LVector(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
+                 βrh=0.01, γrh=0.01, δh=0.5, 
+                 γfishh=0.001, βfishh=0.003, 
+                 αfish=0.35, βfishF=0.015, γfishF=0.015, 
+                 δF=0.7, βFs=0.017, γFs=0.017, δs=0.35)
 
 # ## Land Ecosystem
 
@@ -29,9 +43,9 @@ using Plots, Plots.PlotMeasures
 
 
 ## Define the primitive systems
-dotr(u,p,t) = p[1]*u
-dotrf(u,p,t) = [-p[2]*u[1]*u[2], p[3]*u[1]*u[2]]
-dotf(u,p,t) = -p[4]*u
+dotr(u,p,t) = p.αr*u
+dotrf(u,p,t) = [-p.βrf*u[1]*u[2], p.γrf*u[1]*u[2]]
+dotf(u,p,t) = -p.δf*u
 
 rabbit_growth = ContinuousResourceSharer{Float64}(1, dotr)
 rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
@@ -52,10 +66,6 @@ rabbitfox_system = oapply(rabbitfox_pattern, [rabbit_growth, rabbitfox_predation
 to_graphviz(rabbitfox_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len => ".75"))
 
 # We can now construct an `ODEProblem` from the resource sharer `rabbitfox_system` and plot the solution.
-
-α, β, γ, δ = 0.3, 0.015, 0.015, 0.7
-params = [α, β, γ, δ]
-
 u0 = [10.0, 100.0]
 tspan = (0.0, 100.0)
 
@@ -99,8 +109,8 @@ to_graphviz(rabbitfoxhawk_pattern, box_labels = :name, junction_labels = :variab
 
 #-
 ## Define the additional primitive systems
-dotrh(x, p, t) = [-p[5]*x[1]*x[2], p[6]*x[1]*x[2]]
-doth(x, p, t)  = -p[7]*x
+dotrh(u, p, t) = [-p.βrh*u[1]*u[2], p.γrh*u[1]*u[2]]
+doth(u, p, t)  = -p.δh*u
 
 rabbithawk_predation = ContinuousResourceSharer{Float64}(2, dotrh)
 hawk_decline         = ContinuousResourceSharer{Float64}(1, doth)
@@ -111,9 +121,6 @@ land_system = oapply(rabbitfoxhawk_pattern,
                          rabbithawk_predation, hawk_decline])
 
 ## Solve and plot
-β′, γ′, δ′ = .01, .01, .5
-params = vcat(params, [β′, γ′, δ′])
-
 u0 = [10.0, 100.0, 50.0]
 tspan = (0.0, 100.0)
 
@@ -137,9 +144,9 @@ ylabel!("Population size")
 
 
 ## Define the primitive systems
-dotfish(f, x, p, t) = [p[1]*f[1] - p[2]*x[1]*f[1]]
-dotFISH(F, x, p, t) = [p[3]*x[1]*F[1] - p[4]*F[1] - p[5]*x[2]*F[1]]
-dotsharks(s, x, p, t) = [p[6]*s[1]*x[1]-p[7]*s[1]]
+dotfish(f, x, p, t) = [p.αfish*f[1] - p.βfishF*x[1]*f[1]]
+dotFISH(F, x, p, t) = [p.γfishF*x[1]*F[1] - p.δF*F[1] - p.βFs*x[2]*F[1]]
+dotsharks(s, x, p, t) = [p.γFs*s[1]*x[1]-p.δs*s[1]]
 
 fish   = ContinuousMachine{Float64}(1,1,1, dotfish,   f->f)
 FISH   = ContinuousMachine{Float64}(2,1,1, dotFISH,   F->F)
@@ -170,9 +177,6 @@ to_graphviz(ocean_pattern, orientation=TopToBottom)
 ocean_system = oapply(ocean_pattern, [fish, FISH, sharks])
 
 ## Solve and plot
-α, β, γ, δ, β′, γ′, δ′ = 0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35
-params = [α, β, γ, δ, β′, γ′, δ′]
-
 u0 = [100.0, 10, 2.0]
 tspan = (0.0, 100.0)
 
@@ -187,19 +191,13 @@ ylabel!("Population size")
 # ### Another layer of composition
 
 # We will introduce a final predation interaction -- hawks eat little fish --  which will combine the land and ocean ecosystems.
-
-# There will be 16 parameters in to the total ecosystem.
-# - parameters 1-7 will determine the land ecosystem
-# - parameters 8 and 9 will determine the hawk/little fish predation. Parameter 8 gives the rate of hawk growth and parameter 8 gives the rate of little fish decline.
-# - parameter 10-16 will determine the ocean ecosystem.
-
 # The composition will be as resource shareres so the first thing we will do is use the dynamics of the machine `ocean_system` to define the dynamics of a resource sharer. We will also define a resource sharer that models hawk/little fish predation.
 
 
 ## Define the additional primitive systems
-ocean_system_rs = ContinuousResourceSharer{Float64}(3, (u,p,t)->eval_dynamics(ocean_system, u, [], p[10:16]))
+ocean_system_rs = ContinuousResourceSharer{Float64}(3, (u,p,t)->eval_dynamics(ocean_system, u, [], p))
 
-dothf(u,p,t) = [p[8]*u[1]*u[2], -p[9]*u[1]*u[2]]
+dothf(u,p,t) = [p.γfishh*u[1]*u[2], -p.βfishh*u[1]*u[2]]
 fishhawk_predation = ContinuousResourceSharer{Float64}(2, dothf)
 
 ## Define the composition pattern
@@ -222,10 +220,6 @@ ecosystem=oapply(eco_pattern, [land_system, fishhawk_predation, ocean_system_rs]
 u0 = [100.0, 50.0, 20.0, 100, 10, 2.0]
 tspan = (0.0, 100.0)
 
-params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5, 
-          0.001, 0.003, 
-          0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35]
-
 prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
@@ -240,13 +234,8 @@ plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes"
 # As a sanity check we can define the rates for the hawk/little fish predation to be 0. This decouples the land and ocean ecosystems. As expected, the plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.
 
 tspan = (0.0, 100.0)
-params = [0.3, 0.015, 0.015, 0.7, .01, .01, .5, 
-          0, 0, 
-          0.35, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35]
+params.βfishh = 0; params.γfishh = 0
+
 prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
-
-
-
-

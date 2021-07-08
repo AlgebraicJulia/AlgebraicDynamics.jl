@@ -13,7 +13,7 @@ import Catlab.WiringDiagrams: oapply
 import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
 import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, 
 ninputs, noutputs
-import Catlab.CategoricalAlgebra.CSets: migrate!
+import Catlab.CategoricalAlgebra: migrate!
 
 using Base.Iterators
 import Base: show, eltype

@@ -1,3 +1,8 @@
 .DS_Store
 /Manifest.toml
 /dev/
+
+/notebooks/.ipynb_checkpoints
+/notebooks/images/*
+
+/docs/src/* 

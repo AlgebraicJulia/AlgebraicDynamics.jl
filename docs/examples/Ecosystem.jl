@@ -17,10 +17,10 @@ using Plots, Plots.PlotMeasures
 
 
 # There will be 16 parameters in to the total ecosystem. With four distinct types:
-# - $\alpha$ represents the rate at which a species population grows
-# - $\beta$ represents the rate at which a population of prey declines in a predation interaction
-# - $\gamma$ represents the rate at which a population of predators grows in a predation interaction
-# - $\delta$ represents the rate at with a species population declines
+# - parameters $\alpha$ represent the rate at which a species population grows
+# - parameters $\beta$ represent the rate at which a population of prey declines in a predation interaction
+# - parameters $\gamma$ represent the rate at which a population of predators grows in a predation interaction
+# - parameters $\delta$ represent the rate at with a species population declines
 
 params = LVector(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
                  βrh=0.01, γrh=0.01, δh=0.5, 

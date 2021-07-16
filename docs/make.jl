@@ -47,7 +47,8 @@ makedocs(
     "Examples" => Any[
       "examples/Lotka-Volterra.md",
       "examples/Ecosystem.md",
-      "examples/CPG_examples.md"
+      "examples/CPG_examples.md",
+      "examples/Cyber-Physical.md"
     ],
     "Library Reference" => "api.md",
     "Tonti Diagrams" => "tonti_diagrams.md",

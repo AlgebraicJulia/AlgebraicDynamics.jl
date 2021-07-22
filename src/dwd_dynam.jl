@@ -1,8 +1,9 @@
 module DWDDynam
 
+using Catlab.Theories
 using Catlab.WiringDiagrams.DirectedWiringDiagrams
-using  Catlab.CategoricalAlgebra
-using  Catlab.CategoricalAlgebra.FinSets
+using Catlab.CategoricalAlgebra
+using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply
 
 import ..UWDDynam: nstates, eval_dynamics, euler_approx
@@ -61,26 +62,28 @@ nstates(f::AbstractMachine) = f.nstates
 ninputs(f::AbstractMachine) = f.ninputs
 noutputs(f::AbstractMachine) = f.noutputs
 readout(f::AbstractMachine, u::AbstractVector) = f.readout(u)
+readout(f::AbstractMachine, u::FinDomFunction) = readout(f, collect(u))
 
-"""    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t)
+"""    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs:AbstractVector, p, t)
 
 Evaluates the dynamics of the machine `m` at state `u`, parameters `p`, and time `t`. The exogenous variables are set by `xs` which may either be a collection of functions ``x(t)`` or a collection of constant values. 
 
 The length of `xs` must equal the number of inputs to `m`.
 """
+eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t::Real) = begin
+    ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
+    f.dynamics(collect(u), xs, p, t)
+end
+eval_dynamics(f::AbstractMachine, u::T, xs::FinDomFunction, p, t) where T <: Union{AbstractVector,FinDomFunction} =
+    eval_dynamics(f, collect(u), collect(xs), p, t)
+
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p, t::Real) where T <: Function =
     eval_dynamics(f, u, [x(t) for x in xs], p, t)
 
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t::Real)  = begin
-    ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
-    f.dynamics(u, xs, p, t)
-end
-    
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector) = 
     eval_dynamics(f, u, xs, nothing, 0)
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p) = 
     eval_dynamics(f, u, xs, p, 0)
-
 
 """    euler_approx(m::ContinuousMachine, h)
 
@@ -168,39 +171,11 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     return ninputs(m) == length(input_ports(d,b)) && noutputs(m) == length(output_ports(d,b))
 end
 
-colimitmap!(f::Function, output, C::Colimit, input) = begin
-    for (i,x) in enumerate(input)
-        y = f(i, x)
-        I = legs(C)[i](1:length(y))
-        # length(I) == length(y) || error("colimitmap! attempting to fill $(length(I)) slots with $(length(y)) values")
-        output[I] .= y
-    end
-    return output
-end
 
-@inline fillreadouts!(y, d, xs, Outputs, statefun) = colimitmap!(y, Outputs, xs) do i,x
-    return x.readout(statefun(i))
+destruct(C::Colimit, xs::FinDomFunction) = map(1:length(C)) do i 
+    compose(legs(C)[i], xs)
 end
-
-@inline fillstates!(y, d, xs, States, statefun, inputfun, p, t) = colimitmap!(y, States, xs) do i, x
-    return x.dynamics(statefun(i), inputfun(i), p, t)
-end
-
-@inline fillwire(w, d, readouts, Outputs) = readouts[legs(Outputs)[w.source.box](w.source.port)] # FIX - box re-indexing
-
-fillreadins!(readins, d, readouts, Outputs, Inputs, ins) = begin
-    for (i,w) in enumerate(wires(d))
-        if w.target.box == output_id(d)
-            continue
-        elseif w.source.box == input_id(d)
-            readins[legs(Inputs)[w.target.box](w.target.port)] += ins[w.source.port]
-        else
-            readins[legs(Inputs)[w.target.box](w.target.port)] += fillwire(w, d, readouts, Outputs)
-        end
-        
-    end
-    return readins
-end
+destruct(C::Colimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
 
 """    oapply(d::WiringDiagram, ms::Vector)
 
@@ -212,47 +187,53 @@ machines `ms`).
 Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
-function oapply(d::WiringDiagram, xs::Vector{Machine}) where {T, Machine <: AbstractMachine{T}}
+function oapply(d::WiringDiagram, ms::Vector{Machine}) where {T, Machine <: AbstractMachine{T}}
     isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
-    nboxes(d) == length(xs)  || error("there are $nboxes(d) boxes but $length(xs) machines")
+    nboxes(d) == length(ms)  || error("there are $nboxes(d) boxes but $length(ms) machines")
     for box in 1:nboxes(d)
-        fills(xs[box], d, box) || error("$xs[box] does not fill box $box")
+        fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
     end
 
-    S = coproduct((FinSet∘nstates).(xs))
-    Inputs = coproduct((FinSet∘ninputs).(xs))
-    Outputs = coproduct((FinSet∘noutputs).(xs))
-    ys = zeros(T, length(apex(S)))
+    S = coproduct((FinSet∘nstates).(ms))
+    Inputs = coproduct((FinSet∘ninputs).(ms))
+    Outputs = coproduct((FinSet∘noutputs).(ms))
 
-    states(u::AbstractVector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
-
-    v = (u::AbstractVector, ins::AbstractVector, p, t::Real) -> begin
-        readouts = zeros(T, length(apex(Outputs)))
+    v = (u::AbstractVector, xs::AbstractVector, p, t::Real) -> begin 
+        states = destruct(S, u) # a list of the states by box
+        readouts = map(enumerate(ms)) do (i, m) 
+            readout(m, states[i])
+        end 
         readins = zeros(T, length(apex(Inputs)))
 
-        get_states(b) = states(u,b)
-        get_inputs(b) = view(readins, legs(Inputs)[b](:))
-        
-        fillreadouts!(readouts, d, xs, Outputs, get_states)
-        fillreadins!(readins, d, readouts, Outputs, Inputs, ins)
-        fillstates!(ys, d, xs, S, get_states, get_inputs, p, t)
-        return ys
+        for w in wires(d, :Wire)
+            readins[legs(Inputs)[w.target.box](w.target.port)] += readouts[w.source.box][w.source.port]
+        end
+        for w in wires(d, :InWire)
+            readins[legs(Inputs)[w.target.box](w.target.port)] += xs[w.source.port]
+        end
+
+        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
+            eval_dynamics(ms[i], states[i], x, p, t)
+        end)
     end
 
-    function readout(u::AbstractVector)
-        readouts = zeros(T, length(apex(Outputs)))
-        get_states(b) = states(u,b)
+    function r(u::AbstractVector)
+        states = destruct(S, u)
+        readouts = map(enumerate(ms)) do (i, m)
+            readout(m, states[i])
+        end 
+        
+        outs = zeros(T, length(output_ports(d)))
 
-        fillreadouts!(readouts, d, xs, Outputs, get_states)
-        r = zeros(T, length(output_ports(d)))
-        for w in in_wires(d, output_id(d))
-            r[w.target.port] += fillwire(w, d, readouts, Outputs)
+        for w in wires(d, :OutWire)
+            outs[w.target.port] += readouts[w.source.box][w.source.port]
         end
-        return r
+
+        return outs
     end
 
     return Machine(length(input_ports(d)), length(apex(S)),
-                   length(output_ports(d)), v, readout)
+                   length(output_ports(d)), v, r)
 end
 
 """    oapply(d::WiringDiagram, m::AbstractMachine)
@@ -267,8 +248,8 @@ end
 
 A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding machine. 
 """
-function oapply(d::WiringDiagram, xs::AbstractDict)
-    oapply(d, [xs[box.value] for box in boxes(d)])
+function oapply(d::WiringDiagram, ms::AbstractDict)
+    oapply(d, [ms[box.value] for box in boxes(d)])
 end
 
 end #module

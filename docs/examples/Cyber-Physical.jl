@@ -86,20 +86,15 @@ end
 xₒ = LVector( e = 0.01,  # [e, d] -> [θ offset, 𝛿 control input]
               d = 0.05);
 
-uₒ = LVector( sl = 0,
-              sc = 0,
-              α = 0,
-              q = 0,
-              θ = 0)
-
-tspan = (0, 20) 
+uₒ = [0.0, 0, 0, 0, 0]
+tspan = (0, 20.0) 
 
 params = (𝓐l = 100,  # decay constant of sensor
           𝓐c = 100,  # decay constant of controller
           𝓑c = 0)    # ratio of velocity to reference velocity
 
-
-solution = solve(ODEProblem(𝑢ᵤₐᵥ, uₒ, xₒ, tspan, params), alg_hints=[:stiff]);
+prob = ODEProblem(𝑢ᵤₐᵥ, uₒ, xₒ, tspan, params)
+solution = solve(prob, alg_hints=[:stiff]);
 
 #- 
 

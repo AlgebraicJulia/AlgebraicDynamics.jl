@@ -127,7 +127,7 @@ m = oapply(d, xs)
 @test noutputs(m) == 3
 u = [2.0, 3.0, 5.0, -7.0, -0.5]
 x = [0.1, 11.0]
-@test eval_dynamics(m, u, x) == 
+@test eval_dynamics(m, u, x) ≈ 
     [-u[1], u[2]*u[3], (x[1]+u[3]+u[4]+u[5])^2*u[3], u[4]^2 - x[2], u[5] - u[4]]
 @test readout(m, u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
 @test readout(oapply(d_id, m3), [u[4], u[5]]) == [u[4] + u[5]]

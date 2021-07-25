@@ -5,4 +5,5 @@
 /notebooks/.ipynb_checkpoints
 /notebooks/images/*
 
-/docs/src/* 
+/docs/src/examples/*
+/docs/build/*

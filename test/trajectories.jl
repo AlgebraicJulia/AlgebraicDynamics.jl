@@ -70,7 +70,7 @@ end
 
 # Machine tests
 uf(u, x, p, t) = [x[1] - u[1]*x[2]]
-rf(u) = u
+rf(u,p,t) = u
 u0 = [1.0]
 m = ContinuousMachine{Any}(2,1, 1, uf, rf)
 xs = [t -> 1, t -> 1]
@@ -104,7 +104,7 @@ t = trajectory(dds, 100)
 
 # machines - oapply
 uf(u, x, p, t) = [x[1] - u[1], 0.0]
-rf(u) = u
+rf(u,p,t) = u
 mf = ContinuousMachine{Float64}(2,2,2, uf, rf)
 
 d_id = singleton_diagram(Box(:f, [:A, :A], [:A, :A]))
@@ -158,8 +158,8 @@ dds = DiscreteDynamicalSystem(lv_discrete, u0, params)
 dotr(u, x, p, t) = [p[1]*u[1] - p[2]*u[1]*x[1]]
 dotf(u, x, p, t) = [p[3]*u[1]*x[1] - p[4]*u[1]]
 
-rmachine = ContinuousMachine{Real}(1,1,1, dotr, r -> r)
-fmachine = ContinuousMachine{Real}(1,1,1, dotf, f -> f)
+rmachine = ContinuousMachine{Real}(1,1,1, dotr, (r,p,t) -> r)
+fmachine = ContinuousMachine{Real}(1,1,1, dotf, (f,p,t) -> f)
 
 rf_pattern = WiringDiagram([],[])
 boxr = add_box!(rf_pattern, Box(nothing, [nothing], [nothing]))
@@ -194,9 +194,9 @@ dotfish(f, x, p, t) = [p[1]*f[1] - p[2]*x[1]*f[1]]
 dotFISH(F, x, p, t) = [p[3]*x[1]*F[1] - p[4]*F[1] - p[5]*x[2]*F[1]]
 dotsharks(s, x, p, t) = [-p[7]*s[1] + p[6]*s[1]*x[1]]
 
-fish   = ContinuousMachine{Real}(1,1,1, dotfish,   f ->f)
-FISH   = ContinuousMachine{Real}(2,1,2, dotFISH,   F->[F[1], F[1]])
-sharks = ContinuousMachine{Real}(1,1,1, dotsharks, s->s)
+fish   = ContinuousMachine{Real}(1,1,1, dotfish,   (f,p,t) ->f)
+FISH   = ContinuousMachine{Real}(2,1,2, dotFISH,   (F,p,t)->[F[1], F[1]])
+sharks = ContinuousMachine{Real}(1,1,1, dotsharks, (s,p,t)->s)
 
 ocean_pat = WiringDiagram([], [])
 boxf = add_box!(ocean_pat, Box(nothing, [nothing], [nothing]))

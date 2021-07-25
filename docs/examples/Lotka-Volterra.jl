@@ -78,8 +78,8 @@ using AlgebraicDynamics.DWDDynam
 dotr(u, x, p, t) = [p.α*u[1] - p.β*u[1]*x[1]]
 dotf(u, x, p, t) = [p.γ*u[1]*x[1] - p.δ*u[1]]
 
-rabbit = ContinuousMachine{Float64}(1,1,1, dotr, u -> u)
-fox    = ContinuousMachine{Float64}(1,1,1, dotf, u -> u)
+rabbit = ContinuousMachine{Float64}(1,1,1, dotr, (u, p, t) -> u)
+fox    = ContinuousMachine{Float64}(1,1,1, dotf, (u, p, t) -> u)
 
 ## Define the composition pattern
 rabbitfox_pattern = WiringDiagram([], [])

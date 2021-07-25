@@ -45,8 +45,8 @@ colimitmap!(f::Function, output, C::Colimit, input) = begin
     return output
 end
 
-@inline fillreadouts!(y, d, xs, Ports, statefun) = colimitmap!(y, Ports, xs) do i,x
-    return x.readout(statefun(i))
+@inline fillreadouts!(y, d, xs, Ports, statefun, p, t) = colimitmap!(y, Ports, xs) do i,x
+    return x.readout(statefun(i), p, t)
 end
 
 @inline fillstates!(y, d, xs, States, statefun, inputfun, p, t) = colimitmap!(y, States, xs) do i, x
@@ -90,7 +90,7 @@ function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:Abstr
         # length(p) == length(d[:, :con]) || error("Expected $(length(d[:, :con])) parameters, have $(length(p))")
         statefun(b) = state(u,b)
         inputfun(b) = readins[incident(d, b, :box)]
-        fillreadouts!(readouts, d, xs, Ports, statefun)
+        fillreadouts!(readouts, d, xs, Ports, statefun, p, t)
         # communicate readouts to the ports at the other end of the wires, external connections directly fill ports
         readins .= 0 
         fillreadins!(readins, d, readouts)
@@ -98,9 +98,9 @@ function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:Abstr
         fillstates!(ϕ, d, xs, S, statefun, inputfun, p, t)
         return ϕ
     end
-    function readout(u::AbstractVector)
+    function readout(u::AbstractVector, p, t)
         statefun(b) = state(u,b)
-        fillreadouts!(readouts, d, xs, Ports, statefun)
+        fillreadouts!(readouts, d, xs, Ports, statefun, p, t)
         return readouts[d[:, :con]]
     end
     return Machine( nparts(d, :OuterPort), apex(S).set, v, readout)

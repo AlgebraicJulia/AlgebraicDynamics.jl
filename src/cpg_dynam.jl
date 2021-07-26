@@ -10,6 +10,8 @@ using Catlab.Graphics.GraphvizGraphs: to_graphviz
 
 import Catlab.WiringDiagrams: oapply
 
+using ..DWDDynam
+using ...DWDDynam: destruct
 import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
 import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, 
 ninputs, noutputs
@@ -35,36 +37,9 @@ nports(d::OpenCPortGraph, b::Int) = incident(d, b, :box) |> length
 nports(d::OpenCPortGraph, b) = map(length, incident(d, b, :box))
 nports(d::OpenCPortGraph, b::Colon) = map(length, incident(d, :, :box))
 
-colimitmap!(f::Function, output, C::Colimit, input) = begin
-    for (i,x) in enumerate(input)
-        y = f(i, x)
-        I = legs(C)[i](1:length(y))
-        # length(I) == length(y) || error("colimitmap! attempting to fill $(length(I)) slots with $(length(y)) values")
-        output[I] .= y
-    end
-    return output
-end
-
-@inline fillreadouts!(y, d, xs, Ports, statefun, p, t) = colimitmap!(y, Ports, xs) do i,x
-    return x.readout(statefun(i), p, t)
-end
-
-@inline fillstates!(y, d, xs, States, statefun, inputfun, p, t) = colimitmap!(y, States, xs) do i, x
-    return x.dynamics(statefun(i), inputfun(i), p, t)
-end
-
-
-
-fillreadins!(readins, d, readouts) = begin
-    for b in parts(d, :Box)
-        ports = incident(d, b, :box)
-        for p in ports
-            ws = incident(d, p, :tgt) 
-            qs = d[ws, :src]
-            readins[p] += sum(readouts[qs])
-        end
-    end
-    return readins
+function fills(m::AbstractMachine, d::OpenCPortGraph, b::Int)
+    nports = length(incident(d, b, :box))
+    return (nports == ninputs(m)) && (nports == noutputs(m))
 end
 
 """    oapply(d::OpenCPortGraph, ms::Vector)
@@ -77,33 +52,51 @@ machines `ms`).
 Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
-function oapply(d::OpenCPortGraph, xs::Vector{Machine}) where {T, Machine<:AbstractMachine{T}}
-    x -> FinSet(x.nstates)
-    S = coproduct((FinSet∘nstates).(xs))
-    Inputs = coproduct((FinSet∘ninputs).(xs))
-    Ports = coproduct([FinSet.(nports(d, b)) for b in parts(d, :Box)])
-    state(u::Vector, b::Int) = u[legs(S)[b](1:xs[b].nstates)]
-    readouts = zeros(T, length(apex(Ports)))
-    readins  = zeros(T, length(apex(Ports)))
-    ϕ = zeros(T, length(apex(S)))
-    v = (u::AbstractVector, x::AbstractVector, p, t::Real) -> begin
-        # length(p) == length(d[:, :con]) || error("Expected $(length(d[:, :con])) parameters, have $(length(p))")
-        statefun(b) = state(u,b)
-        inputfun(b) = readins[incident(d, b, :box)]
-        fillreadouts!(readouts, d, xs, Ports, statefun, p, t)
-        # communicate readouts to the ports at the other end of the wires, external connections directly fill ports
-        readins .= 0 
-        fillreadins!(readins, d, readouts)
-        readins[d[:, :con]] .+= x
-        fillstates!(ϕ, d, xs, S, statefun, inputfun, p, t)
-        return ϕ
+function oapply(d::OpenCPortGraph, ms::Vector{Machine}) where {T, Machine<:AbstractMachine{T}}
+    @assert nparts(d, :Box) == length(ms)
+    for b in 1:nparts(d, :Box)
+        @assert fills(ms[b], d, b)
     end
-    function readout(u::AbstractVector, p, t)
-        statefun(b) = state(u,b)
-        fillreadouts!(readouts, d, xs, Ports, statefun, p, t)
-        return readouts[d[:, :con]]
+
+    S = coproduct((FinSet∘nstates).(ms))
+
+    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)
+        states = destruct(S, u)
+        readins = zeros(T, nparts(d, :Port)) # in port order 
+
+        for (b,m) in enumerate(ms)
+            readouts = readout(m, states[b], p, t)
+            for (i, port) in enumerate(incident(d, b, :box))
+                for w in incident(d, port, :src)
+                    readins[subpart(d, w, :tgt)] += readouts[i]
+                end
+            end
+        end
+
+        for (i,x) in enumerate(xs)
+            readins[subpart(d, i, :con)] += x
+        end
+
+        return reduce(vcat, map(enumerate(ms)) do (b,m)
+            eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), p, t)
+        end)
     end
-    return Machine( nparts(d, :OuterPort), apex(S).set, v, readout)
+
+    function r(u::AbstractVector, p, t::Real)
+        states = destruct(S, u)
+        port_readout = zeros(T, nparts(d, :Port))
+
+        for (b,m) in enumerate(ms)
+            readouts = readout(m, states[b], p, t)
+            for (i, port) in enumerate(incident(d, b, :box))
+                port_readout[port] = readouts[i]
+            end
+        end
+        
+        return collect(view(port_readout, subpart(d, :con)))
+    end
+    
+    return Machine(nparts(d, :OuterPort), length(apex(S)), v, r)
 end
 
 """    oapply(d::OpenCPortGraph, m::AbstractMachine)

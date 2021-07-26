@@ -201,9 +201,8 @@ function oapply(d::WiringDiagram, ms::Vector{Machine}) where {T, Machine <: Abst
 
     S = coproduct((FinSet∘nstates).(ms))
     Inputs = coproduct((FinSet∘ninputs).(ms))
-    Outputs = coproduct((FinSet∘noutputs).(ms))
 
-    v = (u::AbstractVector, xs::AbstractVector, p, t::Real) -> begin 
+    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
         readouts = map(enumerate(ms)) do (i, m) 
             readout(m, states[i], p, t)

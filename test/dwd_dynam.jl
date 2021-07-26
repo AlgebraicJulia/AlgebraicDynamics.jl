@@ -1,5 +1,7 @@
 using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
+using LabelledArrays
+using DelayDiffEq
 using Test
 
 # Identity 
@@ -147,3 +149,63 @@ euler_m = oapply(d, euler_approx(xs, h))
 @test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
 euler_m2 = oapply(d, euler_approx(xs))
 @test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])
+
+# delay differential equations 
+df(u,x,h,p,t) = h(p, t - p.τ)
+rf(u,h,p,t) = u
+delay = ContinuousDelayMachine{Float64}(1,1,1,df,rf)
+
+delay_copy = oapply(d_id, delay)
+
+hist(p,t) = [0.0]
+
+u0 = [2.7]
+x0 = [10.0]
+τ = 10.0
+@test eval_dynamics(delay_copy, u0, x0, hist, LVector(τ = τ)) == [0.0]
+
+prob = DDEProblem(delay, u0, x0, hist, (0.0, τ - 0.01), LVector(τ = τ))
+alg = MethodOfSteps(Tsit5())
+@test last(solve(prob, alg)) == u0
+
+prob = DDEProblem(delay, u0, x0, hist, (0.0, 2*τ), LVector(τ = τ))
+prob_copy = DDEProblem(delay_copy, u0, x0, hist, (0.0, 2*τ), LVector(τ = τ))
+
+@test last(solve(prob, alg)) == last(solve(prob_copy, alg))
+
+# Test composite without readout delay
+d = ocompose(d_trace, [d12])
+df(u,x,h,p,t) = x[1]*h(p, t - p.τ)
+ef(u,x,h,p,t) = x + h(p, t - p.τ)
+delay_rf(u,h,p,t) = h(p, t - p.τ)
+
+mult_delay = ContinuousDelayMachine{Float64}(1,1,1, df, rf)
+add_delay = ContinuousDelayMachine{Float64}(1,1,1, ef, rf)
+
+hist(p,t) = [0.0, 0.0]
+u0 = [1.0, 1.0]
+x0 = [1.0]
+prob = DDEProblem(oapply(d, [mult_delay, add_delay]), u0, x0, hist, (0, 4.0), LVector(τ = 2.0))
+sol1 = solve(prob, alg; dtmax = 0.1)
+f = (u,h,p,t) -> [ (u[2] + x0[1]) * h(p,t - p.τ)[1], u[1] + h(p,t - p.τ)[2] ]
+prob = DDEProblem(f, u0, hist, (0, 4.0), LVector(τ = 2.0))
+sol2 = solve(prob, alg; dtmax = 0.1)
+
+@test last(sol1) == last(sol2)
+
+# test composite with readout delay
+delay_rf(u,h,p,t) = h(p, t - p.τ)
+
+mult_delay = ContinuousDelayMachine{Float64}(1,1,1, df, delay_rf)
+add_delay = ContinuousDelayMachine{Float64}(1,1,1, ef, delay_rf)
+
+hist(p,t) = [0.0, 0.0]
+u0 = [1.0, 1.0]
+x0 = [1.0]
+prob = DDEProblem(oapply(d, [mult_delay, add_delay]), u0, x0, hist, (0, 4.0), LVector(τ = 2.0))
+sol1 = solve(prob, alg; dtmax = 0.1)
+f = (u,h,p,t) -> [ (h(p,t - p.τ)[2] + x0[1]) * h(p,t - p.τ)[1], h(p, t - p.τ)[1] + h(p,t - p.τ)[2] ]
+prob = DDEProblem(f, u0, hist, (0, 4.0), LVector(τ = 2.0))
+sol2 = solve(prob, alg; dtmax = 0.1)
+
+@test last(sol1) == last(sol2)

@@ -53,6 +53,11 @@ struct DiscreteMachine{T} <: AbstractMachine{T}
     dynamics::Function
     readout::Function
 end
+
+ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
+    ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
+DiscreteMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
+    DiscreteMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
   
 show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
 show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
@@ -61,8 +66,8 @@ eltype(m::AbstractMachine{T}) where T = T
 nstates(f::AbstractMachine) = f.nstates
 ninputs(f::AbstractMachine) = f.ninputs
 noutputs(f::AbstractMachine) = f.noutputs
-readout(f::AbstractMachine, u::AbstractVector) = f.readout(u)
-readout(f::AbstractMachine, u::FinDomFunction) = readout(f, collect(u))
+readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = f.readout(u, p, t)
+readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs:AbstractVector, p, t)
 
@@ -196,12 +201,11 @@ function oapply(d::WiringDiagram, ms::Vector{Machine}) where {T, Machine <: Abst
 
     S = coproduct((FinSet∘nstates).(ms))
     Inputs = coproduct((FinSet∘ninputs).(ms))
-    Outputs = coproduct((FinSet∘noutputs).(ms))
 
-    v = (u::AbstractVector, xs::AbstractVector, p, t::Real) -> begin 
+    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
         readouts = map(enumerate(ms)) do (i, m) 
-            readout(m, states[i])
+            readout(m, states[i], p, t)
         end 
         readins = zeros(T, length(apex(Inputs)))
 
@@ -217,10 +221,10 @@ function oapply(d::WiringDiagram, ms::Vector{Machine}) where {T, Machine <: Abst
         end)
     end
 
-    function r(u::AbstractVector)
+    function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = map(enumerate(ms)) do (i, m)
-            readout(m, states[i])
+            readout(m, states[i], p, t)
         end 
         
         outs = zeros(T, length(output_ports(d)))

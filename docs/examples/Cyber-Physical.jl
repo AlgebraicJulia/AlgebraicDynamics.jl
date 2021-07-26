@@ -67,9 +67,9 @@ function 𝗟(𝐖)
                              q = -0.013*u[1] - 0.426*u[2] + 0.0203*x[1],
                              θ =  56.7*u[2]              );
 
-    u_𝐿(u) = [ u[1] ];  # outputs sl
-    u_𝐶(u) = [ u[1] ];  # outputs sc
-    u_𝐷(u) = [ u[3] ];  # outputs θ
+    u_𝐿(u,p,t) = [ u[1] ];  # outputs sl
+    u_𝐶(u,p,t) = [ u[1] ];  # outputs sc
+    u_𝐷(u,p,t) = [ u[3] ];  # outputs θ
 
     return oapply(𝐖,
                   Dict(:sensor     => ContinuousMachine{Float64}(2, 1, 1, 𝐿, u_𝐿),

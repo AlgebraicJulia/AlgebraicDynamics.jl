@@ -45,8 +45,8 @@ sirfuncm = (u,x,p,t)->[-β*u[1]*u[2] - α₁*(u[1]-(x[1]+x[3])/2),
                         μ*u[2]
                        ]
 
-boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, u->u[1:2])
-middle    = ContinuousMachine{Float64}(4,3, sirfuncm, u->u[[1,2,1,2]])
+boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, (u,p,t)->u[1:2])
+middle    = ContinuousMachine{Float64}(4,3, sirfuncm, (u,p,t)->u[[1,2,1,2]])
 
 ## Compose
 threecity = oapply(d₂, [boundary,middle,boundary])
@@ -91,8 +91,9 @@ n = 100
 row = apex(gridpath(n, 1))
 
 ## Define the primitive system which will be repeated for each cell
-rule = DiscreteMachine{Bool}(2, 1, 2, (u, x, p, t)->Rule(p)(x[2], u[1], x[1]), 
-            u->[u[1], u[1]])
+rule = DiscreteMachine{Bool}(2, 1, 2, 
+            (u, x, p, t)->Rule(p)(x[2], u[1], x[1]), 
+            (u,p,t)->[u[1], u[1]])
 
 ## Compose
 automaton = oapply(row, rule)

@@ -148,9 +148,9 @@ dotfish(f, x, p, t) = [p.αfish*f[1] - p.βfishF*x[1]*f[1]]
 dotFISH(F, x, p, t) = [p.γfishF*x[1]*F[1] - p.δF*F[1] - p.βFs*x[2]*F[1]]
 dotsharks(s, x, p, t) = [p.γFs*s[1]*x[1]-p.δs*s[1]]
 
-fish   = ContinuousMachine{Float64}(1,1,1, dotfish,   f->f)
-FISH   = ContinuousMachine{Float64}(2,1,1, dotFISH,   F->F)
-sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, s->s)
+fish   = ContinuousMachine{Float64}(1,1,1, dotfish,   (f,p,t)->f)
+FISH   = ContinuousMachine{Float64}(2,1,1, dotFISH,   (F,p,t)->F)
+sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, (s,p,t)->s)
 
 # We compose these machines by (1) sending the output of the big fish machine as the input to both the little fish and shark machines and (2) sending the output of the little fish and shark machines as the inputs to the big fish machine.
 # The syntax for this directed composition is given by a directed wiring diagram.

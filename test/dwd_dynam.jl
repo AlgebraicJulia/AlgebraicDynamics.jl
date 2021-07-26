@@ -5,7 +5,7 @@ using Test
 # Identity 
 A = [:A]
 uf(u, x, p, t) = [x[1] - u[1]]
-rf(u) = u
+rf(u, args...) = u
 mf = ContinuousMachine{Float64}(1,1,1, uf, rf)
 
 f = Box(:f, A, A)
@@ -111,14 +111,14 @@ add_wires!(d, Pair[
 
 m1 = ContinuousMachine{Float64}(2,1,1, 
         (u, x, p, t) -> [x[1] * x[2]  - u[1]], 
-        u -> 2*u)
+        (u,p,t) -> 2*u)
 m2 = ContinuousMachine{Float64}(1, 2, 2, 
         (u, x, p, t) -> [u[1]*u[2], x[1]^2*u[2]], 
-        u -> u)
+        (u,p,t) -> u)
 
 m3 = ContinuousMachine{Float64}(1,2,1, 
         (u, x, p, t) -> [u[1]^2 - x[1], u[2] - u[1]], 
-        u -> [u[1] + u[2]])
+        (u,p,t) -> [u[1] + u[2]])
 
 xs = Dict(:f => m1, :g => m2, :h => m3, :j => mf)
 m = oapply(d, xs)

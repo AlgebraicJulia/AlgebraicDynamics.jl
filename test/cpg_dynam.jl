@@ -27,8 +27,8 @@ end
 
 d = barbell(2)
 xs = [
-    ContinuousMachine{Float64}(2,2,(u, x, p, t)->[x[1]*u[1], x[2]*u[2]], u->u),
-    ContinuousMachine{Float64}(2,2,(u, x, p, t)->[1/x[1]*u[1], -x[2]*u[2]], u->u)
+    ContinuousMachine{Float64}(2,2,(u, x, p, t)->[x[1]*u[1], x[2]*u[2]], (u,p,t)->u),
+    ContinuousMachine{Float64}(2,2,(u, x, p, t)->[1/x[1]*u[1], -x[2]*u[2]], (u,p,t)->u)
 ]
 h = 0.1
 u₀ = ones(Float64, 4)
@@ -80,8 +80,8 @@ sirfuncm = (u,x,p,t)->[-β*u[1]*u[2] - α₁*(u[1]-(x[1]+x[3])/2),
                         ]
 
 
-boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, u->u[1:2])
-middle    = ContinuousMachine{Float64}(4,3, sirfuncm, u->u[[1,2,1,2]])
+boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, (u,p,t)->u[1:2])
+middle    = ContinuousMachine{Float64}(4,3, sirfuncm, (u,p,t)->u[[1,2,1,2]])
 threecity = oapply(d₂, [boundary,middle,boundary])
 
 # println("Simulating 3 city")
@@ -142,12 +142,12 @@ g3 = migrate!(Graph(), pg3)
 
 
 α₁ = 1
-fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 4))
-fl = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 3))
-fr = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 3))
-ft = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 3))
-fb = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 3))
-fc = ContinuousMachine{Float64}(2, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), u->repeated(u[1], 2))
+fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 4))
+fl = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
+fr = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
+ft = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
+fb = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
+fc = ContinuousMachine{Float64}(2, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 2))
 
 @test eval_dynamics(ft, ones(1), ones(3), nothing, 0.0) == zeros(1)
 f₁ = oapply(gl, [fc, fl, fc])
@@ -207,9 +207,9 @@ end
 advecdiffuse(α₁, α₂) = begin
     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
     advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 3))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 4))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 3))
+    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
+    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 4))
+    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
     return ft, fm, fb
 end
 
@@ -245,9 +245,9 @@ end
 RDA(α₀, α₁, α₂) = begin
     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
     advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 3))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 4))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), u->repeated(u[1], 3))
+    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
+    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 4))
+    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
     return ft, fm, fb
 end
 

@@ -7,3 +7,5 @@
 
 /docs/src/examples/*
 /docs/build/*
+
+.vscode

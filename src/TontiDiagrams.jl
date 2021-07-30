@@ -7,14 +7,13 @@ simulation of physical systems through any traditional vectorfield solver.
 """
 
 module Tonti
-using Catlab.Present
-using Catlab.Theories
+using Catlab, Catlab.Theories
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 using Catlab.Programs
 using Catlab.WiringDiagrams
 using CombinatorialSpaces
-import CombinatorialSpaces.DualSimplicialSets: EmbeddedDeltaDualComplex2D, ⋆
+import CombinatorialSpaces: EmbeddedDeltaDualComplex2D, ⋆
 
 export TontiDiagram, AbstractTontiDiagram, addTransform!, addSpace!,
        addTime!, vectorfield, disj_union, gen_form, addBC!

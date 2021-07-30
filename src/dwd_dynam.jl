@@ -104,8 +104,8 @@ end
 eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
     eval_dynamics(f, collect(u), collect(xs), args...)
 
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, args...) where T <: Function =
-    eval_dynamics(f, u, [x(t) for x in xs], args...)
+eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
+    eval_dynamics(f, u, [x(t) for x in xs], p, t)
 
 """    euler_approx(m::ContinuousMachine, h)
 

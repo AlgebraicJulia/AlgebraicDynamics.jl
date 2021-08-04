@@ -31,7 +31,7 @@ abstract type AbstractMachine{T} end
 
 An undirected open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),x(t),p,t)`` where ``u`` is the state and ``x`` captures the exogenous variables.
 
-The readout function may only depend on the state, so it must be of the form ``r(u(t))``.
+The readout function may depend on the state, parameters, and time, so it must be of the form ``r(u,p,t)``.
 """
 struct ContinuousMachine{T} <: AbstractMachine{T}
     ninputs::Int
@@ -58,7 +58,7 @@ end
 
 A directed open discrete dynamical system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, x_n, p, t)`` where ``u_n`` is the state and ``x_n`` is the value of the exogenous variables at the ``n``th time step.
 
-The readout function may only depend on the state or the state and it's history.
+The readout function may depend on the state, parameters, and time step, so it must be of the form ``r(u_n,p,n)``.
 """
 struct DiscreteMachine{T} <: AbstractMachine{T}
     ninputs::Int
@@ -225,7 +225,7 @@ function oapply(d::WiringDiagram, ms::Vector{Machine}) where {T, Machine <: Abst
     S = coproduct((FinSet∘nstates).(ms))
     Inputs = coproduct((FinSet∘ninputs).(ms))
 
-    v = (u::AbstractVector, xs::AbstractVector, p, t::Real) -> begin 
+    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
         readouts = map(enumerate(ms)) do (i, m) 
             readout(m, states[i], p, t)

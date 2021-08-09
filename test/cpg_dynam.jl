@@ -142,17 +142,17 @@ g3 = migrate!(Graph(), pg3)
 
 
 α₁ = 1
-fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 4))
-fl = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
-fr = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
-ft = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
-fb = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 3))
-fc = ContinuousMachine{Float64}(2, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->repeated(u[1], 2))
+fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 4)))
+fl = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 3)))
+fr = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 3)))
+ft = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 3)))
+fb = ContinuousMachine{Float64}(3, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 3)))
+fc = ContinuousMachine{Float64}(2, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 2)))
 
 @test eval_dynamics(ft, ones(1), ones(3), nothing, 0.0) == zeros(1)
 f₁ = oapply(gl, [fc, fl, fc])
-f₂ = oapply(gl, [ft, fm, fb])
-f₃ = oapply(gl, [fc, fr, fc])
+f₂ = oapply(gm, [ft, fm, fb])
+f₃ = oapply(gr, [fc, fr, fc])
 
 F = oapply(pg3, [fc, fl, fc, ft, fm, fb, fc, fr, fc])
 @test eval_dynamics(F, ones(Float64, 9), [], nothing, 1.0) == zeros(Float64, 9)
@@ -207,9 +207,9 @@ end
 advecdiffuse(α₁, α₂) = begin
     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
     advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 4))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
+    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
+    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
     return ft, fm, fb
 end
 
@@ -245,9 +245,9 @@ end
 RDA(α₀, α₁, α₂) = begin
     diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
     advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 4))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->repeated(u[1], 3))
+    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
+    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
     return ft, fm, fb
 end
 

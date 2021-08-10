@@ -77,10 +77,13 @@ The length of `xs` must equal the number of inputs to `m`.
 """
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p, t::Real) = begin
     ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
-    f.dynamics(collect(u), xs, p, t)
+    f.dynamics(u, xs, p, t)
 end
-eval_dynamics(f::AbstractMachine, u::T, xs::FinDomFunction, p, t) where T <: Union{AbstractVector,FinDomFunction} =
-    eval_dynamics(f, collect(u), collect(xs), p, t)
+eval_dynamics(f::AbstractMachine, u::FinDomFunction, xs::AbstractVector, p, t) =
+    eval_dynamics(f, collect(u), xs, p, t)
+
+eval_dynamics(f::AbstractMachine, u::T, xs::FinDomFunction, p, t) where T = 
+    eval_dynamics(f, u, collect(xs), p, t)
 
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p, t::Real) where T <: Function =
     eval_dynamics(f, u, [x(t) for x in xs], p, t)
@@ -177,10 +180,29 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 end
 
 
-destruct(C::Colimit, xs::FinDomFunction) = map(1:length(C)) do i 
-    compose(legs(C)[i], xs)
+destruct(C::Colimit, xs::FinDomFunction) = map(legs(C)) do f
+    collect(compose(f, xs))
 end
+
 destruct(C::Colimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
+
+destruct(C::Colimit, xs::AbstractVector{T}) where T<:AbstractVector = 
+    destruct(map(length∘dom, legs(C)), xs)
+
+function destruct(lengths::AbstractVector{Int}, xs::AbstractVector{T}) where T<:AbstractVector 
+    @assert sum(lengths) == sum(map(length, xs))
+    k = 0
+    map(lengths) do l 
+        i = k + 1
+        while l != 0
+            @assert l > 0
+            k += 1
+            l = l - length(xs[k])
+        end
+        i==k && return xs[i]
+        return view(xs, i:k)
+    end
+end
 
 """    oapply(d::WiringDiagram, ms::Vector)
 

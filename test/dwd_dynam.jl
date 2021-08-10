@@ -1,6 +1,8 @@
+using Test
+using LabelledArrays
+
 using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
-using Test
 
 # Identity 
 A = [:A]
@@ -131,6 +133,26 @@ x = [0.1, 11.0]
     [-u[1], u[2]*u[3], (x[1]+u[3]+u[4]+u[5])^2*u[3], u[4]^2 - x[2], u[5] - u[4]]
 @test readout(m, u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
 @test readout(oapply(d_id, m3), [u[4], u[5]]) == [u[4] + u[5]]
+
+# labeled state vectors 
+m1 = ContinuousMachine{Float64}(2,1,1, 
+        (u, x, p, t) -> [x[1] * x[2]  - u.a], 
+        (u,p,t) -> 2*u)
+m2 = ContinuousMachine{Float64}(1, 2, 2, 
+        (u, x, p, t) -> [u.a*u.b, x[1]^2*u.b], 
+        (u,p,t) -> u)
+
+m3 = ContinuousMachine{Float64}(1,2,1, 
+        (u, x, p, t) -> [u.a^2 - x[1], u.b - u.a], 
+        (u,p,t) -> [u.a + u.b])
+xs = Dict(:f => m1, :g => m2, :h => m3, :j => mf)
+m = oapply(d, xs)
+labeled_u = [LVector(a =2.0), LVector(a =3.0, b=5.0), LVector(a=-7.0, b=-0.5)]
+@test eval_dynamics(m, labeled_u, x) ≈ 
+    [-u[1], u[2]*u[3], (x[1]+u[3]+u[4]+u[5])^2*u[3], u[4]^2 - x[2], u[5] - u[4]]
+@test readout(m, labeled_u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
+
+dinner = 
 
 # eulers
 h = 0.15

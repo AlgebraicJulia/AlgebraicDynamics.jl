@@ -74,6 +74,7 @@ DiscreteMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  =
     DiscreteMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
   
 show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
+show(io::IO, vf::ContinuousDelayMachine) = print("ContinuousDelayMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
 show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
 eltype(m::AbstractMachine{T}) where T = T
 
@@ -148,7 +149,7 @@ ODEProblem(m::ContinuousMachine, u0::AbstractVector, x, tspan::Tuple{Real, Real}
 ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) where T = 
     ODEProblem(m, u0, T[], tspan, p)
 
-"""    DDEProblem(m::ContinuousDelayMachine, xs::Vector, u0::Vector, h::Function, tspan)
+"""    DDEProblem(m::ContinuousDelayMachine, u0::Vector, xs::Vector, h::Function, tspan)
 """
 DDEProblem(m::ContinuousDelayMachine, u0::AbstractVector, xs::AbstractVector, h, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, h, tspan, p; kwargs...)

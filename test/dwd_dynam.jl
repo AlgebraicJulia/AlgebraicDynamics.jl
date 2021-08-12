@@ -173,6 +173,34 @@ prob_copy = DDEProblem(delay_copy, u0, x0, hist, (0.0, 2*τ), LVector(τ = τ))
 
 @test last(solve(prob, alg)) == last(solve(prob_copy, alg))
 
+# delay differential equation with analytic solution via method of steps
+# dx/dt = -x(t-1) with history x(t) = 10 for t <= 0
+df(u,x,h,p,t) = -h(p, t - 1.0) # dynamics
+
+delay_machine = ContinuousDelayMachine{Float64}(0,1,0,df,(u,h,p,t) -> u)
+u0 = 10.0
+p = nothing
+
+hist(p, t) = [u0] # history
+
+prob = DDEProblem(delay_machine, [u0], [], hist, (0.0, 3.0), p)
+alg = MethodOfSteps(Tsit5())
+
+sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
+
+# solve over 0<t<1; we have x(t-1)=10 over this interval therefore
+# dx/dt = -10; dx = -10dt; \int{dx} = \int{-10dt}; x + c1 = -10t + c2
+# x(t) = c - 10t; x(t) = 10 - 10t
+@test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+@test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+# solve over 1<t<2; we have x(t-1)=10-10(t-1) over this interval therefore
+# dx/dt = -(10 - 10(t-1)); \int{dx} = \int{-(10 - 10(t-1))dt};
+# x + c1 = -10(t-1) + 10\int{(t-1) dt}; x + c1 = -10t + 10((t-1)^2/2) + c2;
+# x(t) = -10(t-1) + 5(t-1)^2
+@test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+@test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
+
 # Test composite without readout delay
 d = ocompose(d_trace, [d12])
 df(u,x,h,p,t) = x[1]*h(p, t - p.τ)

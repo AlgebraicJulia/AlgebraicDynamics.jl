@@ -134,6 +134,22 @@ x = [0.1, 11.0]
 @test readout(m, u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
 @test readout(oapply(d_id, m3), [u[4], u[5]]) == [u[4] + u[5]]
 
+# eulers
+h = 0.15
+euler_m = oapply(d, euler_approx([m1, m2, m3], h))
+@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
+euler_m2 = oapply(d, euler_approx([m1, m2, m3]))
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])
+
+h = 0.02
+xs = Dict(:h => m3, :f => m1, :g => m2)
+euler_m = oapply(d, euler_approx(xs, h))
+@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
+euler_m2 = oapply(d, euler_approx(xs))
+@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])
+
 # labeled state vectors 
 m1 = ContinuousMachine{Float64}(2,1,1, 
         (u, x, p, t) -> [x[1] * x[2]  - u.a], 
@@ -151,21 +167,3 @@ labeled_u = [LVector(a =2.0), LVector(a =3.0, b=5.0), LVector(a=-7.0, b=-0.5)]
 @test eval_dynamics(m, labeled_u, x) ≈ 
     [-u[1], u[2]*u[3], (x[1]+u[3]+u[4]+u[5])^2*u[3], u[4]^2 - x[2], u[5] - u[4]]
 @test readout(m, labeled_u) == [2*u[1] + u[2], u[2], u[4] + u[5]]
-
-dinner = 
-
-# eulers
-h = 0.15
-euler_m = oapply(d, euler_approx([m1, m2, m3], h))
-@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
-@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
-euler_m2 = oapply(d, euler_approx([m1, m2, m3]))
-@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])
-
-h = 0.02
-xs = Dict(:h => m3, :f => m1, :g => m2)
-euler_m = oapply(d, euler_approx(xs, h))
-@test eval_dynamics(euler_m, u, x) == u + h*eval_dynamics(m, u, x)
-@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_approx(m, h), u, x)
-euler_m2 = oapply(d, euler_approx(xs))
-@test eval_dynamics(euler_m, u, x) == eval_dynamics(euler_m2, u, x, [h])

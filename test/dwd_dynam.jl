@@ -57,9 +57,9 @@ p0 = 200
 @test eval_dynamics(m, [x0, y0], [p0]) == [p0 - x0, p0 - y0]
 @test readout(m, [x0,y0]) == [x0 + y0]
 
-@test m.ninputs == 1
-@test m.nstates == 2
-@test m.noutputs == 1
+@test ninputs(m) == 1
+@test nstates(m) == 2
+@test noutputs(m) == 1
 
 # trace
 d_trace = WiringDiagram(A, A)

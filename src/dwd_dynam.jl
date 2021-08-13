@@ -23,7 +23,7 @@ import Base: show, eltype
 A directed open dynamical system operating on information fo type `T`.
 A machine  `m` has type signature  (`m.ninputs`, `m.outputs`).
 """
-abstract type AbstractMachine{T} end
+abstract type AbstractMachine{T, InterfaceType, StateType} end
 
 
 """
@@ -32,13 +32,18 @@ An undirected open continuous system. The dynamics function `f` defines an ODE `
 
 The readout function may depend on the state, parameters, and time, so it must be of the form ``r(u,p,t)``.
 """
-struct ContinuousMachine{T} <: AbstractMachine{T}
-    ninputs::Int
-    nstates::Int
-    noutputs::Int
+struct ContinuousMachine{T,I,S} <: AbstractMachine{T,I,S}
+    inputs::I
+    states::S
+    outputs::I
     dynamics::Function
     readout::Function
 end
+
+ContinuousMachine{T}(inputs::I, states::S, outputs::I, dynamics, readout) where {T,I,S} = 
+    ContinuousMachine{T,I,S}(inputs, states, outputs, dynamics, readout)
+ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T = 
+    ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 """
 
@@ -46,26 +51,34 @@ A directed open discrete dynamical system. The dynamics function `f` defines a d
 
 The readout function may depend on the state, parameters, and time step, so it must be of the form ``r(u_n,p,n)``.
 """
-struct DiscreteMachine{T} <: AbstractMachine{T}
-    ninputs::Int
-    nstates::Int
-    noutputs::Int
+struct DiscreteMachine{T,I,S} <: AbstractMachine{T,I,S}
+    inputs::I
+    states::S
+    outputs::I
     dynamics::Function
     readout::Function
 end
-
-ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
-    ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
+DiscreteMachine{T}(inputs::I, states::S, outputs::I, dynamics, readout) where {T,I,S} = 
+    DiscreteMachine{T,I,S}(inputs, states, outputs, dynamics, readout)
 DiscreteMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
     DiscreteMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
   
 show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
 show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(vf.nstates) × ℝ^$(vf.ninputs) → ℝ^$(vf.nstates))")
-eltype(m::AbstractMachine{T}) where T = T
+eltype(::AbstractMachine{T}) where T = T
 
-nstates(f::AbstractMachine) = f.nstates
-ninputs(f::AbstractMachine) = f.ninputs
-noutputs(f::AbstractMachine) = f.noutputs
+states(f::AbstractMachine) = f.states
+nstates(f::AbstractMachine{T,I,Int}) where {T,I} = states(f)
+nstates(f::AbstractMachine{T,I,S}) where {T,I,S<:AbstractArray} = length(states(f))
+
+inputs(f::AbstractMachine) = f.inputs
+ninputs(f::AbstractMachine{T,Int}) where T = inputs(f)
+ninputs(f::AbstractMachine{T,I}) where {T, I<:AbstractArray} = length(inputs(f))
+
+outputs(f::AbstractMachine) = f.outputs
+noutputs(f::AbstractMachine{T,Int}) where T = outputs(f)
+noutputs(f::AbstractMachine{T,I}) where {T, I<:AbstractArray} = length(outputs(f))
+
 readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = f.readout(u, p, t)
 readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
 
@@ -109,10 +122,10 @@ euler_approx(f::ContinuousMachine{T}) where T = DiscreteMachine{T}(
     (u, x, p, t) -> u + p[end]*eval_dynamics(f, u, x, p[1:end-1], t),
     f.readout
 )
-euler_approx(fs::Vector{ContinuousMachine{T}}, args...) where T = 
+euler_approx(fs::Vector{M}, args...) where {T, M<:ContinuousMachine{T}} = 
     map(f->euler_approx(f,args...), fs)
 
-euler_approx(fs::AbstractDict{S, ContinuousMachine{T}}, args...) where {S, T} = 
+euler_approx(fs::AbstractDict{S, M}, args...) where {S, T, M<:ContinuousMachine{T}} = 
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
 

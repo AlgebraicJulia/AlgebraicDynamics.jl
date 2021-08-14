@@ -249,17 +249,17 @@ end
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousDelayResourceSharer{T}}, state_map::FinFunction, states::Function) where T
   
-    # function v(u′::AbstractVector, p, t::Real)
-    #   u = getindex(u′,  state_map.func)
-    #   du = zero(u)
-    #   # apply dynamics
-    #   for b in parts(d, :Box)
-    #     eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), p, t)
-    #   end
-    #   # add along junctions
-    #   du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
-    #   return du′
-    # end
+    function v(u′::AbstractVector, h, p, t::Real)
+      u = getindex(u′,  state_map.func)
+      du = zero(u)
+      # apply dynamics
+      for b in parts(d, :Box)
+        eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), h, p, t)
+      end
+      # add along junctions
+      du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
+      return du′
+    end
 
 end
 

@@ -40,6 +40,19 @@ end
 
 """ 
 
+An undirected open continuous system. The dynamics function `f` defines a DDE ``\\dot u(t) = f(u(t),h(t),p,t)``,
+where h is a function giving the history of the system's state (x) before the interval on which the solution will be computed
+begins (usually for t < 0). `dynamics` should have signature f(u,h,p,t) where h is a function.
+"""
+struct ContinuousDelayResourceSharer{T} <: AbstractResourceSharer{T}
+  nports::Int
+  nstates::Int
+  dynamics::Function
+  portmap::Vector{Int64}
+end
+
+""" 
+
 An undirected open discrete system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, p, t)``.
 """
 struct DiscreteResourceSharer{T} <: AbstractResourceSharer{T}
@@ -51,6 +64,8 @@ end
 
 ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
     ContinuousResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
+ContinuousDelayResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
+    ContinuousDelayResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
 DiscreteResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
     DiscreteResourceSharer{T}(nstates,nstates, dynamics, Vector{Int64}(1:nstates))
 
@@ -66,6 +81,10 @@ Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p`, 
 
 Omitting `t` and `p` is allowed if the dynamics of `r` does not depend on them.
 """
+eval_dynamics(r::ContinuousDelayResourceSharer, u::AbstractVector, h::Function, p, t::Real) = r.dynamics(u, h, p, t)
+eval_dynamics!(du, r::ContinuousDelayResourceSharer, u::AbstractVector, h::Function, p, t::Real) = begin
+    du .= eval_dynamics(r, u, h, p, t)
+end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = r.dynamics(u, p, t)
 eval_dynamics!(du, r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = begin
     du .= eval_dynamics(r, u, p, t)
@@ -74,6 +93,7 @@ eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
 
 show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
+show(io::IO, vf::ContinuousDelayResourceSharer) = print("ContinuousDelayResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(vf.nstates) → ℝ^$(vf.nstates)) with $(vf.nports) exposed ports")
 eltype(r::AbstractResourceSharer{T}) where T = T
 
@@ -110,6 +130,13 @@ Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) = 
     ODEProblem(r.dynamics, u0, tspan, p)
 
+"""    DDEProblem(r::ContinuousDelayResourceSharer, u0::Vector, h::Function, tspan)
+
+Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
+"""
+DDEProblem(r::ContinuousDelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
+    DDEProblem(r.dynamics, u0, h, tspan, p; kwargs...)
+    
 """    DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a DiscreteDynamicalSystem from the equation of motion `r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
@@ -217,6 +244,22 @@ function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousResourceSharer{T}
       du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
       return du′
     end
+
+end
+
+function induced_dynamics(d::AbstractUWD, xs::Vector{ContinuousDelayResourceSharer{T}}, state_map::FinFunction, states::Function) where T
+  
+    # function v(u′::AbstractVector, p, t::Real)
+    #   u = getindex(u′,  state_map.func)
+    #   du = zero(u)
+    #   # apply dynamics
+    #   for b in parts(d, :Box)
+    #     eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), p, t)
+    #   end
+    #   # add along junctions
+    #   du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
+    #   return du′
+    # end
 
 end
 

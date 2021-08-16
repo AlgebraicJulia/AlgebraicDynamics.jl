@@ -182,54 +182,32 @@ end # test set
   # delay differential equation with analytic solution via method of steps
   # dx/dt = -x(t-1) with history x(t) = 10 for t <= 0
   df(u, h, p, t) = -h(p, t - 1.0)
-
   r = ContinuousDelayResourceSharer{Float64}(1, df)
 
   u0 = 10.0
   p = nothing
   
   hist(p, t) = [u0] # history
-
-  eval_dynamics(r, [u0], hist, p, 0.0)
-  
   prob = DDEProblem(r, [u0], hist, (0.0, 3.0), p)
 
-  Debugger.@enter prob = DDEProblem(r, [u0], hist, (0.0, 3.0), p)
-
-  break_on(:error)
-  Debugger.@run prob = DDEProblem(r, [u0], hist, (0.0, 3.0), p)
-
-
-
-  dx(x, p, t) = [x[1]^2, 2*x[1]-x[2]]
-  dy(y, p, t) = [1 - y[1]^2]
-
-  r = ContinuousResourceSharer{Float64}(2, dx)
-  @test eltype(r) == Float64
-  #identity
-  d = UWD(2)
-  add_box!(d, 2)
-  add_junctions!(d, 2)
-  set_junction!(d, [1,2])
-  set_junction!(d, [1,2], outer=true)
+  alg = MethodOfSteps(Tsit5())
+  sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
   
-  r2 = oapply(d, [r])
-  @test nstates(r) == nstates(r2)
-  @test nports(r) == nports(r2)
-  @test portmap(r) == portmap(r2)
-  x0 = [10.0, 7.5]
-  @test eval_dynamics(r, x0) == eval_dynamics(r2, x0)
-  @test exposed_states(r, x0) == exposed_states(r2, x0)
+  # solve over 0<t<1; we have x(t-1)=10 over this interval therefore
+  # dx/dt = -10; dx = -10dt; \int{dx} = \int{-10dt}; x + c1 = -10t + c2
+  # x(t) = c - 10t; x(t) = 10 - 10t
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
 
-  h = 0.1
-  drs = oapply(d, [euler_approx(r, h)])
-  drs2 = euler_approx(r2, h)
-  @test eval_dynamics(drs, x0) == eval_dynamics(drs2, x0)
-  drs3 = euler_approx(r2)
-  drs4 = oapply(d, [euler_approx(r)])
-  @test eval_dynamics(drs, x0) == eval_dynamics(drs3, x0, [h])
-  @test eval_dynamics(drs, x0) == eval_dynamics(drs4, x0, [h])
+  # solve over 1<t<2; we have x(t-1)=10-10(t-1) over this interval therefore
+  # dx/dt = -(10 - 10(t-1)); \int{dx} = \int{-(10 - 10(t-1))dt};
+  # x + c1 = -10(t-1) + 10\int{(t-1) dt}; x + c1 = -10t + 10((t-1)^2/2) + c2;
+  # x(t) = -10(t-1) + 5(t-1)^2
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
 
+  # test dynamics
+  eval_dynamics(r, [u0], hist, p, 0.0)
 
 end # test set
 

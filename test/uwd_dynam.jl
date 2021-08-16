@@ -175,3 +175,55 @@ const UWD = UndirectedWiringDiagram
   @test eval_dynamics(r1, x0) == eval_dynamics(r2, x0)
 
 end # test set
+
+# @testset "UWDDynam for DDE systems" begin
+
+#   # delay differential equation with analytic solution via method of steps
+#   # dx/dt = -x(t-1) with history x(t) = 10 for t <= 0
+#   df(u, h, p, t) = -h(p, t - 1.0) 
+
+#   r = ContinuousResourceSharer{Float64}(1, dx)
+
+#   u0 = 10.0
+#   p = nothing
+  
+#   hist(p, t) = [u0] # history
+  
+#   prob = DDEProblem(delay_machine, [u0], hist, (0.0, 3.0), p)
+
+    
+
+
+
+#   dx(x, p, t) = [x[1]^2, 2*x[1]-x[2]]
+#   dy(y, p, t) = [1 - y[1]^2]
+
+#   r = ContinuousResourceSharer{Float64}(2, dx)
+#   @test eltype(r) == Float64
+#   #identity
+#   d = UWD(2)
+#   add_box!(d, 2)
+#   add_junctions!(d, 2)
+#   set_junction!(d, [1,2])
+#   set_junction!(d, [1,2], outer=true)
+  
+#   r2 = oapply(d, [r])
+#   @test nstates(r) == nstates(r2)
+#   @test nports(r) == nports(r2)
+#   @test portmap(r) == portmap(r2)
+#   x0 = [10.0, 7.5]
+#   @test eval_dynamics(r, x0) == eval_dynamics(r2, x0)
+#   @test exposed_states(r, x0) == exposed_states(r2, x0)
+
+#   h = 0.1
+#   drs = oapply(d, [euler_approx(r, h)])
+#   drs2 = euler_approx(r2, h)
+#   @test eval_dynamics(drs, x0) == eval_dynamics(drs2, x0)
+#   drs3 = euler_approx(r2)
+#   drs4 = oapply(d, [euler_approx(r)])
+#   @test eval_dynamics(drs, x0) == eval_dynamics(drs3, x0, [h])
+#   @test eval_dynamics(drs, x0) == eval_dynamics(drs4, x0, [h])
+
+
+# end # test set
+

@@ -206,8 +206,31 @@ end # test set
   @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
   @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
 
-  # test dynamics
-  eval_dynamics(r, [u0], hist, p, 0.0)
+  # test oapply with UWD
+  d = UWD(1)
+  add_box!(d, 1)
+  add_junctions!(d, 1)
+  set_junction!(d, [1])
+  set_junction!(d, [1], outer=true)
+
+  r2 = oapply(d, [r])
+
+  @test nstates(r) == nstates(r2)
+  @test nports(r) == nports(r2)
+  @test portmap(r) == portmap(r2)
+
+  x0 = [u0]
+  @test eval_dynamics(r, x0, hist, p, 0.0) == eval_dynamics(r2, x0, hist, p, 0.0)
+  @test exposed_states(r, x0) == exposed_states(r2, x0)
+
+  prob = DDEProblem(r2, [u0], hist, (0.0, 3.0), p)
+  sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
+
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
 
 end # test set
 

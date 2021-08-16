@@ -133,13 +133,10 @@ ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, R
 
 """    DDEProblem(r::ContinuousDelayResourceSharer, u0::Vector, h::Function, tspan)
 
-Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
+Constructs an DDEProblem from the vector field defined by `r.dynamics(u,h,p,t)`.
 """
 DDEProblem(r::ContinuousDelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(r, u, h, p, t), u0, h, tspan, p; kwargs...)
-  
-# DDEProblem(r::ContinuousDelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
-#     DDEProblem(r.dynamics, u0, h, tspan, p; kwargs...)
     
 """    DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 

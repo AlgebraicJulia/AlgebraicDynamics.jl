@@ -8,11 +8,12 @@ using Catlab.Theories
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply
 
-using OrdinaryDiffEq, DynamicalSystems
+using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem
+import DelayDiffEq: DDEProblem
 import DynamicalSystems: DiscreteDynamicalSystem
 
-export AbstractResourceSharer, ContinuousResourceSharer, DiscreteResourceSharer,
+export AbstractResourceSharer, ContinuousResourceSharer, ContinuousDelayResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
@@ -135,7 +136,10 @@ ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, R
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
 DDEProblem(r::ContinuousDelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
-    DDEProblem(r.dynamics, u0, h, tspan, p; kwargs...)
+    DDEProblem((u,h,p,t) -> eval_dynamics(r, u, h, p, t), u0, h, tspan, p; kwargs...)
+  
+# DDEProblem(r::ContinuousDelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
+#     DDEProblem(r.dynamics, u0, h, tspan, p; kwargs...)
     
 """    DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
 

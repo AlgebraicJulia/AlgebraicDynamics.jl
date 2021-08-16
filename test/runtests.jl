@@ -15,7 +15,3 @@ end
 @testset "Trajectories and Solutions" begin
   include("trajectories.jl")
 end
-
-@testset "Tonti Diagrams" begin
-  include("TontiDiagrams.jl")
-end

@@ -8,7 +8,8 @@ using Catlab.Theories
 using Catlab.Graphs
 using Catlab
 
-using DynamicalSystems
+using DynamicalSystems, DelayDiffEq
+using LabelledArrays
 
 using Test
 using PrettyTables
@@ -294,4 +295,60 @@ end
 for (i,j) in Iterators.product(1:6, 2:4)
     testgridsize(i,j)
 end
+end
+
+@testset "DelayMachine" begin 
+# ross macdonald
+c = @acset OpenCPortGraph begin
+    Box = 2
+    Port = 2
+    Wire = 2
+    OuterPort = 0
+    box = [1,2]
+    src = [1,2]
+    tgt = [2,1] 
+    con = []
+end
+
+dzdt_delay = function(u,x,h,p,t)
+    Y, Z = u
+    Y_delay, Z_delay = h(p, t - p.n)
+    X, X_delay = x[1]
+    
+    [p.a*p.c*X*(1 - Y - Z) -
+        p.a*p.c*X_delay*(1 - Y_delay - Z_delay)*exp(-p.g*p.n) -
+        p.g*Y,
+    p.a*p.c*X_delay*(1 - Y_delay - Z_delay)*exp(-p.g*p.n) -
+        p.g*Z]
+end
+
+dxdt_delay = function(u,x,h,p,t)
+    X, = u
+    Z, _ = x[1]
+    [p.m*p.a*p.b*Z*(1 - X) - p.r*X]
+end
+
+#- 
+
+1 + 1
+mosquito_delay_model = DelayMachine{Float64, 2}(
+    1, 2, 1, dzdt_delay, (u,h,p,t) -> [[u[2], h(p,t - p.n)[2]]])
+
+human_delay_model = DelayMachine{Float64, 2}(
+    1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
+rm_model = oapply(c, [mosquito_delay_model, human_delay_model])
+
+params = LVector(a = 0.3, b = 0.55, c = 0.15, 
+    g = 0.1, n = 10, r = 1.0/200, m = 0.5)
+
+u0_delay = [0.09, .01, 0.3]
+tspan = (0.0, 365.0*5)
+hist(p,t) = u0_delay;
+
+prob = DDEProblem(rm_model, u0_delay, [], hist, tspan, params)
+alg = MethodOfSteps(Tsit5())
+sol = solve(prob, alg)
+a, b, c, g, n, r, m = params
+R0 = (m*a^2*b*c*exp(-g*n))/(r*g)
+@test isapprox(last(sol)[3], (R0 - 1)/(R0 + (a*c)/g), atol = 1e-3)
 end

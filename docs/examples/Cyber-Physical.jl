@@ -5,8 +5,8 @@
 # Authors: Georgios Bakirtzis [https://bakirtzis.net/](https://bakirtzis.net) and Raul Gonzalez Garcia (raulg@iastate.edu)
 #
 # The following example is a mechanization from
-# 1. Compositional Cyber-Physical Systems Modeling - [link](http://dx.doi.org/10.4204/EPTCS.333.9)
-# 2. Categorical Semantics of Cyber-Physical Systems Theory - [link](https://doi.org/10.1145/3461669)
+# 1. Compositional Cyber-Physical Systems Modeling - [http://dx.doi.org/10.4204/EPTCS.333.9](http://dx.doi.org/10.4204/EPTCS.333.9)
+# 2. Categorical Semantics of Cyber-Physical Systems Theory - [https://doi.org/10.1145/3461669](https://doi.org/10.1145/3461669)
 
 using AlgebraicDynamics
 using AlgebraicDynamics.DWDDynam

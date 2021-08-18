@@ -48,7 +48,8 @@ makedocs(
       "examples/Lotka-Volterra.md",
       "examples/Ecosystem.md",
       "examples/CPG_examples.md",
-      "examples/Cyber-Physical.md"
+      "examples/Cyber-Physical.md",
+      "examples/Ross-Macdonald.md"
     ],
     "Library Reference" => "api.md"
   ]

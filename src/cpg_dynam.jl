@@ -11,9 +11,9 @@ using Catlab.Graphics.GraphvizGraphs: to_graphviz
 import Catlab.WiringDiagrams: oapply
 
 using ..DWDDynam
-using ...DWDDynam: destruct
+using ...DWDDynam: AbstractInterface, destruct, unit
 import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
-import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, 
+import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 ninputs, noutputs
 import Catlab.CategoricalAlgebra: migrate!
 
@@ -21,10 +21,18 @@ using Base.Iterators
 import Base: show, eltype
 
 
+ContinuousMachine{T, I}(nports::Int, nstates::Int, d::Function, r::Function) where {T,I} =
+    ContinuousMachine{T, I}(nports, nstates, nports, d, r)
 ContinuousMachine{T}(nports::Int, nstates::Int, d::Function, r::Function) where T =
     ContinuousMachine{T}(nports, nstates, nports, d, r)
+DiscreteMachine{T, I}(nports::Int, nstates::Int, d::Function, r::Function) where {T,I} =
+    DiscreteMachine{T, I}(nports, nstates, nports, d, r)
 DiscreteMachine{T}(nports::Int, nstates::Int, d::Function, r::Function) where T =
     DiscreteMachine{T}(nports, nstates, nports, d, r)
+DelayMachine{T, I}(nports::Int, nstates::Int, d::Function, r::Function) where {T,I} =
+    DelayMachine{T, I}(nports, nstates, nports, d, r)
+DelayMachine{T}(nports::Int, nstates::Int, d::Function, r::Function) where T =
+    DelayMachine{T}(nports, nstates, nports, d, r)
 
 migrate!(g::Graph, pg::OpenCPortGraph) = migrate!(g, migrate!(CPortGraph(), pg))
 
@@ -52,7 +60,7 @@ machines `ms`).
 Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
-function oapply(d::OpenCPortGraph, ms::Vector{Machine}) where {T, Machine<:AbstractMachine{T}}
+function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface, M<:AbstractMachine{T, I}}
     @assert nparts(d, :Box) == length(ms)
     for b in 1:nparts(d, :Box)
         @assert fills(ms[b], d, b)
@@ -62,7 +70,7 @@ function oapply(d::OpenCPortGraph, ms::Vector{Machine}) where {T, Machine<:Abstr
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)
         states = destruct(S, u)
-        readins = zeros(T, nparts(d, :Port)) # in port order 
+        readins = unit(I, nparts(d, :Port)) # in port order 
 
         for (b,m) in enumerate(ms)
             readouts = readout(m, states[b], p, t)
@@ -84,7 +92,7 @@ function oapply(d::OpenCPortGraph, ms::Vector{Machine}) where {T, Machine<:Abstr
 
     function r(u::AbstractVector, p, t::Real)
         states = destruct(S, u)
-        port_readout = zeros(T, nparts(d, :Port))
+        port_readout = unit(I, nparts(d, :Port))
 
         for (b,m) in enumerate(ms)
             readouts = readout(m, states[b], p, t)
@@ -96,7 +104,56 @@ function oapply(d::OpenCPortGraph, ms::Vector{Machine}) where {T, Machine<:Abstr
         return collect(view(port_readout, subpart(d, :con)))
     end
     
-    return Machine(nparts(d, :OuterPort), length(apex(S)), v, r)
+    return M(nparts(d, :OuterPort), length(apex(S)), v, r)
+end
+
+function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface, M<:DelayMachine{T, I}}
+    @assert nparts(d, :Box) == length(ms)
+    for b in 1:nparts(d, :Box)
+        @assert fills(ms[b], d, b)
+    end
+
+    S = coproduct((FinSet∘nstates).(ms))
+
+    function v(u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real)
+        states = destruct(S, u)
+        hists = destruct(S, h)
+        readins = unit(I, nparts(d, :Port)) # in port order 
+
+        for (b,m) in enumerate(ms)
+            readouts = readout(m, states[b], hists[b], p, t)
+            for (i, port) in enumerate(incident(d, b, :box))
+                for w in incident(d, port, :src)
+                    readins[subpart(d, w, :tgt)] += readouts[i]
+                end
+            end
+        end
+
+        for (i,x) in enumerate(xs)
+            readins[subpart(d, i, :con)] += x
+        end
+
+        return reduce(vcat, map(enumerate(ms)) do (b,m)
+            eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), hists[b], p, t)
+        end)
+    end
+
+    function r(u::AbstractVector, h::Function, p, t::Real)
+        states = destruct(S, u)
+        hists = destruct(S, h)
+        port_readout = unit(I, nparts(d, :Port))
+
+        for (b,m) in enumerate(ms)
+            readouts = readout(m, states[b], hists[b], p, t)
+            for (i, port) in enumerate(incident(d, b, :box))
+                port_readout[port] = readouts[i]
+            end
+        end
+        
+        return collect(view(port_readout, subpart(d, :con)))
+    end
+    
+    return M(nparts(d, :OuterPort), length(apex(S)), v, r)
 end
 
 """    oapply(d::OpenCPortGraph, m::AbstractMachine)

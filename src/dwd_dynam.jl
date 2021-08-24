@@ -6,7 +6,7 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply
 
-import ..UWDDynam: nstates, eval_dynamics, euler_approx
+import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface
 
 using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem
@@ -20,25 +20,25 @@ using Base.Iterators
 import Base: show, eltype
 
 ### Interface
-abstract type AbstractInterface{T} end
+abstract type AbstractDirectedInterface{T} <: AbstractInterface{T} end
 
-struct Interface{T} <: AbstractInterface{T}
+struct DirectedInterface{T} <: AbstractDirectedInterface{T}
     ninputs::Int
     noutputs::Int 
 end
 
-struct VectorInterface{T,N} <: AbstractInterface{T} 
+struct DirectedVectorInterface{T,N} <: AbstractDirectedInterface{T} 
     ninputs::Int 
     noutputs::Int
 end
 
-ninputs(interface::AbstractInterface) = interface.ninputs 
-noutputs(interface::AbstractInterface) = interface.noutputs
+ninputs(interface::AbstractDirectedInterface) = interface.ninputs 
+noutputs(interface::AbstractDirectedInterface) = interface.noutputs
 
-ndims(::VectorInterface{T, N}) where {T,N} = N
+ndims(::DirectedVectorInterface{T, N}) where {T,N} = N
 
-unit(::Type{I}, dims) where {T, I<:AbstractInterface{T}} = zeros(T, dims)
-unit(::Type{VectorInterface{T,N}}, dims) where {T, N} = fill(zeros(T, N), dims)
+unit(::Type{I}, dims) where {T, I<:AbstractDirectedInterface{T}} = zeros(T, dims)
+unit(::Type{DirectedVectorInterface{T,N}}, dims) where {T, N} = fill(zeros(T, N), dims)
 
 
 ### Dynamics
@@ -83,65 +83,70 @@ nstates(m::AbstractMachine) = nstates(system(m))
 dynamics(m::AbstractMachine) = dynamics(system(m))
 readout(m::AbstractMachine) = readout(system(m))
 
-"""
 
-An directed open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),x(t),p,t)`` where ``u`` is the state and ``x`` captures the exogenous variables.
-
-The readout function may depend on the state, parameters, and time, so it must be of the form ``r(u,p,t)``.
-"""
 
 struct Machine{T,I,S} <: AbstractMachine{T,I,S}
     interface::I 
     system::S
 end
 
-const ContinuousMachine{T,I} = Machine{T, I, ContinuousDirectedSystem{T}} 
 
-ContinuousMachine{T}(interface::I, system::ContinuousDirectedSystem{T}) where {T, I} = 
+"""    ContinuousMachine{T}(ninputs, nstates, noutputs, f, r)
+
+An directed open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),x(t),p,t)`` where ``u`` is the state and ``x`` captures the exogenous variables.
+
+The readout function may depend on the state, parameters, and time, so it must be of the form ``r(u,p,t)``.
+"""
+const ContinuousMachine{T,I} = Machine{T, I, ContinuousDirectedSystem{T}}
+
+ContinuousMachine{T}(interface::I, system::ContinuousDirectedSystem{T}) where {T, I <: AbstractDirectedInterface} = 
     ContinuousMachine{T, I}(interface, system)
 
 ContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
-    ContinuousMachine{T}(Interface{T}(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
+    ContinuousMachine{T}(DirectedInterface{T}(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
 ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
     ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I <: AbstractInterface} = 
+ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I <: AbstractDirectedInterface} = 
     ContinuousMachine{T,I}(I(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
 ContinuousMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
-    ContinuousMachine{T, VectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
+    ContinuousMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
-ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I <: AbstractInterface}  = 
+ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
     ContinuousMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 
-"""
+"""    DelayMachine{T}(ninputs, nstates, noutputs, f, r)
 
-`dynamics` must have signature f(u,x,h,p,t) where h is a function 
+A delay open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t), x(t), h(p,t), p, t)`` where 
+``u`` is the states, ``x`` captures the exogenous variables, and ``h`` is a history function 
+
+The readout function may depend on the state, history, parameters, and time, so it has a signature ``r(u,h,p,t)``.
 """
 const DelayMachine{T,I} = Machine{T, I, DelayDirectedSystem{T}}
 
-DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractInterface} = 
+DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} = 
     DelayMachine{T, I}(interface, system)
 
 DelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
-    DelayMachine{T}(Interface{T}(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
+    DelayMachine{T}(DirectedInterface{T}(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
 DelayMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
     DelayMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractInterface} = 
+DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} = 
     DelayMachine{T,I}(I(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
 DelayMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
-    DelayMachine{T, VectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
+    DelayMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
 DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
     DelayMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,h,p,t) -> u)
 
 
-"""
+"""    DiscreteMachine{T}(ninputs, nstates, noutputs, f, r)
 
 A directed open discrete dynamical system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, x_n, p, t)`` where ``u_n`` is the state and ``x_n`` is the value of the exogenous variables at the ``n``th time step.
 
@@ -149,16 +154,16 @@ The readout function may depend on the state, parameters, and time step, so it m
 """
 const DiscreteMachine{T,I} = Machine{T, I, DiscreteDirectedSystem{T}}
 
-DiscreteMachine{T}(interface::I, system::DiscreteDirectedSystem{T}) where {T, I<:AbstractInterface} = 
+DiscreteMachine{T}(interface::I, system::DiscreteDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} = 
     DiscreteMachine{T, I}(interface, system)
 
 DiscreteMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
-    DiscreteMachine{T}(Interface{T}(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
+    DiscreteMachine{T}(DirectedInterface{T}(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
 
 DiscreteMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
     DiscreteMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractInterface} = 
+DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} = 
     DiscreteMachine{T,I}(I(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
 
 DiscreteMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
@@ -171,6 +176,7 @@ DiscreteMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
 show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
 show(io::IO, vf::DelayMachine) = print("DelayMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
 show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
+
 eltype(::AbstractMachine{T}) where T = T
 
 
@@ -282,6 +288,106 @@ DiscreteDynamicalSystem(m::DiscreteMachine, u0, p; t0::Int = 0) =
     DiscreteDynamicalSystem(m, u0, [], p; t0 = t0)
 
 
+
+
+"""    oapply(d::WiringDiagram, ms::Vector)
+
+Implements the operad algebras for directed composition of dynamical systems given a 
+composition pattern (implemented by a directed wiring diagram `d`)
+and primitive systems (implemented by a collection of 
+machines `ms`).
+
+Each box of the composition pattern `d` is filled by a machine with the 
+appropriate type signature. Returns the composite machine.
+"""
+function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
+    isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
+    nboxes(d) == length(ms)  || error("there are $nboxes(d) boxes but $length(ms) machines")
+    for box in 1:nboxes(d)
+        fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
+    end
+
+    S = coproduct((FinSet∘nstates).(ms))
+    Inputs = coproduct((FinSet∘ninputs).(ms))
+
+    return M(length(input_ports(d)), 
+        length(apex(S)),
+        length(output_ports(d)), 
+        induced_dynamics(d, ms, S, Inputs), 
+        induced_readout(d, ms, S))
+end
+
+
+"""    oapply(d::WiringDiagram, m::AbstractMachine)
+
+A version of `oapply` where each box of `d` is filled with the machine `m`.
+"""
+function oapply(d::WiringDiagram, x::AbstractMachine)
+    oapply(d, collect(repeated(x, nboxes(d))))
+end
+
+"""    oapply(d::WiringDiagram, generators::Dict)
+
+A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding machine. 
+"""
+function oapply(d::WiringDiagram, ms::AbstractDict)
+    oapply(d, [ms[box.value] for box in boxes(d)])
+end
+
+
+
+### Helper functions for `oapply`
+
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:AbstractMachine{T,I}}
+
+    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
+        states = destruct(S, u) # a list of the states by box
+        readouts = get_readouts(ms, states, p, t)
+        readins = unit(I, length(apex(Inputs)))
+        fill_readins!(readins, d, Inputs, readouts, xs)
+
+        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
+            eval_dynamics(ms[i], states[i], x, p, t)
+        end)
+    end 
+
+end
+
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:DelayMachine{T,I}}
+
+    function v(u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real) 
+        states = destruct(S, u) # a list of the states by box
+        hists = destruct(S, h)
+        readouts = get_readouts(ms, states, hists, p, t)
+        readins = unit(I, length(apex(Inputs)))
+        fill_readins!(readins, d, Inputs, readouts, xs)
+
+        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
+            eval_dynamics(ms[i], states[i], x, hists[i], p, t)
+        end)
+    end
+end 
+    
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T,I}}
+    function r(u::AbstractVector, p, t)
+        states = destruct(S, u)
+        readouts = get_readouts(ms, states, p, t)
+        outputs = unit(I, length(output_ports(d)))
+        fill_outputs!(outputs, d, readouts)
+    end
+end
+
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T,I}}
+    function r(u::AbstractVector, h, p, t)
+        states = destruct(S, u)
+        hists = destruct(S, h)
+        readouts = get_readouts(ms, states, hists, p, t)
+        outputs = unit(I, length(output_ports(d)))
+        fill_outputs!(outputs, d, readouts)
+    end
+end
+
+
 """    fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 
 Checks if `m` is of the correct signature to fill box `b` of the  wiring diagram `d`.
@@ -332,105 +438,5 @@ function fill_outputs!(outs, d::WiringDiagram, readouts)
 
     return outs
 end
-
-"""    oapply(d::WiringDiagram, ms::Vector)
-
-Implements the operad algebras for directed composition of dynamical systems given a 
-composition pattern (implemented by a directed wiring diagram `d`)
-and primitive systems (implemented by a collection of 
-machines `ms`).
-
-Each box of the composition pattern `d` is filled by a machine with the 
-appropriate type signature. Returns the composite machine.
-"""
-function oapply(d::WiringDiagram, ms::Vector{M}) where {T, I, M<:AbstractMachine{T,I}}
-    isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
-    nboxes(d) == length(ms)  || error("there are $nboxes(d) boxes but $length(ms) machines")
-    for box in 1:nboxes(d)
-        fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
-    end
-    S = coproduct((FinSet∘nstates).(ms))
-    Inputs = coproduct((FinSet∘ninputs).(ms))
-
-    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
-        states = destruct(S, u) # a list of the states by box
-        readouts = get_readouts(ms, states, p, t)
-        readins = unit(I, length(apex(Inputs)))
-        fill_readins!(readins, d, Inputs, readouts, xs)
-
-        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
-            eval_dynamics(ms[i], states[i], x, p, t)
-        end)
-    end
-
-    function r(u::AbstractVector, p, t)
-        states = destruct(S, u)
-        readouts = get_readouts(ms, states, p, t)
-        outputs = unit(I, length(output_ports(d)))
-        fill_outputs!(outputs, d, readouts)
-    end
-
-    return M(length(input_ports(d)), length(apex(S)),
-                   length(output_ports(d)), v, r)
-end
-
-
-function oapply(d::WiringDiagram, ms::Vector{M}) where {T, I, M<:DelayMachine{T, I}}
-    isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
-    nboxes(d) == length(ms)  || error("there are $nboxes(d) boxes but $length(ms) machines")
-    for box in 1:nboxes(d)
-        fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
-    end
-
-    S = coproduct((FinSet∘nstates).(ms))
-    Inputs = coproduct((FinSet∘ninputs).(ms))
-
-    v = (u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real) -> begin 
-        states = destruct(S, u) # a list of the states by box
-        hists = destruct(S, h)
-        readouts = get_readouts(ms, states, hists, p, t)
-        readins = unit(I, length(apex(Inputs)))
-        fill_readins!(readins, d, Inputs, readouts, xs)
-
-        
-
-        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
-            eval_dynamics(ms[i], 
-                          states[i], 
-                          x, 
-                          hists[i], 
-                          p, t)
-        end)
-    end
-
-    function r(u::AbstractVector, h, p, t)
-        states = destruct(S, u)
-        hists = destruct(S, h)
-        readouts = get_readouts(ms, states, hists, p, t)
-        outputs = unit(I, length(output_ports(d)))
-        fill_outputs!(outputs, d, readouts)
-    end
-
-    return M(length(input_ports(d)), length(apex(S)),
-                   length(output_ports(d)), v, r)
-end
-
-"""    oapply(d::WiringDiagram, m::AbstractMachine)
-
-A version of `oapply` where each box of `d` is filled with the machine `m`.
-"""
-function oapply(d::WiringDiagram, x::AbstractMachine)
-    oapply(d, collect(repeated(x, nboxes(d))))
-end
-
-"""    oapply(d::WiringDiagram, generators::Dict)
-
-A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding machine. 
-"""
-function oapply(d::WiringDiagram, ms::AbstractDict)
-    oapply(d, [ms[box.value] for box in boxes(d)])
-end
-
-
 
 end #module

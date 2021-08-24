@@ -181,5 +181,9 @@ plot(
     xlabel = "Time", ylabel = "Proportion infectious"
 )
 
-# Notice that while the limiting behavior of the ODE and DDE models are identical, they may have 
-# different behavior in the context of policy interventions. 
+# While the equilibrium points of the two models are identical, they exhibit different dynamical behavior 
+# before settling down to equilibrium. Because models are often used to examine how the system may respond 
+# to intervention, incorporating additional biological realism can produce more plausible results regarding 
+# the expected time for interventions to affect the system. In any case, such simple models are best used as 
+# tools to explain basic concepts in malaria epidemiology rather than descriptions of real systems, which are 
+# likely far from equilibrium and affected by weather, climate, policy, and other external forces.

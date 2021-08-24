@@ -60,14 +60,33 @@ machines `ms`).
 Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
-function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface, M<:AbstractMachine{T, I}}
+function oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:AbstractMachine}
     @assert nparts(d, :Box) == length(ms)
     for b in 1:nparts(d, :Box)
         @assert fills(ms[b], d, b)
     end
 
     S = coproduct((FinSet∘nstates).(ms))
+    
+    return M(
+        nparts(d, :OuterPort), 
+        length(apex(S)), 
+        induced_dynamics(d, ms, S), 
+        induced_readout(d, ms, S)
+    )
+end
 
+
+"""    oapply(d::OpenCPortGraph, m::AbstractMachine)
+
+A version of `oapply` where each box of `d` is filled with the machine `m`.
+"""
+function oapply(d::OpenCPortGraph, x::AbstractMachine)
+    oapply(d, collect(repeated(x, nparts(d, :Box))))
+end
+
+
+function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)
         states = destruct(S, u)
         readins = unit(I, nparts(d, :Port)) # in port order 
@@ -89,32 +108,9 @@ function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface,
             eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), p, t)
         end)
     end
-
-    function r(u::AbstractVector, p, t::Real)
-        states = destruct(S, u)
-        port_readout = unit(I, nparts(d, :Port))
-
-        for (b,m) in enumerate(ms)
-            readouts = readout(m, states[b], p, t)
-            for (i, port) in enumerate(incident(d, b, :box))
-                port_readout[port] = readouts[i]
-            end
-        end
-        
-        return collect(view(port_readout, subpart(d, :con)))
-    end
-    
-    return M(nparts(d, :OuterPort), length(apex(S)), v, r)
 end
 
-function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface, M<:DelayMachine{T, I}}
-    @assert nparts(d, :Box) == length(ms)
-    for b in 1:nparts(d, :Box)
-        @assert fills(ms[b], d, b)
-    end
-
-    S = coproduct((FinSet∘nstates).(ms))
-
+function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T, I}}
     function v(u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real)
         states = destruct(S, u)
         hists = destruct(S, h)
@@ -137,7 +133,25 @@ function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface,
             eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), hists[b], p, t)
         end)
     end
+end
 
+function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
+    function r(u::AbstractVector, p, t::Real)
+        states = destruct(S, u)
+        port_readout = unit(I, nparts(d, :Port))
+
+        for (b,m) in enumerate(ms)
+            readouts = readout(m, states[b], p, t)
+            for (i, port) in enumerate(incident(d, b, :box))
+                port_readout[port] = readouts[i]
+            end
+        end
+        
+        return collect(view(port_readout, subpart(d, :con)))
+    end
+end
+
+function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T, I}}
     function r(u::AbstractVector, h::Function, p, t::Real)
         states = destruct(S, u)
         hists = destruct(S, h)
@@ -152,17 +166,8 @@ function oapply(d::OpenCPortGraph, ms::Vector{M}) where {T,I<:AbstractInterface,
         
         return collect(view(port_readout, subpart(d, :con)))
     end
-    
-    return M(nparts(d, :OuterPort), length(apex(S)), v, r)
 end
 
-"""    oapply(d::OpenCPortGraph, m::AbstractMachine)
-
-A version of `oapply` where each box of `d` is filled with the machine `m`.
-"""
-function oapply(d::OpenCPortGraph, x::AbstractMachine)
-    oapply(d, collect(repeated(x, nparts(d, :Box))))
-end
 
 """    barbell(n::Int)
 

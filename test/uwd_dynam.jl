@@ -1,5 +1,5 @@
 using AlgebraicDynamics.UWDDynam
-using Catlab.WiringDiagrams
+using Catlab.WiringDiagrams,  Catlab.Programs
 using DelayDiffEq
 using Test
 
@@ -12,11 +12,9 @@ const UWD = UndirectedWiringDiagram
   r = ContinuousResourceSharer{Float64}(2, dx)
   @test eltype(r) == Float64
   #identity
-  d = UWD(2)
-  add_box!(d, 2)
-  add_junctions!(d, 2)
-  set_junction!(d, [1,2])
-  set_junction!(d, [1,2], outer=true)
+  d = @relation (x,y) begin 
+    f(x,y)
+  end
   
   r2 = oapply(d, [r])
   @test nstates(r) == nstates(r2)
@@ -36,11 +34,9 @@ const UWD = UndirectedWiringDiagram
   @test eval_dynamics(drs, x0) == eval_dynamics(drs4, x0, [h])
 
   # merge
-  d = UWD(1)
-  add_box!(d, 2)
-  add_junctions!(d, 1)
-  set_junction!(d, [1,1])
-  set_junction!(d, [1], outer=true)
+  d = @relation (x,) begin
+    f(x,x)
+  end
   
   r2 = oapply(d, [r])
   @test nstates(r2) == 1
@@ -182,7 +178,7 @@ end # test set
   # delay differential equation with analytic solution via method of steps
   # dx/dt = -x(t-1) with history x(t) = 10 for t <= 0
   df(u, h, p, t) = -h(p, t - 1.0)
-  r = ContinuousDelayResourceSharer{Float64}(1, df)
+  r = DelayResourceSharer{Float64}(1, df)
 
   u0 = 10.0
   p = nothing
@@ -226,6 +222,24 @@ end # test set
   prob = DDEProblem(r2, [u0], hist, (0.0, 3.0), p)
   sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
 
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
+  
+  d = @relation (x,) begin 
+    f(x)
+    g(x)
+  end
+
+  df(u, h, p, t) = -0.5*h(p, t - 1.0)
+  r = DelayResourceSharer{Float64}(1, df)
+
+  r2 = oapply(d, r)
+  @test eval_dynamics(r2, x0, hist, p, 0.0) == [-10.0]
+  prob = DDEProblem(r2, [u0], hist, (0.0, 3.0), p)
+  sol = solve(prob, alg, abstol = 1e-12, reltol=1e-12)
   @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
   @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
 

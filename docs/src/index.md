@@ -17,7 +17,7 @@ The general process for composing  dynamical systems is as follows:
     - ports
     - states
     - a dynamics function, ``f``
-    - a port map,  ``p``
+    - a port map,  ``m``
 
     The dynamics function can be either continuous time ``\dot u(t) = f(u(t), p, t)`` or discrete time ``u_{n +1} = f(u_n, p, t)``. In both cases ``u`` contains the state and ``p`` contains the parameters. Also in both cases, the port map assigns a state to each port. We say the port exposes the state it is assigned. For continuous time use `ContinuousResourceSharer{T}` and for discrete time use `DiscreteResourceSharer{T}`. The type `T` represents the values that the states can take on.
 

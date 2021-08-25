@@ -17,7 +17,7 @@ if !(haskey(ENV, "GITHUB_ACTIONS") || haskey(ENV, "GITLAB_CI"))
   config["repo_root_url"] = "https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/blob/master/docs"
 end
 
-const literate_dir = joinpath(@__DIR__, ".", "examples")
+const literate_dir = joinpath(@__DIR__, "..", "examples")
 const generated_dir = joinpath(@__DIR__, "src", "examples")
 
 for (root, dirs, files) in walkdir(literate_dir)
@@ -48,7 +48,8 @@ makedocs(
       "examples/Lotka-Volterra.md",
       "examples/Ecosystem.md",
       "examples/CPG_examples.md",
-      "examples/Cyber-Physical.md"
+      "examples/Cyber-Physical.md",
+      "examples/Ross-Macdonald.md"
     ],
     "Library Reference" => "api.md"
   ]

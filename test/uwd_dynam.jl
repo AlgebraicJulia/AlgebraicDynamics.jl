@@ -1,5 +1,6 @@
 using AlgebraicDynamics.UWDDynam
-using Catlab.WiringDiagrams
+using Catlab.WiringDiagrams,  Catlab.Programs
+using DelayDiffEq
 using Test
 
 const UWD = UndirectedWiringDiagram
@@ -11,11 +12,9 @@ const UWD = UndirectedWiringDiagram
   r = ContinuousResourceSharer{Float64}(2, dx)
   @test eltype(r) == Float64
   #identity
-  d = UWD(2)
-  add_box!(d, 2)
-  add_junctions!(d, 2)
-  set_junction!(d, [1,2])
-  set_junction!(d, [1,2], outer=true)
+  d = @relation (x,y) begin 
+    f(x,y)
+  end
   
   r2 = oapply(d, [r])
   @test nstates(r) == nstates(r2)
@@ -35,11 +34,9 @@ const UWD = UndirectedWiringDiagram
   @test eval_dynamics(drs, x0) == eval_dynamics(drs4, x0, [h])
 
   # merge
-  d = UWD(1)
-  add_box!(d, 2)
-  add_junctions!(d, 1)
-  set_junction!(d, [1,1])
-  set_junction!(d, [1], outer=true)
+  d = @relation (x,) begin
+    f(x,x)
+  end
   
   r2 = oapply(d, [r])
   @test nstates(r2) == 1
@@ -175,3 +172,79 @@ const UWD = UndirectedWiringDiagram
   @test eval_dynamics(r1, x0) == eval_dynamics(r2, x0)
 
 end # test set
+
+@testset "UWDDynam for DDE systems" begin
+
+  # delay differential equation with analytic solution via method of steps
+  # dx/dt = -x(t-1) with history x(t) = 10 for t <= 0
+  df(u, h, p, t) = -h(p, t - 1.0)
+  r = DelayResourceSharer{Float64}(1, df)
+
+  u0 = 10.0
+  p = nothing
+  
+  hist(p, t) = [u0] # history
+  prob = DDEProblem(r, [u0], hist, (0.0, 3.0), p)
+
+  alg = MethodOfSteps(Tsit5())
+  sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
+  
+  # solve over 0<t<1; we have x(t-1)=10 over this interval therefore
+  # dx/dt = -10; dx = -10dt; \int{dx} = \int{-10dt}; x + c1 = -10t + c2
+  # x(t) = c - 10t; x(t) = 10 - 10t
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+  # solve over 1<t<2; we have x(t-1)=10-10(t-1) over this interval therefore
+  # dx/dt = -(10 - 10(t-1)); \int{dx} = \int{-(10 - 10(t-1))dt};
+  # x + c1 = -10(t-1) + 10\int{(t-1) dt}; x + c1 = -10t + 10((t-1)^2/2) + c2;
+  # x(t) = -10(t-1) + 5(t-1)^2
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
+
+  # test oapply with UWD
+  d = UWD(1)
+  add_box!(d, 1)
+  add_junctions!(d, 1)
+  set_junction!(d, [1])
+  set_junction!(d, [1], outer=true)
+
+  r2 = oapply(d, [r])
+
+  @test nstates(r) == nstates(r2)
+  @test nports(r) == nports(r2)
+  @test portmap(r) == portmap(r2)
+
+  x0 = [u0]
+  @test eval_dynamics(r, x0, hist, p, 0.0) == eval_dynamics(r2, x0, hist, p, 0.0)
+  @test exposed_states(r, x0) == exposed_states(r2, x0)
+
+  prob = DDEProblem(r2, [u0], hist, (0.0, 3.0), p)
+  sol = solve(prob, alg,abstol=1e-12,reltol=1e-12)
+
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
+  
+  d = @relation (x,) begin 
+    f(x)
+    g(x)
+  end
+
+  df(u, h, p, t) = -0.5*h(p, t - 1.0)
+  r = DelayResourceSharer{Float64}(1, df)
+
+  r2 = oapply(d, r)
+  @test eval_dynamics(r2, x0, hist, p, 0.0) == [-10.0]
+  prob = DDEProblem(r2, [u0], hist, (0.0, 3.0), p)
+  sol = solve(prob, alg, abstol = 1e-12, reltol=1e-12)
+  @test sol(0.5)[1] ≈ 10.0 - 10.0*0.5
+  @test sol(0.9)[1] ≈ 10.0 - 10.0*0.9
+
+  @test sol(1.5)[1] ≈ -10.0*(1.5-1.0) + 5.0*(1.5-1.0)^2
+  @test sol(1.9)[1] ≈ -10.0*(1.9-1.0) + 5.0*(1.9-1.0)^2
+
+end # test set
+

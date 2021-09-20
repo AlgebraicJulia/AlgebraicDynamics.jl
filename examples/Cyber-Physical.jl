@@ -94,21 +94,12 @@ params = (𝓐l = 100,  # decay constant of sensor
           𝓑c = 0)    # ratio of velocity to reference velocity
 
 prob = ODEProblem(𝑢ᵤₐᵥ, uₒ, xₒ, tspan, params)
-solution = solve(prob, alg_hints=[:stiff]);
+sol = solve(prob, alg_hints=[:stiff]);
 
 #- 
 
-plot(solution.t,        # x values
-     [solution[1,:],    # y values [q is amplified]
-      solution[2,:],
-      solution[3,:],
-      solution[4,:] * 1e2,
-      solution[5,:]],
-
-    ## graph attributes
-    label  = ["sl" "sc" "α" "q" "θ"],
-    xlabel = "Time parameter",
-    ylabel = "Response",
-    title  = "Aircraft pitch behaviour",
-    lw = 2
+plot(sol, vars = [1,2, ((t,y) -> (t, y*1e2), 0, 4), 3, 5],
+    label = ["sl" "sc" "α" "q" "θ"],
+    lw = 2, title  = "Aircraft pitch behaviour",
+    xlabel = "time", ylabel = "response"
 )

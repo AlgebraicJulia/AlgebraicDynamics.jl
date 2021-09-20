@@ -23,7 +23,7 @@
 
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
-using Catlab.WiringDiagrams
+using Catlab.WiringDiagrams, Catlab.Programs
 using LabelledArrays
 using OrdinaryDiffEq, Plots, Plots.PlotMeasures
 
@@ -39,13 +39,14 @@ rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
 fox_decline = ContinuousResourceSharer{Float64}(1, dotf)
 
 ## Define the composition pattern
-rabbitfox_pattern = UWD(2)
-add_box!(rabbitfox_pattern, 1); add_box!(rabbitfox_pattern, 2); add_box!(rabbitfox_pattern, 1)
-add_junctions!(rabbitfox_pattern, 2)
-set_junction!(rabbitfox_pattern, [1,1,2,2]); set_junction!(rabbitfox_pattern, [1,2], outer=true)
+rf = @relation (rabbits,foxes) begin 
+    growth(rabbits)
+    predation(rabbits,foxes)
+    decline(foxes)
+end
 
 ## Compose
-rabbitfox_system = oapply(rabbitfox_pattern, [rabbit_growth, rabbitfox_predation, fox_decline])
+rabbitfox_system = oapply(rf, [rabbit_growth, rabbitfox_predation, fox_decline])
 
 ## Solve and plot
 u0 = [10.0, 100.0]                              
@@ -55,9 +56,10 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
-xlabel!("Time")
-ylabel!("Population size")
+plot(sol, rabbitfox_system,
+    lw=2, title = "Lotka-Volterra Predator-Prey Model",
+    xlabel = "time", ylabel = "population size"
+)
 
 
 # ## Directed composition  
@@ -82,13 +84,15 @@ rabbit = ContinuousMachine{Float64}(1,1,1, dotr, (u, p, t) -> u)
 fox    = ContinuousMachine{Float64}(1,1,1, dotf, (u, p, t) -> u)
 
 ## Define the composition pattern
-rabbitfox_pattern = WiringDiagram([], [])
+rabbitfox_pattern = WiringDiagram([], [:rabbits, :foxes])
 rabbit_box = add_box!(rabbitfox_pattern, Box(:rabbit, [:pop], [:pop]))
 fox_box = add_box!(rabbitfox_pattern, Box(:fox, [:pop], [:pop]))
 
 add_wires!(rabbitfox_pattern, Pair[
     (rabbit_box, 1) => (fox_box, 1),
-    (fox_box, 1) => (rabbit_box, 1)
+    (fox_box, 1)    => (rabbit_box, 1),
+    (rabbit_box, 1) => (output_id(rabbitfox_pattern), 1),
+    (fox_box, 1)    => (output_id(rabbitfox_pattern), 2)
 ])
 
 ## Compose
@@ -100,12 +104,12 @@ params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)
 
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)
-sol = solve(prob, FRK65(0))
+sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, title = "Lotka-Volterra Predator-Prey Model", label=["rabbits" "foxes"])
-xlabel!("Time")
-ylabel!("Population size")
-
+plot(sol, rabbitfox_system, params, 
+    lw=2, title = "Lotka-Volterra Predator-Prey Model",
+    xlabel = "time", ylabel = "population size"
+)
 
 # ### Open CPG
 # We next implement the setting of inputs using an open CPG as our composition pattern. We will use a barbell CPG. A barbell has two boxes connected by $n$ wires. In this instance we will set $n$ to $1$ since each machine receives and emits exactly one piece of information.

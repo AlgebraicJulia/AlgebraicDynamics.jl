@@ -6,12 +6,14 @@ using Catlab.CategoricalAlgebra.FinSets
 using Catlab.Theories
 
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
-import Catlab.WiringDiagrams: oapply
+using Catlab.Programs.RelationalPrograms: _RelationDiagram
+import Catlab.WiringDiagrams: oapply, ports
 
 using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem
 import DelayDiffEq: DDEProblem
 import DynamicalSystems: DiscreteDynamicalSystem
+using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
@@ -25,14 +27,18 @@ abstract type AbstractInterface{T} end
 abstract type AbstractUndirectedInterface{T} <: AbstractInterface{T} end
 
 struct UndirectedInterface{T} <: AbstractUndirectedInterface{T}
-  nports::Int
+  ports::Vector
 end
+UndirectedInterface{T}(nports::Int) where T = UndirectedInterface{T}(1:nports)
+
 
 struct UndirectedVectorInterface{T,N} <: AbstractUndirectedInterface{T}
-  nports::Int
+  ports::Vector
 end
+UndirectedVectorInterface{T,N}(nports::Int) where {T,N} = UndirectedVectorInterface{T,N}(1:nports)
 
-nports(interface::AbstractUndirectedInterface) = interface.nports 
+ports(interface::AbstractUndirectedInterface) = interface.ports
+nports(interface::AbstractUndirectedInterface) = length(ports(interface))
 ndims(::UndirectedVectorInterface{T, N}) where {T,N} = N
 
 ### System dynamics 
@@ -79,6 +85,7 @@ end
 system(r::ResourceSharer) = r.system 
 interface(r::ResourceSharer) = r.interface
 
+ports(r::ResourceSharer) = ports(interface(r))
 nports(r::ResourceSharer) = nports(interface(r))
 nstates(r::ResourceSharer) = nstates(system(r)) 
 dynamics(r::ResourceSharer) = dynamics(system(r))
@@ -235,7 +242,13 @@ DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, u0::AbstractVector, p; t0:
     DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,[u],p,t)[1], u0, p; t0 = t0)
   end
 
-
+### Plotting backend
+@recipe function f(sol, r::ResourceSharer)
+  labels = (String ∘ Symbol).(collect(view(ports(r), portmap(r))))
+  label --> reshape(labels, 1, length(labels))
+  vars --> portmap(r)
+  sol
+end
 
 """    fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
 
@@ -286,7 +299,7 @@ function oapply(d::AbstractUWD, xs::Vector{R}, S′::Pushout) where {R <: Abstra
     outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
 
     return R(
-        nparts(d, :OuterPort), 
+        induced_ports(d), 
         length(apex(S′)), 
         v, 
         compose(outer_junction_map, junction_map).func)
@@ -295,6 +308,10 @@ end
 
 ### Helper functions for `oapply`
 
+induced_ports(d::AbstractUWD) = nparts(d, :OuterPort)
+induced_ports(d::_RelationDiagram) = subpart(d, [:outer_junction, :variable])
+
+### Returns a pushout where the left leg is the union of all primitive states 
 function induced_states(d::AbstractUWD, xs::Vector{R}) where {R <: AbstractResourceSharer}
     for box in parts(d, :Box)
         fills(xs[box], d, box) || error("$(xs[box]) does not fill box $box")

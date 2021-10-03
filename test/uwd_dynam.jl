@@ -11,6 +11,7 @@ const UWD = UndirectedWiringDiagram
 
   r = ContinuousResourceSharer{Float64}(2, dx)
   @test eltype(r) == Float64
+
   #identity
   d = @relation (x,y) begin 
     f(x,y)
@@ -23,6 +24,8 @@ const UWD = UndirectedWiringDiagram
   x0 = [10.0, 7.5]
   @test eval_dynamics(r, x0) == eval_dynamics(r2, x0)
   @test exposed_states(r, x0) == exposed_states(r2, x0)
+  @test ports(r) == [1, 2]
+  @test ports(r2) == [:x, :y]
 
   h = 0.1
   drs = oapply(d, [euler_approx(r, h)])
@@ -44,6 +47,7 @@ const UWD = UndirectedWiringDiagram
   @test portmap(r2) == [1]
   @test eval_dynamics(r2, [5.0]) == [30.0]
   @test exposed_states(r2, [5.0]) == [5.0]
+  @test ports(r2) == [:x]
 
   r = ContinuousResourceSharer{Float64}(2, (u,p,t) -> [u[1]*p[1], u[2]*p[2] + t])
   r2 = oapply(d, [r])
@@ -65,14 +69,13 @@ const UWD = UndirectedWiringDiagram
   
   # copy states and merge back together
   r = ContinuousResourceSharer{Float64}(2, 2, dx, [1,1])
-  d = UWD(1)
-  add_box!(d, 2)
-  add_junctions!(d, 1)
-  set_junction!(d, [1,1])
-  set_junction!(d, [1], outer = true)
+  d = @relation (x,) begin
+    f(x,x)
+  end
   r2 = oapply(d, r)
   @test nstates(r2) == 2
   @test nports(r2) == 1
+  @test ports(r2) == [:x]
   @test portmap(r2) == [1]
   @test eval_dynamics(r2, x0) == eval_dynamics(r, x0)
   @test exposed_states(r2, x0) == [x0[1]]

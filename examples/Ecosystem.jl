@@ -59,7 +59,12 @@ rabbitfox_pattern = @relation (rabbits, foxes) begin
 end
 
 ## Compose
-rabbitfox_system = oapply(rabbitfox_pattern, [rabbit_growth, rabbitfox_predation, fox_decline])
+submodels = Dict(
+    :rabbit_growth => rabbit_growth, 
+    :rabbitfox_predation => rabbitfox_predation, 
+    :fox_decline => fox_decline
+)
+rabbitfox_system = oapply(rabbitfox_pattern, submodels)
 
 # Previously, when we derived the Lotka-Volterra model via [undirected composition](https://algebraicjulia.github.io/AlgebraicDynamics.jl/dev/examples/Lotka-Volterra/#Undirected-composition), we by-hand defined the undirected wiring diagram that implements the composition pattern. In contrast, here we implement the same composition pattern as before but this time using the [`@relation` macro](https://algebraicjulia.github.io/Catlab.jl/stable/apis/programs/#Catlab.Programs.RelationalPrograms.@relation-Tuple). This strategy simplifies the definition and explicitly names the boxes and variables. We  visualize the composition pattern below.
 
@@ -72,9 +77,10 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, title = "Lotka-Volterra Predator-Prey Model", bottom_margin=10mm, left_margin=10mm, label=["rabbits" "foxes"])
-xlabel!("Time")
-ylabel!("Population size")
+plot(sol, rabbitfox_system,
+    lw=2, 
+    title = "Lotka-Volterra Predator-Prey Model",
+    xlabel = "time", ylabel = "population size")
 
 # ### Rabbits, foxes, and hawks
 # Suppose we now have a three species ecosystem containing rabbits, foxes, and hawks. Foxes and hawks both prey upon rabbits but do not interact with each other. This ecosystem consists of five primitive systems which share variables.
@@ -93,7 +99,7 @@ rabbit_pattern = @relation (rabbits,) -> rabbit_growth(rabbits)
 ## Define the composition pattern for the rabbit/hawk Lotka Volterra model
 rabbithawk_pattern = @relation (rabbits, hawks) begin
     rabbit_growth(rabbits)
-    rabbit_hawk_predation(rabbits,hawks)
+    rabbithawk_predation(rabbits,hawks)
     hawk_decline(hawks)
 end
 
@@ -116,9 +122,12 @@ rabbithawk_predation = ContinuousResourceSharer{Float64}(2, dotrh)
 hawk_decline         = ContinuousResourceSharer{Float64}(1, doth)
 
 ## Compose
-land_system = oapply(rabbitfoxhawk_pattern, 
-                        [rabbit_growth, rabbitfox_predation, fox_decline, 
-                         rabbithawk_predation, hawk_decline])
+merge!(submodels, Dict(
+    :rabbithawk_predation => rabbithawk_predation,
+    :hawk_decline => hawk_decline
+))
+
+land_system = oapply(rabbitfoxhawk_pattern, submodels)
 
 ## Solve and plot
 u0 = [10.0, 100.0, 50.0]
@@ -127,9 +136,10 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(land_system, u0, tspan, params)
 sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, title = "Land Ecosystem", bottom_margin=10mm, left_margin=10mm, label=["rabbits" "foxes" "hawks"])
-xlabel!("Time")
-ylabel!("Population size")
+plot(sol, land_system, 
+    lw=2, 
+    title = "Land Ecosystem",
+    xlabel = "time", ylabel = "population size")
 
 # Unfortunately, the hawks are going extinct in this model. We'll have to give hawks something else to eat!
 #-
@@ -156,16 +166,20 @@ sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, (s,p,t)->s)
 # The syntax for this directed composition is given by a directed wiring diagram.
 
 ## Define the composition pattern
-ocean_pattern = WiringDiagram([], [])
+ocean_pattern = WiringDiagram([], [:fish, :Fish, :shark])
 fish_box = add_box!(ocean_pattern, Box(:fish, [:pop], [:pop]))
 Fish_box = add_box!(ocean_pattern, Box(:Fish, [:pop, :pop], [:pop]))
 shark_box = add_box!(ocean_pattern, Box(:shark, [:pop], [:pop]))
 
+output_box = output_id(ocean_pattern)
 add_wires!(ocean_pattern, Pair[
     (fish_box, 1)  => (Fish_box, 1),
     (shark_box, 1) => (Fish_box, 2),
     (Fish_box, 1)  => (fish_box, 1),
-    (Fish_box, 1)  => (shark_box, 1)
+    (Fish_box, 1)  => (shark_box, 1),
+    (fish_box, 1)  => (output_box, 1),
+    (Fish_box, 1)  => (output_box, 2),
+    (shark_box, 1) => (output_box, 3)
 ])
 
 ## Visualize the composition pattern
@@ -181,11 +195,12 @@ u0 = [100.0, 10, 2.0]
 tspan = (0.0, 100.0)
 
 prob = ODEProblem(ocean_system, u0, tspan, params)
-sol = solve(prob, FRK65(0))
+sol = solve(prob, Tsit5())
 
-plot(sol, lw=2, title = "Ocean Ecosystem", bottom_margin=10mm, left_margin=10mm, label=["little fish" "big fish" "sharks"])
-xlabel!("Time")
-ylabel!("Population size")
+plot(sol, ocean_system,
+    lw=2, title = "Ocean Ecosystem",
+    xlabel = "time", ylabel = "population size"
+)
 
 # ## Total ecosystem
 # ### Another layer of composition
@@ -195,13 +210,13 @@ ylabel!("Population size")
 
 
 ## Define the additional primitive systems
-ocean_system_rs = ContinuousResourceSharer{Float64}(3, (u,p,t)->eval_dynamics(ocean_system, u, [], p))
+ocean_system_rs = ContinuousResourceSharer{Float64}(3, (u,p,t) -> eval_dynamics(ocean_system, u, [], p))
 
 dothf(u,p,t) = [p.γfishh*u[1]*u[2], -p.βfishh*u[1]*u[2]]
 fishhawk_predation = ContinuousResourceSharer{Float64}(2, dothf)
 
 ## Define the composition pattern
-eco_pattern = @relation () where (rabbits, foxes, hawks, littlefish, BigFish, sharks)  begin
+eco_pattern = @relation (rabbits, foxes, hawks, littlefish, BigFish, sharks)  begin
     turf(rabbits,foxes,hawks)
     air(hawks, littlefish)
     surf(littlefish, BigFish, sharks)
@@ -212,7 +227,12 @@ to_graphviz(eco_pattern, box_labels = :name, junction_labels = :variable, edge_a
 
 #-
 ## Compose
-ecosystem=oapply(eco_pattern, [land_system, fishhawk_predation, ocean_system_rs])
+
+ecosystem = oapply(eco_pattern, Dict(
+    :turf => land_system,
+    :air => fishhawk_predation,
+    :surf => ocean_system_rs)
+)
 
 # We can now plot the evolution of the total ecosystem.
 
@@ -222,15 +242,20 @@ tspan = (0.0, 100.0)
 
 prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
+plot(sol, ecosystem,
+    lw=2, title = "Total Ecosystem", 
+    xlabel = "time", ylabel = "population size"
+)
 
 # Let's zoom in on a narrower time-window.
 tspan = (0.0, 30.0)
 
 prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
-
+plot(sol, ecosystem,
+    lw=2, title = "Total Ecosystem", 
+    xlabel = "time", ylabel = "population size"
+)
 # As a sanity check we can define the rates for the hawk/little fish predation to be 0. This decouples the land and ocean ecosystems. As expected, the plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.
 
 tspan = (0.0, 100.0)
@@ -238,4 +263,7 @@ params.βfishh = 0; params.γfishh = 0
 
 prob = ODEProblem(ecosystem, u0, tspan, params)
 sol = solve(prob, Tsit5())
-plot(sol, lw=2, bottom_margin=10mm, left_margin=10mm, label = ["rabbits" "foxes" "hawks" "little fish" "big fish" "sharks"])
+plot(sol, ecosystem,
+    lw=2, title = "Decoupled Ecosystem", 
+    xlabel = "time", ylabel = "population size"
+)

@@ -4,7 +4,7 @@ using Catlab.Theories
 using Catlab.WiringDiagrams.DirectedWiringDiagrams
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
-import Catlab.WiringDiagrams: oapply
+import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
 import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface
 
@@ -12,6 +12,7 @@ using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem
 import DelayDiffEq: DDEProblem
 import DynamicalSystems: DiscreteDynamicalSystem
+using Plots
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
@@ -23,17 +24,23 @@ import Base: show, eltype
 abstract type AbstractDirectedInterface{T} <: AbstractInterface{T} end
 
 struct DirectedInterface{T} <: AbstractDirectedInterface{T}
-    ninputs::Int
-    noutputs::Int 
+    input_ports::Vector
+    output_ports::Vector 
 end
+DirectedInterface{T}(ninputs::Int, noutputs::Int) where T = 
+    DirectedInterface{T}(1:ninputs, 1:noutputs)
 
 struct DirectedVectorInterface{T,N} <: AbstractDirectedInterface{T} 
-    ninputs::Int 
-    noutputs::Int
+    input_ports::Vector 
+    output_ports::Vector
 end
+DirectedVectorInterface{T,N}(ninputs::Int, noutputs::Int) where {T,N} = 
+    DirectedVectorInterface{T,N}(1:ninputs, 1:noutputs)
 
-ninputs(interface::AbstractDirectedInterface) = interface.ninputs 
-noutputs(interface::AbstractDirectedInterface) = interface.noutputs
+input_ports(interface::AbstractDirectedInterface) = interface.input_ports
+output_ports(interface::AbstractDirectedInterface) = interface.output_ports
+ninputs(interface::AbstractDirectedInterface) = length(input_ports(interface))
+noutputs(interface::AbstractDirectedInterface) = length(output_ports(interface))
 
 ndims(::DirectedVectorInterface{T, N}) where {T,N} = N
 
@@ -77,6 +84,8 @@ abstract type AbstractMachine{T, InterfaceType, SystemType} end
 interface(m::AbstractMachine) = m.interface 
 system(m::AbstractMachine) = m.system
 
+input_ports(m::AbstractMachine) = input_ports(interface(m))
+output_ports(m::AbstractMachine) = output_ports(interface(m))
 ninputs(m::AbstractMachine) = ninputs(interface(m))
 noutputs(m::AbstractMachine) = noutputs(interface(m))
 nstates(m::AbstractMachine) = nstates(system(m))
@@ -287,7 +296,15 @@ end
 DiscreteDynamicalSystem(m::DiscreteMachine, u0, p; t0::Int = 0) = 
     DiscreteDynamicalSystem(m, u0, [], p; t0 = t0)
 
-
+### Plotting backend
+@recipe function f(sol, m::AbstractMachine, p=nothing)
+    labels = (String ∘ Symbol).(output_ports(m))
+    label --> reshape(labels, 1, length(labels))
+    vars --> map(1:noutputs(m)) do i
+        ((t, args...) -> (t, readout(m)(collect(args), p, t)[i]), 0:nstates(m)...)
+    end
+    sol
+end
 
 
 """    oapply(d::WiringDiagram, ms::Vector)
@@ -310,9 +327,9 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
     S = coproduct((FinSet∘nstates).(ms))
     Inputs = coproduct((FinSet∘ninputs).(ms))
 
-    return M(length(input_ports(d)), 
+    return M(input_ports(d), 
         length(apex(S)),
-        length(output_ports(d)), 
+        output_ports(d), 
         induced_dynamics(d, ms, S, Inputs), 
         induced_readout(d, ms, S))
 end

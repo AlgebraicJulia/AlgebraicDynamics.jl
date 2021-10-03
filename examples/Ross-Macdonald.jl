@@ -65,12 +65,18 @@ using Plots
 # First we must construct a diagram of systems which describes the interaction between the mosquito and 
 # host populations. The arrows between the two subsystems represents the bidirectional infection during bloodmeals. 
 
-bloodmeal = WiringDiagram([], [])
-add_box!(bloodmeal, Box(:mosquitos, [:x], [:z]))
-add_box!(bloodmeal, Box(:humans, [:z], [:x]))
-add_wires!(bloodmeal, Pair(
-        (1, 1) => (2, 1),
-        (2, 1) => (1, 1)))
+bloodmeal = WiringDiagram([], [:mosquitos, :humans])
+mosq_box   = add_box!(bloodmeal, Box(:mosquitos, [:x], [:z]))
+human_box  = add_box!(bloodmeal, Box(:humans, [:z], [:x]))
+output_box = output_id(bloodmeal)
+
+add_wires!(bloodmeal, Pair[
+    (mosq_box, 1)  => (human_box, 1),
+    (human_box, 1) => (mosq_box, 1),
+    (mosq_box, 1)  => (output_box, 1),
+    (human_box, 1) => (output_box, 2)]
+)
+
 
 to_graphviz(bloodmeal)
 
@@ -93,7 +99,7 @@ end
 #- 
 
 mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
-human_model = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
+human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 
 malaria_model = oapply(bloodmeal, 
     Dict(:humans => human_model, :mosquitos => mosquito_model)
@@ -110,11 +116,9 @@ prob = ODEProblem(malaria_model, u0, tspan, params)
 sol = solve(prob, Tsit5());
 #- 
 
-plot(
-    sol, lw=2,
-    title = "Ross-Macdonald Malaria model", 
-    label=["mosquitos" "humans"], 
-    xlabel = "Time", ylabel = "Proportion infectious"
+plot(sol, malaria_model,
+    lw=2, title = "Ross-Macdonald Malaria model", 
+    xlabel = "time", ylabel = "proportion infectious"
 )
 
 ## Plot the equilibrium behavior as well
@@ -174,11 +178,9 @@ prob = DDEProblem(malaria_delay_model, u0_delay, [], hist, tspan, params)
 alg = MethodOfSteps(Tsit5())
 sol = solve(prob, alg)
 
-plot(
-    sol, lw=2,
-    title = "Ross-Macdonald malaria model",
-    label=["non-infectious mosquito population" "infectious mosquito population" "host population"],
-    xlabel = "Time", ylabel = "Proportion infectious"
+plot(sol, label=["non-infectious mosquito population" "infectious mosquito population" "host population"],
+    lw=2, title = "Ross-Macdonald malaria model",
+    xlabel = "time", ylabel = "proportion infectious"
 )
 
 # While the equilibrium points of the two models are identical, they exhibit different dynamical behavior 

@@ -1,12 +1,11 @@
 module UWDDynam
 using Catlab
-using Catlab.WiringDiagrams
+using Catlab.WiringDiagrams, Catlab.Programs
 using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 using Catlab.Theories
 
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
-using Catlab.Programs.RelationalPrograms: _RelationDiagram
 import Catlab.WiringDiagrams: oapply, ports
 
 using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
@@ -309,7 +308,7 @@ end
 ### Helper functions for `oapply`
 
 induced_ports(d::AbstractUWD) = nparts(d, :OuterPort)
-induced_ports(d::_RelationDiagram) = subpart(d, [:outer_junction, :variable])
+induced_ports(d::RelationDiagram) = subpart(d, [:outer_junction, :variable])
 
 ### Returns a pushout where the left leg is the union of all primitive states 
 function induced_states(d::AbstractUWD, xs::Vector{R}) where {R <: AbstractResourceSharer}

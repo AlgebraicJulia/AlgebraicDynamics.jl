@@ -6,12 +6,11 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
-import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface
+import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface, trajectory
 
-using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
-import OrdinaryDiffEq: ODEProblem
+using OrdinaryDiffEq, DelayDiffEq
+import OrdinaryDiffEq: ODEProblem, DiscreteProblem
 import DelayDiffEq: DDEProblem
-import DynamicalSystems: DiscreteDynamicalSystem
 using Plots
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
@@ -199,18 +198,18 @@ Evaluates the dynamics of the machine `m` at state `u`, parameters `p`, and time
 
 The length of `xs` must equal the number of inputs to `m`.
 """
-eval_dynamics(f::DelayMachine, u::AbstractVector, xs::AbstractVector, h::Function, p=nothing, t=0) = begin
+eval_dynamics(f::DelayMachine, u, xs, h, p=nothing, t=0) = begin
     ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
-    dynamics(f)(u, xs, h, p, t)
+    dynamics(f)(collect(u), collect(xs), h, p, t)
 end
 
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector, p=nothing, t=0) = begin
+eval_dynamics(f::AbstractMachine, u, xs, p=nothing, t=0) = begin
     ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
-    dynamics(f)(u, xs, p, t)
+    dynamics(f)(collect(u), collect(xs), p, t)
 end
 
-eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
-    eval_dynamics(f, collect(u), collect(xs), args...)
+# eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
+#     eval_dynamics(f, collect(u), collect(xs), args...)
 
 eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
     eval_dynamics(f, u, [x(t) for x in xs], p, t)
@@ -243,58 +242,49 @@ euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
 
 # Integration with ODEProblem in OrdinaryDiffEq.jl
 
-"""    ODEProblem(m::ContinuousMachine, xs::Vector, u0::Vector, tspan)
+"""    ODEProblem(m::ContinuousMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
 Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`.
 """
-ODEProblem(m::ContinuousMachine, u0::AbstractVector, xs::AbstractVector, tspan::Tuple{Real, Real}, p=nothing)  = 
-    ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p)
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
+    ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
   
-ODEProblem(m::ContinuousMachine, u0::AbstractVector, x, tspan::Tuple{Real, Real}, p=nothing) = 
-    ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p)
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
+    ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) where T = 
-    ODEProblem(m, u0, T[], tspan, p)
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T = 
+    ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan)
+"""    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan, p = nothing; kwargs...)
 """
-DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, h, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
-    DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, h, tspan, p; kwargs...)
+DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
+    DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
-"""    DiscreteDynamicalSystem(m::DiscreteMachine, xs::Vector, u0::Vector, p)
+"""    DiscreteProblem(m::DiscreteMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
 Constructs an DiscreteDynamicalSystem from the equation of motion defined by 
 `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`. Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteDynamicalSystem(m::DiscreteMachine, u0::AbstractVector, x,  p; t0::Int = 0) = 
-  DiscreteDynamicalSystem(m, u0, collect(repeated(x, ninputs(m))), p; t0=t0)
-  
-DiscreteDynamicalSystem(m::DiscreteMachine{T}, u0::AbstractVector, xs::AbstractVector, p; t0::Int = 0) where T = begin
-  if nstates(m) == 1
-    DiscreteDynamicalSystem1d(m, u0[1], xs, p; t0=t0)
-  else
-    !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-    DiscreteDynamicalSystem(
-        (u,p,t) -> SVector{nstates(m)}(eval_dynamics(m, u, xs, p, t)), 
-        u0, p; t0=t0)
-  end
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) = 
+    DiscreteProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
+
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) = 
+  DiscreteProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
+
+DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 
+    DiscreteProblem(m, u0, T[], tspan, p; kwargs...)
+
+"""    trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, p, nsteps::Int; dt::Int = 1)
+
+Evolves the machine `m` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`. Any inputs to `m` are determied by `xs`. If `m` has no inputs then you can omit `xs`.
+"""
+function trajectory(m::DiscreteMachine, u0::AbstractVector, xs,  p, T::Int; dt::Int= 1) 
+  prob = DiscreteProblem(m, u0, xs, (0, T), p)
+  sol = solve(prob, FunctionMap(); dt = dt)
+  return sol.u
 end
-
-DiscreteDynamicalSystem(m::DiscreteMachine, u0::Real, xs::AbstractVector, p; t0::Int = 0) = 
-  DiscreteDynamicalSystem1D(m, u0, xs, p; t0=t0) 
-
-# if the system is 1D then the state must be represented by a number NOT by a 1D array
-DiscreteDynamicalSystem1d(m::DiscreteMachine{T}, u0::Real, xs::AbstractVector, p; t0::Int = 0) where T = begin
-  nstates(m) == 1 || error("The machine must have exactly 1 state")
-  !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-  DiscreteDynamicalSystem(
-      (u,p,t) -> eval_dynamics(m, [u], xs, p, t)[1], 
-      u0, p; t0=t0)
-end
-
-DiscreteDynamicalSystem(m::DiscreteMachine, u0, p; t0::Int = 0) = 
-    DiscreteDynamicalSystem(m, u0, [], p; t0 = t0)
+    
 
 ### Plotting backend
 @recipe function f(sol, m::AbstractMachine, p=nothing)
@@ -372,7 +362,7 @@ end
 
 function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:DelayMachine{T,I}}
 
-    function v(u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real) 
+    function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real) 
         states = destruct(S, u) # a list of the states by box
         hists = destruct(S, h)
         readouts = get_readouts(ms, states, hists, p, t)
@@ -421,7 +411,7 @@ destruct(C::Colimit, xs::FinDomFunction) = map(1:length(C)) do i
 end
 destruct(C::Colimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
 
-destruct(C::Colimit, h::Function) = map(1:length(C)) do i 
+destruct(C::Colimit, h) = map(1:length(C)) do i 
     (p,t) -> destruct(C, h(p,t))[i]
 end
 

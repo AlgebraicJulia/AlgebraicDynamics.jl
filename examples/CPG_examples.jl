@@ -13,7 +13,6 @@ using Catlab.Theories
 using Catlab.CategoricalAlgebra
 
 using OrdinaryDiffEq
-using DynamicalSystems
 using Plots, Plots.PlotMeasures
 
 using PrettyTables
@@ -56,20 +55,18 @@ threecity = oapply(d₂, [boundary,middle,boundary])
 u0 = [100,1,0,100,0,0,100,0,0.0]
 
 h = 0.01
-nsteps = 100
-
+tspan = (0.0, 1.0)
 threecity_approx = euler_approx(threecity, h)
-traj = trajectory(threecity_approx, u0, [], nothing, nsteps)
+prob = DiscreteProblem(threecity_approx, u0, [], tspan, nothing)
+sol = solve(prob, FunctionMap(); dt = h)
 
-map(traj) do u
+map(sol) do u
     return (i1=u[2], i2=u[5], i3=u[8])
 end |> pretty_table
 
 # Next, we will solve the continuous system and plot the results. Over time the infected populations increase and the susceptible populations decrease. The delays in the plots illustrate how the disease spreads from city 1 to city 2 and then from city 2 to city 3.
 
 ## Solve and plot
-tspan = (0.0, 1.0)
-
 prob = ODEProblem(threecity, u0, tspan)
 sol = solve(prob, Tsit5(); dtmax = 0.01)
 
@@ -102,7 +99,9 @@ automaton = oapply(row, rule)
 u0 = zeros(Int, n); u0[Int(n/2)] = 1
 
 rule_number = 126
-traj = trajectory(automaton, u0, [0,0], rule_number, 100)
-spy(Matrix(traj))
+tspan = (0.0, 100.0)
+prob = DiscreteProblem(automaton, u0, [0,0], tspan, rule_number)
+sol = solve(prob, FunctionMap())
+spy(transpose(reduce(hcat, sol.u)))
 
 

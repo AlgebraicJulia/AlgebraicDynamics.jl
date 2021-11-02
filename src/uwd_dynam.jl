@@ -8,10 +8,9 @@ using Catlab.Theories
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports
 
-using OrdinaryDiffEq, DynamicalSystems, DelayDiffEq
-import OrdinaryDiffEq: ODEProblem
+using OrdinaryDiffEq, DelayDiffEq
+import OrdinaryDiffEq: ODEProblem, DiscreteProblem
 import DelayDiffEq: DDEProblem
-import DynamicalSystems: DiscreteDynamicalSystem
 using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
@@ -162,8 +161,8 @@ Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p`, 
 
 Omitting `t` and `p` is allowed if the dynamics of `r` does not depend on them.
 """
-eval_dynamics(r::DelayResourceSharer, u::AbstractVector, h::Function, p, t::Real) = dynamics(r)(u, h, p, t)
-eval_dynamics!(du, r::DelayResourceSharer, u::AbstractVector, h::Function, p, t::Real) = begin
+eval_dynamics(r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = dynamics(r)(u, h, p, t)
+eval_dynamics!(du, r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = begin
     du .= eval_dynamics(r, u, h, p, t)
 end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = dynamics(r)(u, p, t)
@@ -208,38 +207,32 @@ euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResource
 
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
-ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan::Tuple{Real, Real}, p=nothing) = 
-    ODEProblem(dynamics(r), u0, tspan, p)
+ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) = 
+    ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
 
-"""    DDEProblem(r::DelayResourceSharer, u0::Vector, h::Function, tspan)
+"""    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
 
 Constructs an DDEProblem from the vector field defined by `r.dynamics(u,h,p,t)`.
 """
-DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h::Function, tspan::Tuple{Real, Real}, p=nothing; kwargs...) = 
-    DDEProblem((u,h,p,t) -> eval_dynamics(r, u, h, p, t), u0, h, tspan, p; kwargs...)
+DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
+    DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
     
-"""    DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Vector, p)
+"""    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a DiscreteDynamicalSystem from the equation of motion `r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteDynamicalSystem(r::DiscreteResourceSharer{T}, u0::AbstractVector, p; t0::Int = 0) where T = begin
-    if nstates(r) == 1
-      DiscreteDynamicalSystem1d(r, u0[1], p; t0 = t0)
-    else
-      !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-      DiscreteDynamicalSystem((u,p,t) -> SVector{nstates(r)}(eval_dynamics(r,u,p,t)), u0, p; t0=t0)
-    end
-  end
-  
-  DiscreteDynamicalSystem(r::DiscreteResourceSharer, u0::Real, p; t0::Int = 0) = 
-    DiscreteDynamicalSystem1d(r, u0, p; t0 = t0) 
-  
-  # if the system is 1D then the state must be represented by a number NOT by a 1D array
-  DiscreteDynamicalSystem1d(r::DiscreteResourceSharer{T}, u0::Real, p; t0::Int = 0) where T = begin
-    nstates(r) == 1 || error("The resource sharer must have exactly 1 state")
-    !(T <: AbstractFloat) || error("Cannot construct a DiscreteDynamicalSystem if the type is a float")
-    DiscreteDynamicalSystem((u,p,t) -> eval_dynamics(r,[u],p,t)[1], u0, p; t0 = t0)
-  end
+DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
+    DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
+    
+"""    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
+
+Evolves the resouce sharer `r` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`.
+"""
+function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1)
+  prob = DiscreteProblem(r, u0, (0, T), p)
+  sol = solve(problem, FunctionMap(); dt = dt)
+  return sol.xs
+end
 
 ### Plotting backend
 @recipe function f(sol, r::ResourceSharer)

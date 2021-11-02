@@ -111,7 +111,7 @@ function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:A
 end
 
 function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T, I}}
-    function v(u::AbstractVector, xs::AbstractVector, h::Function, p, t::Real)
+    function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real)
         states = destruct(S, u)
         hists = destruct(S, h)
         readins = unit(I, nparts(d, :Port)) # in port order 

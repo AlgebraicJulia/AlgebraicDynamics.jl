@@ -24,9 +24,9 @@ tspan = (0.0, 100.0)
 prob = ODEProblem(r, u0, tspan)
 @test prob isa ODEProblem
 sol = solve(prob, Tsit5())
-for i in 1:length(sol.t)
-  @test sol[i] == u0
-end
+@test reduce(*, map(1:length(sol.t)) do i 
+  sol[i] == u0
+end)
 
 u0 = [.1, 10.0]
 prob = ODEProblem(r, u0, tspan)
@@ -37,57 +37,41 @@ sol = solve(prob, Tsit5())
 
 h = 0.2
 dr = euler_approx(r, h)
-dds = DiscreteDynamicalSystem(dr, u0, nothing) # nothing because no parameters
-t = trajectory(dds, 100)
-s = trajectory(dr, u0, nothing, 100)
-@test t==s
+dds = DiscreteProblem(dr, u0, tspan, nothing) # nothing because no parameters
+t = solve(dds, FunctionMap())
 @test approx_equal(last(t), [1.0, 2.0])
 
 
 
 dr = DiscreteResourceSharer{Real}(1, (u,p,t) -> dy(u))
 u0 = [1.0]
-dds = DiscreteDynamicalSystem(dr, u0[1], nothing)
-t = trajectory(dds, 100)
-for i in 1:length(t)
-  @test t[i] == i%2
-end
-s = trajectory(dr, u0, nothing, 100)
-@test t == s
-
-dds = DiscreteDynamicalSystem(dr, u0, nothing)
-t = trajectory(dds, 100)
-for i in 1:length(t)
-  @test t[i] == i%2
-end
-@test t == s
-
-s = trajectory(dr, u0, nothing, 100; dt = 2)
-for i in 1:length(s)
-  @test s[i] == 1.0
-end
+dds = DiscreteProblem(dr, u0, tspan, nothing)
+t = solve(dds, FunctionMap())
+@test reduce(*, map(1:length(sol.t)) do i 
+  t[i][1] == i%2 
+end)
 
 
 # Machine tests
 uf(u, x, p, t) = [x[1] - u[1]*x[2]]
 rf(u,p,t) = u
 u0 = [1.0]
-m = ContinuousMachine{Any}(2,1, 1, uf, rf)
+m = ContinuousMachine{Float64}(2,1, 1, uf, rf)
 xs = [t -> 1, t -> 1]
 prob = ODEProblem(m, u0, xs, tspan)
 @test prob isa ODEProblem
 
 sol = solve(prob, Tsit5())
-for i in 1:length(sol.t)
-  @test sol[i] == u0
-end
+@test reduce(*, map(1:length(sol.t)) do i
+  sol[i] == u0
+end)
 
 xs = t->t
 prob = ODEProblem(m, u0, xs, tspan)
 sol = solve(prob, Tsit5())
-for i in 1:length(sol.t)
-  @test sol[i] == u0
-end
+@test reduce(*, map(1:length(sol.t)) do i
+    sol[i] == u0
+  end)
 
 xs = [2, 1]
 prob = ODEProblem(m, u0, xs, tspan)
@@ -95,12 +79,10 @@ sol = solve(prob, Tsit5())
 @test approx_equal(last(sol), [2.0])
 
 dm = euler_approx(m,h)
-s = trajectory(dm, u0, xs, nothing, 100)
-@test approx_equal([last(s)], [2.0])
+prob = DiscreteProblem(dm, u0, xs, (0, 100.0), nothing)
+s = solve(prob, FunctionMap())
+@test approx_equal(last(s), [2.0])
 
-dds = DiscreteDynamicalSystem(dm, u0, xs, nothing)
-t = trajectory(dds, 100)
-@test s==t
 
 # machines - oapply
 uf(u, x, p, t) = [x[1] - u[1], 0.0]
@@ -144,17 +126,19 @@ u0 = [10.0, 100.0]
 prob = ODEProblem(lv, u0, tspan, params)
 sol = solve(prob, Tsit5())
 
-for i in 1:length(sol.t)
-  @test ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
-end
+@test reduce(*, map(1:length(sol.t)) do i 
+  ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
+end)
 
+h = 0.01
 lv_discrete = oapply(rf_pattern, euler_approx([r, rf_pred, f], h))
-dds = DiscreteDynamicalSystem(lv_discrete, u0, params)
-@test trajectory(dds, 100) == trajectory(lv_discrete, u0, params, 100)
+dds = DiscreteProblem(lv_discrete, u0, (0,100.0), params)
+sol2 = solve(dds, FunctionMap(); dt = h)
+@test reduce(*, map(1:length(sol.t)) do i 
+  ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
+end)
 
 # as machines
-
-
 dotr(u, x, p, t) = [p[1]*u[1] - p[2]*u[1]*x[1]]
 dotf(u, x, p, t) = [p[3]*u[1]*x[1] - p[4]*u[1]]
 
@@ -175,15 +159,17 @@ params = [0.3, 0.015, 0.015, 0.7]
 rf_machine = oapply(rf_pattern, [rmachine, fmachine])
 prob = ODEProblem(rf_machine, u0, tspan, params)
 sol = solve(prob, Tsit5(); dtmax = .1)
-for i in 1:length(sol.t)
-  @test ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
-end
+@test reduce(*, map(1:length(sol.t)) do i 
+  ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
+end)
 
+h = 0.005
 lv_discrete = oapply(rf_pattern, euler_approx([rmachine, fmachine], h))
-dds = DiscreteDynamicalSystem(lv_discrete,  u0, params)
-t = trajectory(dds, 100)
-s = trajectory(lv_discrete, u0, params, 100)
-@test t == s
+dds = DiscreteProblem(lv_discrete, u0, (0.0, 10.0),params)
+sol = solve(dds, FunctionMap(); dt = h)
+@test reduce(*, map(1:length(sol.t)) do i 
+  ( 0 < sol[i][1] < 200.0 ) && (0 < sol[i][2] < 150.0) 
+end)
 
 
 # ocean
@@ -213,11 +199,13 @@ u0 = [100.0, 10.0, 2.0]
 ocean = oapply(ocean_pat, [fish, FISH, sharks])
 prob = ODEProblem(ocean, u0, tspan, params)
 sol = solve(prob, Tsit5(); dtmax = 0.1)
-for i in 1:length(sol.t)
-  @test 0 < sol[i][1] < 200.0 && (0 < sol[i][2] < 75) && (0 < sol[i][3] < 20)
-end
+@test reduce(*, map(1:length(sol.t)) do i 
+  0 < sol[i][1] < 200.0 && (0 < sol[i][2] < 75) && (0 < sol[i][3] < 20)
+end)
 
-dds = DiscreteDynamicalSystem(euler_approx(ocean, h), u0, params)
-t = trajectory(dds, 100)
-s = trajectory(euler_approx(ocean, h), u0, params, 100)
-@test s == t
+h = 0.01
+dds = DiscreteProblem(euler_approx(ocean, h), u0, (0.0, 10.0), params)
+sol = solve(dds, FunctionMap(), dt = h)
+@test reduce(*, map(1:length(sol.t)) do i 
+  0 < sol[i][1] < 200.0 && (0 < sol[i][2] < 75) && (0 < sol[i][3] < 20)
+end)

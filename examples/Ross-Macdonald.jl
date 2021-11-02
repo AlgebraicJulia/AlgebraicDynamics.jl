@@ -118,7 +118,8 @@ sol = solve(prob, Tsit5());
 
 plot(sol, malaria_model,
     lw=2, title = "Ross-Macdonald Malaria model", 
-    xlabel = "time", ylabel = "proportion infectious"
+    xlabel = "time", ylabel = "proportion infectious",
+    color = ["magenta" "blue"]
 )
 
 ## Plot the equilibrium behavior as well
@@ -128,8 +129,8 @@ X̄ = (R0 - 1)/(R0 + (a*c)/g)
 Z̄ = (a*c*X̄)/(g + a*c*X̄)*exp(-g*n)
 
 N = length(sol)
-plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2)
-plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2)
+plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
+plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, color = "magenta")
 
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the
@@ -180,7 +181,8 @@ sol = solve(prob, alg)
 
 plot(sol, label=["non-infectious mosquito population" "infectious mosquito population" "host population"],
     lw=2, title = "Ross-Macdonald malaria model",
-    xlabel = "time", ylabel = "proportion infectious"
+    xlabel = "time", ylabel = "proportion infectious",
+    color = ["magenta" "red" "blue"]
 )
 
 # While the equilibrium points of the two models are identical, they exhibit different dynamical behavior 

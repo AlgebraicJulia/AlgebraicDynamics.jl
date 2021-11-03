@@ -808,10 +808,10 @@ a.has-text-danger:hover, a.has-text-danger:focus {
   background-color: #4a4a4a !important; }
 
 .has-text-grey {
-  color: #6b6b6b !important; }
+  color: #7a7a7a !important; }
 
 .has-background-grey {
-  background-color: #6b6b6b !important; }
+  background-color: #7a7a7a !important; }
 
 .has-text-grey-light {
   color: #b5b5b5 !important; }
@@ -1954,7 +1954,7 @@ a.box:active {
   .button.is-static {
     background-color: whitesmoke;
     border-color: #dbdbdb;
-    color: #6b6b6b;
+    color: #7a7a7a;
     box-shadow: none;
     pointer-events: none; }
   .button.is-rounded, #documenter .docs-sidebar form.docs-search > input.button {
@@ -2862,7 +2862,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
     background-color: whitesmoke;
     border-color: whitesmoke;
     box-shadow: none;
-    color: #6b6b6b; }
+    color: #7a7a7a; }
     .input[disabled]::-moz-placeholder, #documenter .docs-sidebar form.docs-search > input[disabled]::-moz-placeholder, .textarea[disabled]::-moz-placeholder, .select select[disabled]::-moz-placeholder,
     fieldset[disabled] .input::-moz-placeholder,
     fieldset[disabled] #documenter .docs-sidebar form.docs-search > input::-moz-placeholder,
@@ -2870,7 +2870,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
     fieldset[disabled] .textarea::-moz-placeholder,
     fieldset[disabled] .select select::-moz-placeholder,
     .select fieldset[disabled] select::-moz-placeholder {
-      color: rgba(107, 107, 107, 0.3); }
+      color: rgba(122, 122, 122, 0.3); }
     .input[disabled]::-webkit-input-placeholder, #documenter .docs-sidebar form.docs-search > input[disabled]::-webkit-input-placeholder, .textarea[disabled]::-webkit-input-placeholder, .select select[disabled]::-webkit-input-placeholder,
     fieldset[disabled] .input::-webkit-input-placeholder,
     fieldset[disabled] #documenter .docs-sidebar form.docs-search > input::-webkit-input-placeholder,
@@ -2878,7 +2878,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
     fieldset[disabled] .textarea::-webkit-input-placeholder,
     fieldset[disabled] .select select::-webkit-input-placeholder,
     .select fieldset[disabled] select::-webkit-input-placeholder {
-      color: rgba(107, 107, 107, 0.3); }
+      color: rgba(122, 122, 122, 0.3); }
     .input[disabled]:-moz-placeholder, #documenter .docs-sidebar form.docs-search > input[disabled]:-moz-placeholder, .textarea[disabled]:-moz-placeholder, .select select[disabled]:-moz-placeholder,
     fieldset[disabled] .input:-moz-placeholder,
     fieldset[disabled] #documenter .docs-sidebar form.docs-search > input:-moz-placeholder,
@@ -2886,7 +2886,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
     fieldset[disabled] .textarea:-moz-placeholder,
     fieldset[disabled] .select select:-moz-placeholder,
     .select fieldset[disabled] select:-moz-placeholder {
-      color: rgba(107, 107, 107, 0.3); }
+      color: rgba(122, 122, 122, 0.3); }
     .input[disabled]:-ms-input-placeholder, #documenter .docs-sidebar form.docs-search > input[disabled]:-ms-input-placeholder, .textarea[disabled]:-ms-input-placeholder, .select select[disabled]:-ms-input-placeholder,
     fieldset[disabled] .input:-ms-input-placeholder,
     fieldset[disabled] #documenter .docs-sidebar form.docs-search > input:-ms-input-placeholder,
@@ -2894,7 +2894,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
     fieldset[disabled] .textarea:-ms-input-placeholder,
     fieldset[disabled] .select select:-ms-input-placeholder,
     .select fieldset[disabled] select:-ms-input-placeholder {
-      color: rgba(107, 107, 107, 0.3); }
+      color: rgba(122, 122, 122, 0.3); }
 
 .input, #documenter .docs-sidebar form.docs-search > input, .textarea {
   box-shadow: inset 0 1px 2px rgba(10, 10, 10, 0.1);
@@ -2994,7 +2994,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
   .checkbox[disabled], .radio[disabled],
   fieldset[disabled] .checkbox,
   fieldset[disabled] .radio {
-    color: #6b6b6b;
+    color: #7a7a7a;
     cursor: not-allowed; }
 
 .radio + .radio {
@@ -3122,7 +3122,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
   .select.is-large {
     font-size: 1.5rem; }
   .select.is-disabled::after {
-    border-color: #6b6b6b; }
+    border-color: #7a7a7a; }
   .select.is-fullwidth {
     width: 100%; }
     .select.is-fullwidth select {
@@ -3630,7 +3630,7 @@ a.tag:hover, .docstring > section > a.docs-sourcelink:hover {
   .control.has-icons-left .input:focus ~ .icon, .control.has-icons-left #documenter .docs-sidebar form.docs-search > input:focus ~ .icon, #documenter .docs-sidebar .control.has-icons-left form.docs-search > input:focus ~ .icon,
   .control.has-icons-left .select:focus ~ .icon, .control.has-icons-right .input:focus ~ .icon, .control.has-icons-right #documenter .docs-sidebar form.docs-search > input:focus ~ .icon, #documenter .docs-sidebar .control.has-icons-right form.docs-search > input:focus ~ .icon,
   .control.has-icons-right .select:focus ~ .icon {
-    color: #6b6b6b; }
+    color: #7a7a7a; }
   .control.has-icons-left .input.is-small ~ .icon, .control.has-icons-left #documenter .docs-sidebar form.docs-search > input ~ .icon, #documenter .docs-sidebar .control.has-icons-left form.docs-search > input ~ .icon,
   .control.has-icons-left .select.is-small ~ .icon,
   .control.has-icons-left #documenter .docs-sidebar form.docs-search > input.select ~ .icon,
@@ -4021,7 +4021,7 @@ a.list-item {
     padding-left: 0.75em; }
 
 .menu-label {
-  color: #6b6b6b;
+  color: #7a7a7a;
   font-size: 0.75em;
   letter-spacing: 0.1em;
   text-transform: uppercase; }
@@ -5130,7 +5130,7 @@ a.navbar-item,
     background-color: #dbdbdb;
     border-color: #dbdbdb;
     box-shadow: none;
-    color: #6b6b6b;
+    color: #7a7a7a;
     opacity: 0.5; }
 
 .pagination-previous,
@@ -5267,7 +5267,7 @@ label.panel-block {
   text-align: center;
   vertical-align: top;
   width: 1em;
-  color: #6b6b6b;
+  color: #7a7a7a;
   margin-right: 0.75em; }
   .panel-icon .fa {
     font-size: inherit;
@@ -7234,11 +7234,7 @@ h1:hover .docs-heading-anchor-permalink, h2:hover .docs-heading-anchor-permalink
       position: absolute;
       right: 0.625rem;
       bottom: 0.5rem; }
-      .docstring > section > a.docs-sourcelink:focus {
-        opacity: 1 !important; }
   .docstring:hover > section > a.docs-sourcelink {
-    opacity: 0.2; }
-  .docstring:focus-within > section > a.docs-sourcelink {
     opacity: 0.2; }
   .docstring > section:hover a.docs-sourcelink {
     opacity: 1; }
@@ -7314,9 +7310,6 @@ pre, code {
 html {
   -moz-osx-font-smoothing: auto;
   -webkit-font-smoothing: auto; }
-
-li.no-marker {
-  list-style: none; }
 
 /* This file contain the overall layout.
  *
@@ -7636,7 +7629,7 @@ li.no-marker {
   color: #007989; }
 
 .ansi span.sgr37 {
-  color: gray; }
+  color: #8f8f8f; }
 
 .ansi span.sgr40 {
   background-color: #242424; }
@@ -7660,10 +7653,10 @@ li.no-marker {
   background-color: #007989; }
 
 .ansi span.sgr47 {
-  background-color: gray; }
+  background-color: #8f8f8f; }
 
 .ansi span.sgr90 {
-  color: #616161; }
+  color: #707070; }
 
 .ansi span.sgr91 {
   color: #cb3c33; }
@@ -7687,7 +7680,7 @@ li.no-marker {
   color: whitesmoke; }
 
 .ansi span.sgr100 {
-  background-color: #616161; }
+  background-color: #707070; }
 
 .ansi span.sgr101 {
   background-color: #cb3c33; }

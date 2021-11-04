@@ -188,9 +188,8 @@ show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(nstates(vf)) ×
 eltype(::AbstractMachine{T}) where T = T
 
 
-readout(f::DelayMachine, u::AbstractVector, h = nothing, p = nothing, t = 0) = readout(f)(u, h, p, t)
-readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
-readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
+readout(f::DelayMachine, u, h = nothing, p = nothing, t = 0) = readout(f)(collect(u), h, p, t)
+readout(f::AbstractMachine, u, p = nothing, t = 0) = readout(f)(collect(u), p, t)
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs:AbstractVector, p, t)
 
@@ -246,18 +245,18 @@ euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
 
 Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`.
 """
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
+ODEProblem(m::ContinuousMachine{T}, u0, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
     ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
   
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
+ODEProblem(m::ContinuousMachine{T}, u0, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
     ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T = 
+ODEProblem(m::ContinuousMachine{T}, u0, tspan, p=nothing; kwargs...) where T = 
     ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
 """    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan, p = nothing; kwargs...)
 """
-DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
+DDEProblem(m::DelayMachine, u0, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
@@ -266,10 +265,10 @@ DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan,
 Constructs an DiscreteDynamicalSystem from the equation of motion defined by 
 `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`. Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0, xs::AbstractVector, tspan, p; kwargs...) = 
     DiscreteProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0, x, tspan, p; kwargs...) = 
   DiscreteProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
 DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 

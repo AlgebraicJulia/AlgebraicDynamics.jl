@@ -43,8 +43,8 @@ noutputs(interface::AbstractDirectedInterface) = length(output_ports(interface))
 
 ndims(::DirectedVectorInterface{T, N}) where {T,N} = N
 
-unit(::Type{I}, dims) where {T, I<:AbstractDirectedInterface{T}} = zeros(T, dims)
-unit(::Type{DirectedVectorInterface{T,N}}, dims) where {T, N} = fill(zeros(T, N), dims)
+unit(::Type{I}, shape) where {T, I<:AbstractDirectedInterface{T}} = fill(zero(T), shape)
+unit(::Type{DirectedVectorInterface{T,N}}, shape) where {T, N} = fill(zeros(T, N), shape)
 
 
 ### Dynamics
@@ -188,9 +188,8 @@ show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(nstates(vf)) ×
 eltype(::AbstractMachine{T}) where T = T
 
 
-readout(f::DelayMachine, u::AbstractVector, h = nothing, p = nothing, t = 0) = readout(f)(u, h, p, t)
-readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
-readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
+readout(f::DelayMachine, u, h = nothing, p = nothing, t = 0) = readout(f)(collect(u), h, p, t)
+readout(f::AbstractMachine, u, p = nothing, t = 0) = readout(f)(collect(u), p, t)
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs:AbstractVector, p, t)
 
@@ -198,20 +197,21 @@ Evaluates the dynamics of the machine `m` at state `u`, parameters `p`, and time
 
 The length of `xs` must equal the number of inputs to `m`.
 """
+
 eval_dynamics(f::DelayMachine, u, xs, h, p=nothing, t=0) = begin
-    ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
+    #ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
     dynamics(f)(collect(u), collect(xs), h, p, t)
 end
 
 eval_dynamics(f::AbstractMachine, u, xs, p=nothing, t=0) = begin
-    ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
+    #ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
     dynamics(f)(collect(u), collect(xs), p, t)
 end
 
 # eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
 #     eval_dynamics(f, collect(u), collect(xs), args...)
 
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
+eval_dynamics(f::AbstractMachine, u, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
     eval_dynamics(f, u, [x(t) for x in xs], p, t)
 
 """    euler_approx(m::ContinuousMachine, h)
@@ -246,18 +246,18 @@ euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
 
 Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`.
 """
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
+ODEProblem(m::ContinuousMachine{T}, u0, xs, tspan, p=nothing; kwargs...)  where T= 
     ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
   
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
+ODEProblem(m::ContinuousMachine{T}, u0, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
     ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T = 
+ODEProblem(m::ContinuousMachine{T}, u0, tspan::Tuple, p=nothing; kwargs...) where T = 
     ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
 """    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan, p = nothing; kwargs...)
 """
-DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
+DDEProblem(m::DelayMachine, u0, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
@@ -266,10 +266,10 @@ DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan,
 Constructs an DiscreteDynamicalSystem from the equation of motion defined by 
 `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`. Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0, xs::AbstractVector, tspan, p; kwargs...) = 
     DiscreteProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0, x, tspan, p; kwargs...) = 
   DiscreteProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
 DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 
@@ -347,26 +347,27 @@ end
 
 function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:AbstractMachine{T,I}}
 
-    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
+    function v(u, xs, p, t)  
         states = destruct(S, u) # a list of the states by box
         readouts = get_readouts(ms, states, p, t)
-        readins = unit(I, length(apex(Inputs)))
+        readin_shape = u isa AbstractVector ? length(apex(Inputs)) : (length(apex(Inputs)), size(u,2))
+        readins = unit(I, readin_shape)
         fill_readins!(readins, d, Inputs, readouts, xs)
 
         reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
             eval_dynamics(ms[i], states[i], x, p, t)
         end)
     end 
-
 end
 
 function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:DelayMachine{T,I}}
 
-    function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real) 
+    function v(u, xs, h, p, t) 
         states = destruct(S, u) # a list of the states by box
         hists = destruct(S, h)
         readouts = get_readouts(ms, states, hists, p, t)
-        readins = unit(I, length(apex(Inputs)))
+        readin_shape = u isa AbstractVector ? length(apex(Inputs)) : (length(apex(Inputs)), size(u,2))
+        readins = unit(I, readin_shape)
         fill_readins!(readins, d, Inputs, readouts, xs)
 
         reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
@@ -376,20 +377,22 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I
 end 
     
 function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T,I}}
-    function r(u::AbstractVector, p, t)
+    function r(u, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)
-        outputs = unit(I, length(output_ports(d)))
+        readout_shape = u isa AbstractVector ? length(output_ports(d)) : (length(output_ports(d)), size(u,2))
+        outputs = unit(I, readout_shape)
         fill_outputs!(outputs, d, readouts)
     end
 end
 
 function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T,I}}
-    function r(u::AbstractVector, h, p, t)
+    function r(u, h, p, t)
         states = destruct(S, u)
         hists = destruct(S, h)
         readouts = get_readouts(ms, states, hists, p, t)
-        outputs = unit(I, length(output_ports(d)))
+        readout_shape = u isa AbstractVector ? length(output_ports(d)) : (length(output_ports(d)), size(u,2))
+        outputs = unit(I, readout_shape)
         fill_outputs!(outputs, d, readouts)
     end
 end
@@ -406,10 +409,13 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 end
 
 
-destruct(C::Colimit, xs::FinDomFunction) = map(1:length(C)) do i 
-    collect(compose(legs(C)[i], xs))
+destruct(C::Colimit, xs::AbstractVector) = map(1:length(C)) do i 
+  xs[legs(C)[i].func]
 end
-destruct(C::Colimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
+
+destruct(C::Colimit, xs::AbstractMatrix) = map(1:length(C)) do i 
+  xs[legs(C)[i].func, :]
+end
 
 destruct(C::Colimit, h) = map(1:length(C)) do i 
     (p,t) -> destruct(C, h(p,t))[i]
@@ -425,12 +431,11 @@ end
 
 
 function fill_readins!(readins, d::WiringDiagram, Inputs::Colimit, readouts, xs) 
-
     for w in wires(d, :Wire)
-        readins[legs(Inputs)[w.target.box](w.target.port)] += readouts[w.source.box][w.source.port]
+        readins[legs(Inputs)[w.target.box](w.target.port), :] += readouts[w.source.box][w.source.port, :]
     end
     for w in wires(d, :InWire)
-        readins[legs(Inputs)[w.target.box](w.target.port)] += xs[w.source.port]
+        readins[legs(Inputs)[w.target.box](w.target.port), :] += xs[w.source.port, :]
     end
     
     return readins
@@ -440,7 +445,7 @@ end
 function fill_outputs!(outs, d::WiringDiagram, readouts) 
 
     for w in wires(d, :OutWire)
-        outs[w.target.port] += readouts[w.source.box][w.source.port]
+        outs[w.target.port, :] += readouts[w.source.box][w.source.port, :]
     end
 
     return outs

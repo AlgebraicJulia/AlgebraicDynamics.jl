@@ -133,7 +133,7 @@ DelayResourceSharer{T}(nports, nstates, dynamics, portmap) where {T}=
   DelayResourceSharer{T}(UndirectedInterface{T}(nports), DelayUndirectedSystem{T}(nstates, dynamics, portmap))
 
 DelayResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
-    DelayResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
+    DelayResourceSharer{T}(nstates, nstates, dynamics, 1:nstates)
 
 """ 
 
@@ -153,7 +153,7 @@ DiscreteResourceSharer{T}(nports, nstates, dynamics, portmap) where {T}=
   DiscreteResourceSharer{T}(UndirectedInterface{T}(nports), DiscreteUndirectedSystem{T}(nstates, dynamics, portmap))
 
 DiscreteResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
-    DiscreteResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
+    DiscreteResourceSharer{T}(nstates, nstates, dynamics, 1:nstates)
 
 """    eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t)
 
@@ -161,16 +161,16 @@ Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p`, 
 
 Omitting `t` and `p` is allowed if the dynamics of `r` does not depend on them.
 """
-eval_dynamics(r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = dynamics(r)(u, h, p, t)
-eval_dynamics!(du, r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = begin
+eval_dynamics(r::DelayResourceSharer, u, h, p, t) = dynamics(r)(u, h, p, t)
+eval_dynamics!(du, r::DelayResourceSharer, u, h, p, t) = begin
     du .= eval_dynamics(r, u, h, p, t)
 end
-eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = dynamics(r)(u, p, t)
-eval_dynamics!(du, r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = begin
+eval_dynamics(r::AbstractResourceSharer, u, p, t) = dynamics(r)(u, p, t)
+eval_dynamics!(du, r::AbstractResourceSharer, u, p, t) = begin
     du .= eval_dynamics(r, u, p, t)
 end
-eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u, [], 0)
-eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
+eval_dynamics(r::AbstractResourceSharer, u) = eval_dynamics(r, u, [], 0)
+eval_dynamics(r::AbstractResourceSharer, u, p) = eval_dynamics(r, u, p, 0)
 
 show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed ports")
 show(io::IO, vf::DelayResourceSharer) = print("DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed ports")
@@ -181,7 +181,7 @@ eltype(r::AbstractResourceSharer{T}) where T = T
 
 Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method with step size `h`. If the dynamics of `r` is given by ``\\dot{u}(t) = f(u(t),p,t)`` the the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, p, t)``.
 """
-euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
+euler_approx(f::ContinuousResourceSharer{T}, h::Real) where T = DiscreteResourceSharer{T}(
         nports(f), nstates(f), 
         (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
         portmap(f)
@@ -207,28 +207,28 @@ euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResource
 
 Constructs an ODEProblem from the vector field defined by `r.dynamics(u,p,t)`.
 """
-ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) = 
+ODEProblem(r::ContinuousResourceSharer, u0, tspan, p=nothing; kwargs...) = 
     ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
 
 """    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
 
 Constructs an DDEProblem from the vector field defined by `r.dynamics(u,h,p,t)`.
 """
-DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
+DDEProblem(r::DelayResourceSharer, u0, h, tspan, p=nothing; kwargs...) = 
     DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
     
 """    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a DiscreteDynamicalSystem from the equation of motion `r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
+DiscreteProblem(r::DiscreteResourceSharer, u0, tspan, p=nothing; kwargs...) =
     DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
     
 """    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
 
 Evolves the resouce sharer `r` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`.
 """
-function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1)
+function trajectory(r::DiscreteResourceSharer, u0, p, T::Int; dt::Int= 1)
   prob = DiscreteProblem(r, u0, (0, T), p)
   sol = solve(problem, FunctionMap(); dt = dt)
   return sol.xs

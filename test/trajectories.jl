@@ -17,7 +17,7 @@ approx_equal(u, v) = abs(maximum(u - v)) < .1
 dx(x) = [1 - x[1]^2, 2*x[1]-x[2]]
 dy(y) = [1 - y[1]^2]
 
-r = ContinuousResourceSharer{Real}(2, (u,p,t) -> dx(u))
+r = ContinuousResourceSharer{Float64}(2, (u,p,t) -> dx(u))
 
 u0 = [-1.0, -2.0]
 tspan = (0.0, 100.0)
@@ -43,7 +43,7 @@ t = solve(dds, FunctionMap())
 
 
 
-dr = DiscreteResourceSharer{Real}(1, (u,p,t) -> dy(u))
+dr = DiscreteResourceSharer{Float64}(1, (u,p,t) -> dy(u))
 u0 = [1.0]
 dds = DiscreteProblem(dr, u0, tspan, nothing)
 t = solve(dds, FunctionMap())
@@ -109,9 +109,9 @@ dotr(u,p,t) = p[1]*u
 dotrf(u,p,t) = [-p[2]*u[1]*u[2], p[3]*u[1]*u[2]]
 dotf(u,p,t) = -p[4]*u
 
-r = ContinuousResourceSharer{Real}(1, dotr)
-rf_pred = ContinuousResourceSharer{Real}(2, dotrf)
-f = ContinuousResourceSharer{Real}(1, dotf)
+r = ContinuousResourceSharer{Float64}(1, dotr)
+rf_pred = ContinuousResourceSharer{Float64}(2, dotrf)
+f = ContinuousResourceSharer{Float64}(1, dotf)
 
 
 rf_pattern = UWD(0)
@@ -142,8 +142,8 @@ end)
 dotr(u, x, p, t) = [p[1]*u[1] - p[2]*u[1]*x[1]]
 dotf(u, x, p, t) = [p[3]*u[1]*x[1] - p[4]*u[1]]
 
-rmachine = ContinuousMachine{Real}(1,1,1, dotr, (r,p,t) -> r)
-fmachine = ContinuousMachine{Real}(1,1,1, dotf, (f,p,t) -> f)
+rmachine = ContinuousMachine{Float64}(1,1,1, dotr, (r,p,t) -> r)
+fmachine = ContinuousMachine{Float64}(1,1,1, dotf, (f,p,t) -> f)
 
 rf_pattern = WiringDiagram([],[])
 boxr = add_box!(rf_pattern, Box(nothing, [nothing], [nothing]))
@@ -180,9 +180,9 @@ dotfish(f, x, p, t) = [p[1]*f[1] - p[2]*x[1]*f[1]]
 dotFISH(F, x, p, t) = [p[3]*x[1]*F[1] - p[4]*F[1] - p[5]*x[2]*F[1]]
 dotsharks(s, x, p, t) = [-p[7]*s[1] + p[6]*s[1]*x[1]]
 
-fish   = ContinuousMachine{Real}(1,1,1, dotfish,   (f,p,t) ->f)
-FISH   = ContinuousMachine{Real}(2,1,2, dotFISH,   (F,p,t)->[F[1], F[1]])
-sharks = ContinuousMachine{Real}(1,1,1, dotsharks, (s,p,t)->s)
+fish   = ContinuousMachine{Float64}(1,1,1, dotfish,   (f,p,t) ->f)
+FISH   = ContinuousMachine{Float64}(2,1,2, dotFISH,   (F,p,t)->[F[1], F[1]])
+sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, (s,p,t)->s)
 
 ocean_pat = WiringDiagram([], [])
 boxf = add_box!(ocean_pat, Box(nothing, [nothing], [nothing]))

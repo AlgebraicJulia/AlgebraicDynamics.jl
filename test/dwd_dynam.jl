@@ -42,7 +42,7 @@ add_wires!(d_big, Pair[
 
 @testset "ODE Problems" begin
   # Identity 
-  uf(u, x, p, t) = [x[1] - u[1]]
+  uf(u, x, p, t) = x - u
   rf(u, args...) = u
   mf = ContinuousMachine{Float64}(1,1,1, uf, rf)
 
@@ -53,7 +53,7 @@ add_wires!(d_big, Pair[
   @test eval_dynamics(m_id, [x0], [p0]) == [p0 - x0]
   @test readout(m_id, [x0]) == [x0]
 
-  # unfed parameter 
+  # compose 
   m12 = oapply(d12, [mf, mf])
 
   x0 = -1
@@ -62,6 +62,11 @@ add_wires!(d_big, Pair[
   @test eval_dynamics(m12, [x0, y0], [p0]) == [p0 - x0, x0 - y0]
   @test readout(m12, [x0,y0]) == [y0]
 
+  # test batch 
+  batch_size = 10
+  us = reshape(1:(2*batch_size), 2, batch_size)
+  xs = reshape(1:batch_size, 1, batch_size)
+  @test eval_dynamics(m12, us, xs) == (hcat(collect(1:batch_size) .- collect(us[1,:]), collect(us[1,:]) - collect(us[2,:])) |> transpose)
 
   # break and back together
   m = oapply(d_copymerge, Dict(:f => mf))

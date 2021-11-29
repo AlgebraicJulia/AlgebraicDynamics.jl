@@ -17,7 +17,7 @@ export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
 
 using Base.Iterators
-import Base: show, eltype
+import Base: show, eltype, zero
 
 ### Interface
 abstract type AbstractDirectedInterface{T} <: AbstractInterface{T} end
@@ -43,9 +43,9 @@ noutputs(interface::AbstractDirectedInterface) = length(output_ports(interface))
 
 ndims(::DirectedVectorInterface{T, N}) where {T,N} = N
 
-unit(::Type{I}, dims) where {T, I<:AbstractDirectedInterface{T}} = zeros(T, dims)
-unit(::Type{DirectedVectorInterface{T,N}}, dims) where {T, N} = fill(zeros(T, N), dims)
 
+zero(::Type{I}) where {T, I<:AbstractDirectedInterface{T}} = zero(T)
+zero(::Type{DirectedVectorInterface{T,N}}) where {T,N} = zeros(T,N)
 
 ### Dynamics
 abstract type AbstractDirectedSystem{T} end
@@ -315,12 +315,11 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
     end
 
     S = coproduct((FinSet∘nstates).(ms))
-    Inputs = coproduct((FinSet∘ninputs).(ms))
 
     return M(input_ports(d), 
         length(apex(S)),
         output_ports(d), 
-        induced_dynamics(d, ms, S, Inputs), 
+        induced_dynamics(d, ms, S), 
         induced_readout(d, ms, S))
 end
 
@@ -345,32 +344,42 @@ end
 
 ### Helper functions for `oapply`
 
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:AbstractMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:AbstractMachine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
         readouts = get_readouts(ms, states, p, t)
-        readins = unit(I, length(apex(Inputs)))
-        fill_readins!(readins, d, Inputs, readouts, xs)
-
-        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
-            eval_dynamics(ms[i], states[i], x, p, t)
+      
+        reduce(vcat, map(1:nboxes(d)) do i
+          inputs = map(1:length(input_ports(d,i))) do port
+            sum(map(in_wires(d,i,port)) do w
+              ys = w.source.box == input_id(d) ? xs : readouts[w.source.box]
+              ys[w.source.port]
+            end; init = zero(I))
+          end
+          eval_dynamics(ms[i], states[i], inputs, p, t)
         end)
-    end 
-
+    end
 end
 
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, Inputs) where {T,I, M<:DelayMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:DelayMachine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real) 
         states = destruct(S, u) # a list of the states by box
         hists = destruct(S, h)
         readouts = get_readouts(ms, states, hists, p, t)
-        readins = unit(I, length(apex(Inputs)))
-        fill_readins!(readins, d, Inputs, readouts, xs)
 
-        reduce(vcat, map(enumerate(destruct(Inputs, readins))) do (i,x)
-            eval_dynamics(ms[i], states[i], x, hists[i], p, t)
+        reduce(vcat, map(1:nboxes(d)) do i
+
+          inputs = map(1:length(input_ports(d,i))) do port
+            sum(map(in_wires(d,i,port)) do w
+              ys = w.source.box == input_id(d) ? xs : readouts[w.source.box]
+              ys[w.source.port]
+            end; init = zero(I))
+          end
+
+          eval_dynamics(ms[i], states[i],  inputs, hists[i], p, t)
+
         end)
     end
 end 
@@ -379,8 +388,12 @@ function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:Abs
     function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)
-        outputs = unit(I, length(output_ports(d)))
-        fill_outputs!(outputs, d, readouts)
+
+        map(1:length(output_ports(d))) do p
+          sum(map(in_wires(d, output_id(d), p)) do w
+            readouts[w.source.box][w.source.port]
+          end; init = zero(I))
+        end
     end
 end
 
@@ -389,8 +402,12 @@ function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:Del
         states = destruct(S, u)
         hists = destruct(S, h)
         readouts = get_readouts(ms, states, hists, p, t)
-        outputs = unit(I, length(output_ports(d)))
-        fill_outputs!(outputs, d, readouts)
+        
+        map(1:length(output_ports(d))) do p
+          sum(map(in_wires(d, output_id(d), p)) do w
+            readouts[w.source.box][w.source.port]
+          end; init = zero(I))
+        end
     end
 end
 
@@ -415,8 +432,8 @@ destruct(C::Colimit, h) = map(1:length(C)) do i
     (p,t) -> destruct(C, h(p,t))[i]
 end
 
-get_readouts(ms::AbstractArray{M}, states, args...) where {M <: AbstractMachine} = map(enumerate(ms)) do (i, m) 
-    readout(m, states[i], args...)
+get_readouts(ms::AbstractArray{M}, states, p, t) where {M <: AbstractMachine} = map(enumerate(ms)) do (i, m) 
+    readout(m, states[i], p, t)
 end 
 
 get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} = map(enumerate(ms)) do (i, m) 
@@ -424,26 +441,5 @@ get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} 
 end
 
 
-function fill_readins!(readins, d::WiringDiagram, Inputs::Colimit, readouts, xs) 
-
-    for w in wires(d, :Wire)
-        readins[legs(Inputs)[w.target.box](w.target.port)] += readouts[w.source.box][w.source.port]
-    end
-    for w in wires(d, :InWire)
-        readins[legs(Inputs)[w.target.box](w.target.port)] += xs[w.source.port]
-    end
-    
-    return readins
-end
-
-
-function fill_outputs!(outs, d::WiringDiagram, readouts) 
-
-    for w in wires(d, :OutWire)
-        outs[w.target.port] += readouts[w.source.box][w.source.port]
-    end
-
-    return outs
-end
 
 end #module

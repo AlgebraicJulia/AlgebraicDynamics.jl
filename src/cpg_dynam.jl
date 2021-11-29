@@ -11,7 +11,7 @@ using Catlab.Graphics.GraphvizGraphs: to_graphviz
 import Catlab.WiringDiagrams: oapply
 
 using ..DWDDynam
-using ...DWDDynam: AbstractInterface, destruct, unit
+using ...DWDDynam: AbstractInterface, destruct, get_readouts
 import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
 import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 ninputs, noutputs
@@ -87,50 +87,39 @@ end
 
 
 function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
-    function v(u::AbstractVector, xs::AbstractVector, p, t::Real)
+
+    function v(u::AbstractVector, xs::AbstractVector, p, t)
         states = destruct(S, u)
-        readins = unit(I, nparts(d, :Port)) # in port order 
+        port_readouts = get_port_readout(d, ms, states, p, t)
+          
+        reduce(vcat, map(parts(d, :Box)) do i 
+          inputs = map(incident(d, i, :box)) do port
+            sum(map(incident(d, port, :tgt)) do w 
+              port_readouts[d[:src][w]]
+            end; init = sum(xs[incident(d, port, :con)]; init = zero(I)))
+          end
 
-        for (b,m) in enumerate(ms)
-            readouts = readout(m, states[b], p, t)
-            for (i, port) in enumerate(incident(d, b, :box))
-                for w in incident(d, port, :src)
-                    readins[subpart(d, w, :tgt)] += readouts[i]
-                end
-            end
-        end
-
-        for (i,x) in enumerate(xs)
-            readins[subpart(d, i, :con)] += x
-        end
-
-        return reduce(vcat, map(enumerate(ms)) do (b,m)
-            eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), p, t)
+          eval_dynamics(ms[i], collect(states[i]), inputs, p, t)
         end)
+      end
     end
-end
+
+
 
 function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T, I}}
     function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real)
         states = destruct(S, u)
         hists = destruct(S, h)
-        readins = unit(I, nparts(d, :Port)) # in port order 
+        port_readouts = get_port_readout(d, ms, states, hists, p, t)
+          
+        reduce(vcat, map(parts(d, :Box)) do i 
+          inputs = map(incident(d, i, :box)) do port
+            sum(map(incident(d, port, :tgt)) do w 
+              port_readouts[d[:src][w]]
+            end; init = sum(xs[incident(d, port, :con)]; init = zero(I)))
+          end
 
-        for (b,m) in enumerate(ms)
-            readouts = readout(m, states[b], hists[b], p, t)
-            for (i, port) in enumerate(incident(d, b, :box))
-                for w in incident(d, port, :src)
-                    readins[subpart(d, w, :tgt)] += readouts[i]
-                end
-            end
-        end
-
-        for (i,x) in enumerate(xs)
-            readins[subpart(d, i, :con)] += x
-        end
-
-        return reduce(vcat, map(enumerate(ms)) do (b,m)
-            eval_dynamics(m, collect(states[b]), view(readins, incident(d, b, :box)), hists[b], p, t)
+          eval_dynamics(ms[i], collect(states[i]), inputs, hists[i], p, t)
         end)
     end
 end
@@ -138,15 +127,7 @@ end
 function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
     function r(u::AbstractVector, p, t::Real)
         states = destruct(S, u)
-        port_readout = unit(I, nparts(d, :Port))
-
-        for (b,m) in enumerate(ms)
-            readouts = readout(m, states[b], p, t)
-            for (i, port) in enumerate(incident(d, b, :box))
-                port_readout[port] = readouts[i]
-            end
-        end
-        
+        port_readout = get_port_readout(d, ms, states, p, t)
         return collect(view(port_readout, subpart(d, :con)))
     end
 end
@@ -155,19 +136,19 @@ function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:De
     function r(u::AbstractVector, h::Function, p, t::Real)
         states = destruct(S, u)
         hists = destruct(S, h)
-        port_readout = unit(I, nparts(d, :Port))
-
-        for (b,m) in enumerate(ms)
-            readouts = readout(m, states[b], hists[b], p, t)
-            for (i, port) in enumerate(incident(d, b, :box))
-                port_readout[port] = readouts[i]
-            end
-        end
-        
+        port_readout = get_port_readout(d, ms, states, hists, p, t)
         return collect(view(port_readout, subpart(d, :con)))
     end
 end
 
+function get_port_readout(d::OpenCPortGraph, ms::Vector{M}, states, args...) where M <: AbstractMachine
+  readouts = get_readouts(ms, states, args...)
+  map(parts(d, :Port)) do port 
+    b = d[:box][port]
+    idx = findfirst(isequal(port), incident(d, b, :box))
+    readouts[b][idx]
+  end
+end
 
 """    barbell(n::Int)
 

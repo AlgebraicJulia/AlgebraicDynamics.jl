@@ -54,7 +54,9 @@ add_wires!(UAV, [
 
     ## net output
     (dynamics, 1) => (output_id(UAV), 1)
-])
+]);
+
+#-
 
 to_graphviz(UAV)
 

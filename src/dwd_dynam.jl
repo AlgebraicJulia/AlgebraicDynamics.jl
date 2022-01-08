@@ -78,25 +78,25 @@ readout(dynam::AbstractDirectedSystem) = dynam.readout
 A directed open dynamical system operating on information fo type `T`.
 A machine  `m` has type signature  (`m.ninputs`, `m.outputs`).
 """
-abstract type AbstractMachine{T, InterfaceType, SystemType} end
-
-interface(m::AbstractMachine) = m.interface 
-system(m::AbstractMachine) = m.system
-
-input_ports(m::AbstractMachine) = input_ports(interface(m))
-output_ports(m::AbstractMachine) = output_ports(interface(m))
-ninputs(m::AbstractMachine) = ninputs(interface(m))
-noutputs(m::AbstractMachine) = noutputs(interface(m))
-nstates(m::AbstractMachine) = nstates(system(m))
-dynamics(m::AbstractMachine) = dynamics(system(m))
-readout(m::AbstractMachine) = readout(system(m))
+abstract type AbstractMachine{T} end
 
 
 
-struct Machine{T,I,S} <: AbstractMachine{T,I,S}
+struct Machine{T,I,S} <: AbstractMachine{T}
     interface::I 
     system::S
 end
+
+interface(m::Machine) = m.interface 
+system(m::Machine) = m.system
+
+input_ports(m::Machine) = input_ports(interface(m))
+output_ports(m::Machine) = output_ports(interface(m))
+ninputs(m::Machine) = ninputs(interface(m))
+noutputs(m::Machine) = noutputs(interface(m))
+nstates(m::Machine) = nstates(system(m))
+dynamics(m::Machine) = dynamics(system(m))
+readout(m::Machine) = readout(system(m))
 
 
 """    ContinuousMachine{T}(ninputs, nstates, noutputs, f, r)
@@ -344,7 +344,7 @@ end
 
 ### Helper functions for `oapply`
 
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:AbstractMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:Machine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
@@ -384,7 +384,7 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:Del
     end
 end 
     
-function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T,I}}
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:Machine{T,I}}
     function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)

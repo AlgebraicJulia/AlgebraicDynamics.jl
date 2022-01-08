@@ -13,7 +13,7 @@ import Catlab.WiringDiagrams: oapply
 using ..DWDDynam
 using ...DWDDynam: AbstractInterface, destruct, get_readouts
 import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
-import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
+import ..DWDDynam: Machine, ContinuousMachine, DiscreteMachine, DelayMachine,
 ninputs, noutputs
 import Catlab.CategoricalAlgebra: migrate!
 
@@ -60,7 +60,7 @@ machines `ms`).
 Each box of the composition pattern `d` is filled by a machine with the 
 appropriate type signature. Returns the composite machine.
 """
-function oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:AbstractMachine}
+function oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:Machine}
     @assert nparts(d, :Box) == length(ms)
     for b in 1:nparts(d, :Box)
         @assert fills(ms[b], d, b)
@@ -86,7 +86,7 @@ function oapply(d::OpenCPortGraph, x::AbstractMachine)
 end
 
 
-function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
+function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:Machine{T, I}}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t)
         states = destruct(S, u)
@@ -124,7 +124,7 @@ function induced_dynamics(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:D
     end
 end
 
-function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T, I}}
+function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:Machine{T, I}}
     function r(u::AbstractVector, p, t::Real)
         states = destruct(S, u)
         port_readout = get_port_readout(d, ms, states, p, t)
@@ -141,7 +141,7 @@ function induced_readout(d::OpenCPortGraph, ms::Vector{M}, S) where {T, I, M<:De
     end
 end
 
-function get_port_readout(d::OpenCPortGraph, ms::Vector{M}, states, args...) where M <: AbstractMachine
+function get_port_readout(d::OpenCPortGraph, ms::Vector{M}, states, args...) where M <: Machine
   readouts = get_readouts(ms, states, args...)
   map(parts(d, :Port)) do port 
     b = d[:box][port]

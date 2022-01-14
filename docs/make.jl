@@ -10,6 +10,12 @@ using Catlab.WiringDiagrams
 using OrdinaryDiffEq
 using DynamicalSystems
 
+import Base.Sort: defalg, DEFAULT_UNSTABLE
+
+defalg(v::AbstractArray{Missing}) = DEFAULT_UNSTABLE
+defalg(v::AbstractArray{Union{}}) = DEFAULT_UNSTABLE
+
+
 # Set Literate.jl config if not being compiled on recognized service.
 config = Dict{String,String}()
 if !(haskey(ENV, "GITHUB_ACTIONS") || haskey(ENV, "GITLAB_CI"))

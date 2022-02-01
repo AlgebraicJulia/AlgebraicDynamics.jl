@@ -175,7 +175,7 @@ DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:
     DiscreteMachine{T,I}(I(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
 
 DiscreteMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
-    DiscreteMachine{T, VectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
+    DiscreteMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
 DiscreteMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
     DiscreteMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
@@ -242,37 +242,40 @@ euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
 
 # Integration with ODEProblem in OrdinaryDiffEq.jl
 
-"""    ODEProblem(m::ContinuousMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
+"""    ODEProblem(m::ContinuousMachine, x::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
-Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`.
+Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> m.dynamics(u,x,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
 """
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T =
     ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
   
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T =
     ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T = 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T =
     ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan, p = nothing; kwargs...)
+"""    DDEProblem(m::DelayMachine, u0::Vector, x::Vector, h::Function, tspan, p=nothing; kwargs...)
+
+Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> m.dynamics(u,x,h,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
 """
 DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
-"""    DiscreteProblem(m::DiscreteMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
+"""    DiscreteProblem(m::DiscreteMachine, x::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
-Constructs an DiscreteDynamicalSystem from the equation of motion defined by 
-`(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`. Pass `nothing` in place of `p` if your system does not have parameters.
+Constructs a `DiscreteProblem` from the equation of motion defined by
+`(u,p,t) -> m.dynamics(u,x,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
+Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) =
     DiscreteProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) =
   DiscreteProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 
+DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T =
     DiscreteProblem(m, u0, T[], tspan, p; kwargs...)
 
 """    trajectory(m::DiscreteMachine, u0::AbstractVector, x::AbstractVector, p, nsteps::Int; dt::Int = 1)

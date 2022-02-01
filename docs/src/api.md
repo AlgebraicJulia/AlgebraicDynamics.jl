@@ -19,9 +19,9 @@ AlgebraicDynamics.UWDDynam.fills
 oapply
 ```
 
-## Integration with OrdinaryDiffEq.jl and DynamicalSystems.jl
+## Integration with [DifferentialEquations.jl](https://diffeq.sciml.ai/stable/#Problem-Types)
 ```@docs
-ODEProblem
-DiscreteDynamicalSystem
-trajectory
+AlgebraicDynamics.UWDDynam.ODEProblem
+AlgebraicDynamics.UWDDynam.DDEProblem
+AlgebraicDynamics.UWDDynam.DiscreteProblem
 ```

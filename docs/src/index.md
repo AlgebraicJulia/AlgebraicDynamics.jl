@@ -32,10 +32,17 @@ The general process for composing  dynamical systems is as follows:
 
 4. _Compose._ The `oapply` method takes a composition pattern and  primitive systems, and it returns the composite system. Each `oapply` method implements an operad algebra which specifies a regime for composing dynmaical systems. See [[Schultz et al. 2019](https://arxiv.org/abs/1609.08086)] and [[Vagner et al. 2015](https://arxiv.org/abs/1408.1598)] for definitions of the operad algebras ``\mathsf{CDS}`` and ``\mathsf{DDS}`` for directed composition. See [[Baez and Pollard 2017](https://arxiv.org/abs/1704.02051)] for definitions of the operad algebra ``\mathsf{Dynam}`` for undirected composition. See [[Libkind 2020](https://arxiv.org/abs/2007.14442)] for a general overview of these operad algebras.
 
-Once you have built the composite system, you can solve and plot its solution. 
-- For continuous machines and resource sharers, you can construct an `ODEProblem`. Be sure to import [OrdinaryDiffEq](https://diffeq.sciml.ai/stable/tutorials/ode_example/). When the composition pattern is a wiring diagram, we recommend solvers `Tsit5()` with `dtmax` specified and `FRK65(w=0)`.
-- For discrete machines and resource sharers, you can construct a `DiscreteDynamicalSystem` or explicitly compute a trajectory using `trajectory`. In either case, be sure to import [DynamicalSystems](https://juliadynamics.github.io/DynamicalSystems.jl/latest/).
-    
+Once you have built the composite system, you can solve it and plot the solution.
+- For continuous machines and resource sharers, you can construct an
+  [`ODEProblem`](https://diffeq.sciml.ai/stable/tutorials/ode_example/) or a
+  [`DDEProblem`](https://diffeq.sciml.ai/stable/tutorials/dde_example/).
+  When the composition pattern is a wiring diagram, we recommend solvers
+  `Tsit5()` with `dtmax` specified and `FRK65(w=0)`.
+- For discrete machines and resource sharers, you can construct a
+  [`DiscreteProblem`](https://diffeq.sciml.ai/stable/types/discrete_types/)
+  or explicitly compute a `trajectory`.
+In either case, be sure to import [OrdinaryDiffEq.jl](https://diffeq.sciml.ai/latest/).
+
 
 ## Future Work
 - Add more integrators beyond the simple Euler's method

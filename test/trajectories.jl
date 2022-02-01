@@ -13,6 +13,8 @@ const UWD = UndirectedWiringDiagram
 approx_equal(u, v) = abs(maximum(u - v)) < .1
 
 tspan = (0.0, 100.0)
+tspan_short = (0.0, 10.0)
+
 
 @testset "Resource sharers" begin
   dx(x) = [1 - x[1]^2, 2*x[1]-x[2]]
@@ -32,14 +34,12 @@ tspan = (0.0, 100.0)
 
   h = 0.2
   dr = euler_approx(r, h)
-  dds = DiscreteProblem(dr, u0, tspan, nothing) # nothing because no parameters
-  sol = solve(dds, FunctionMap())
+  sol = trajectory(dr, u0, nothing, tspan) # nothing because no parameters
   @test approx_equal(last(sol), [1.0, 2.0])
 
   dr = DiscreteResourceSharer{Real}(1, (u,p,t) -> dy(u))
   u0 = [1.0]
-  dds = DiscreteProblem(dr, u0, tspan, nothing)
-  sol = solve(dds, FunctionMap())
+  sol = trajectory(dr, u0, nothing, tspan)
   @test all(((i,s),) -> s[1] == i%2, enumerate(sol.u))
 end
 
@@ -68,8 +68,7 @@ end
 
     h = 0.2
     dm = euler_approx(m,h)
-    prob = DiscreteProblem(dm, u0, xs, (0, 100.0), nothing)
-    sol = solve(prob, FunctionMap())
+    sol = trajectory(dm, u0, xs, nothing, tspan)
     @test approx_equal(last(sol), [2.0])
   end
 
@@ -93,7 +92,8 @@ end
 @testset "Lotka-Volterra model" begin
   params = [0.3, 0.015, 0.015, 0.7]
   u0 = [10.0, 100.0]
-  bounds(sol) = all(s -> all([0, 0] .< s .< [200.0, 150.0]), sol.u)
+
+  bounds(sol::ODESolution) = all(s -> all([0, 0] .< s .< [200.0, 150.0]), sol.u)
 
   @testset "Resource sharer implementation" begin
     dotr(u,p,t) = p[1]*u
@@ -115,11 +115,10 @@ end
     sol = solve(prob, Tsit5())
     @test bounds(sol)
 
-    h = 0.01
+    h = 0.002
     lv_discrete = oapply(rf_pattern, euler_approx([r, rf_pred, f], h))
-    dds = DiscreteProblem(lv_discrete, u0, (0,100.0), params)
-    sol2 = solve(dds, FunctionMap(); dt = h)
-    @test bounds(sol)
+    sol2 = trajectory(lv_discrete, u0, params, tspan; dt = h)
+    @test bounds(sol2)
   end
 
   @testset "Machine implementation" begin
@@ -144,8 +143,7 @@ end
 
     h = 0.005
     lv_discrete = oapply(rf_pattern, euler_approx([rmachine, fmachine], h))
-    dds = DiscreteProblem(lv_discrete, u0, (0.0, 10.0),params)
-    sol = solve(dds, FunctionMap(); dt = h)
+    sol = trajectory(lv_discrete, u0, params, tspan_short; dt = h)
     @test bounds(sol)
   end
 end
@@ -154,7 +152,8 @@ end
   α, β, γ, δ, β′, γ′, δ′ = 0.3, 0.015, 0.015, 0.7, 0.017, 0.017, 0.35
   params = [α, β, γ, δ, β′, γ′, δ′]
   u0 = [100.0, 10.0, 2.0]
-  bounds(sol) = all(s -> all([0, 0, 0] .< s .< [200.0, 75, 20]), sol.u)
+
+  bounds(sol::ODESolution) = all(s -> all([0, 0, 0] .< s .< [200.0, 75, 20]), sol.u)
 
   dotfish(f, x, p, t) = [p[1]*f[1] - p[2]*x[1]*f[1]]
   dotFISH(F, x, p, t) = [p[3]*x[1]*F[1] - p[4]*F[1] - p[5]*x[2]*F[1]]
@@ -181,7 +180,6 @@ end
   @test bounds(sol)
 
   h = 0.01
-  dds = DiscreteProblem(euler_approx(ocean, h), u0, (0.0, 10.0), params)
-  sol = solve(dds, FunctionMap(), dt = h)
+  sol = trajectory(euler_approx(ocean, h), u0, params, tspan_short; dt = h)
   @test bounds(sol)
 end

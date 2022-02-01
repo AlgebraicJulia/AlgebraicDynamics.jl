@@ -8,7 +8,6 @@ using AlgebraicDynamics.DWDDynam
 using Catlab
 using Catlab.WiringDiagrams
 using OrdinaryDiffEq
-using DynamicalSystems
 
 import Base.Sort: defalg, DEFAULT_UNSTABLE
 

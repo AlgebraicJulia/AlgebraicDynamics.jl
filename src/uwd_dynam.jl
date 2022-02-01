@@ -15,7 +15,7 @@ using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
-eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
+eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
 
 using Base.Iterators
 import Base: show, eltype
@@ -225,13 +225,16 @@ DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing;
     DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
     
 """    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
+    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
 
-Evolves the resouce sharer `r` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`.
+Evolves the resouce sharer `r`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
 """
-function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1)
-  prob = DiscreteProblem(r, u0, (0, T), p)
-  sol = solve(problem, FunctionMap(); dt = dt)
-  return sol.xs
+trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) =
+    trajectory(r, u0, p, (0, T); dt)
+
+function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
+  prob = DiscreteProblem(r, u0, tspan, p)
+  solve(prob, FunctionMap(); dt = dt)
 end
 
 ### Plotting backend

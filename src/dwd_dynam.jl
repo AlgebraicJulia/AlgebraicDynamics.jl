@@ -6,7 +6,7 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
-import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface, trajectory
+import ..UWDDynam: AbstractInterface, nstates, eval_dynamics, euler_approx, trajectory
 
 using OrdinaryDiffEq, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem, DiscreteProblem
@@ -14,7 +14,7 @@ import DelayDiffEq: DDEProblem
 using Plots
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
-nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
+nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx
 
 using Base.Iterators
 import Base: show, eltype, zero
@@ -198,6 +198,12 @@ Evaluates the dynamics of the machine `m` at state `u`, parameters `p`, and time
 
 The length of `xs` must equal the number of inputs to `m`.
 """
+eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{F}, p=nothing, t=0) where F <: Function =
+    eval_dynamics(f, u, [x(t) for x in xs], p, t)
+
+# eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
+#     eval_dynamics(f, collect(u), collect(xs), args...)
+
 eval_dynamics(f::DelayMachine, u, xs, h, p=nothing, t=0) = begin
     ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
     dynamics(f)(collect(u), collect(xs), h, p, t)
@@ -208,13 +214,7 @@ eval_dynamics(f::AbstractMachine, u, xs, p=nothing, t=0) = begin
     dynamics(f)(collect(u), collect(xs), p, t)
 end
 
-# eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
-#     eval_dynamics(f, collect(u), collect(xs), args...)
-
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
-    eval_dynamics(f, u, [x(t) for x in xs], p, t)
-
-"""    euler_approx(m::ContinuousMachine, h)
+"""    euler_approx(m::ContinuousMachine, h::Float)
 
 Transforms a continuous machine `m` into a discrete machine via Euler's method with step size `h`. If the dynamics of `m` is given by ``\\dot{u}(t) = f(u(t),x(t),p,t)`` the the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, x_n, p, t)``.
 """
@@ -275,16 +275,34 @@ DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) 
 DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 
     DiscreteProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, p, nsteps::Int; dt::Int = 1)
+"""    trajectory(m::DiscreteMachine, u0::AbstractVector, x::AbstractVector, p, nsteps::Int; dt::Int = 1)
+    trajectory(m::DiscreteMachine, u0::AbstractVector, x::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
 
-Evolves the machine `m` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`. Any inputs to `m` are determied by `xs`. If `m` has no inputs then you can omit `xs`.
+Evolves the machine `m`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
+Any inputs to `m` are determined by `x` as in `eval_dynamics()`. If `m` has no inputs, then you can omit `x`.
 """
-function trajectory(m::DiscreteMachine, u0::AbstractVector, xs,  p, T::Int; dt::Int= 1) 
-  prob = DiscreteProblem(m, u0, xs, (0, T), p)
-  sol = solve(prob, FunctionMap(); dt = dt)
-  return sol.u
+trajectory(m::DiscreteMachine, u0::AbstractVector, p, T::Int; dt::Int= 1) =
+    trajectory(m, u0, p, (0, T); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, T::Int; dt::Int= 1) =
+    trajectory(m, u0, xs, p, (0, T); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, p, tspan::T; dt::T= one(T)) where {T<:Real} =
+    trajectory(m, u0, p, (zero(tspan), tspan); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, tspan::T; dt::T= one(T)) where {T<:Real} =
+    trajectory(m, u0, xs, p, (zero(tspan), tspan); dt)
+
+function trajectory(m::DiscreteMachine, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
+  prob = DiscreteProblem(m, u0, tspan, p)
+  solve(prob, FunctionMap(); dt = dt)
 end
-    
+
+function trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
+  prob = DiscreteProblem(m, u0, xs, tspan, p)
+  solve(prob, FunctionMap(); dt = dt)
+end
+
 
 ### Plotting backend
 @recipe function f(sol, m::AbstractMachine, p=nothing)

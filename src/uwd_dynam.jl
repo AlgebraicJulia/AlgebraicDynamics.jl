@@ -67,11 +67,12 @@ portmap(system::AbstractUndirectedSystem) = system.portmap
 portfunction(system::AbstractUndirectedSystem) = FinFunction(portmap(system), nstates(system))
 exposed_states(system::AbstractUndirectedSystem, u::AbstractVector) = getindex(u, portmap(system))
 
-"""
+"""    ResourceSharer{T}
+    ResourceSharer{T,N}
 
 An undirected open dynamical system operating on information of type `T`.
-
-A resource sharer `r` has signature `r.nports`.
+For type arguments `{T,N}`, the system operates on arrays of type `T` and `ndims = N`.
+A resource sharer `r` has type signature `r.nports`.
 """
 abstract type AbstractResourceSharer{T} end
 
@@ -92,32 +93,32 @@ portfunction(r::ResourceSharer) = portfunction(system(r))
 exposed_states(r::ResourceSharer, u::AbstractVector) = exposed_states(system(r), u)
 
 
-""" 
+"""    ContinuousResourceSharer{T}(nports, nstates, f, portmap)
 
 An undirected open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),p,t)``.
 """
 const ContinuousResourceSharer{T, I} = ResourceSharer{T, I, ContinuousUndirectedSystem}
 
-ContinuousResourceSharer{T, I}(nports, nstates, dynamics, portmap) where {T, I <: AbstractUndirectedInterface}= 
+ContinuousResourceSharer{T, I}(nports, nstates, dynamics, portmap) where {T, I <: AbstractUndirectedInterface} =
   ContinuousResourceSharer{T, I}(UndirectedInterface{T}(nports), ContinuousUndirectedSystem{T}(nstates, dynamics, portmap))
 
-ContinuousResourceSharer{T, N}(nports, nstates, dynamics, portmap) where {T, N} = 
+ContinuousResourceSharer{T, N}(nports, nstates, dynamics, portmap) where {T, N} =
   ContinuousResourceSharer{T, UndirectedVectorInterface{T}}(nports, nstates, dynamics, portmap)
 
 ContinuousResourceSharer{T}(interface::I, system::ContinuousUndirectedSystem{T}) where {T, I <: AbstractUndirectedInterface} =
   ContinuousResourceSharer{T, I}(interface, system)
 
-ContinuousResourceSharer{T}(nports, nstates, dynamics, portmap) where {T} = 
+ContinuousResourceSharer{T}(nports, nstates, dynamics, portmap) where {T} =
   ContinuousResourceSharer{T}(UndirectedInterface{T}(nports), ContinuousUndirectedSystem{T}(nstates, dynamics, portmap))
 
-ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
+ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T =
     ContinuousResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 
-""" 
+"""    DelayResourceSharer{T}(nports, nstates, f, portmap)
 
 An undirected open continuous system. The dynamics function `f` defines a DDE ``\\dot u(t) = f(u(t),h(t),p,t)``,
-where h is a function giving the history of the system's state (x) before the interval on which the solution will be computed
-begins (usually for t < 0). `dynamics` should have signature f(u,h,p,t) where h is a function.
+where ``h`` is a function giving the history of the system's state ``u`` before the interval on which the solution will be computed
+begins (usually for ``t < 0``). `f` should have signature ``f(u,h,p,t)``, where ``h`` is a function.
 """
 const DelayResourceSharer{T, I} = ResourceSharer{T, I, DelayUndirectedSystem}
 DelayResourceSharer{T, I}(nports, nstates, dynamics, portmap) where {T, I <: AbstractUndirectedInterface}= 
@@ -135,7 +136,7 @@ DelayResourceSharer{T}(nports, nstates, dynamics, portmap) where {T}=
 DelayResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
     DelayResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 
-""" 
+"""    DiscreteResourceSharer{T}(nports, nstates, f, portmap)
 
 An undirected open discrete system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, p, t)``.
 """
@@ -157,9 +158,8 @@ DiscreteResourceSharer{T}(nstates::Int, dynamics::Function) where T =
 
 """    eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t)
 
-Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p`, and time `t`.
-
-Omitting `t` and `p` is allowed if the dynamics of `r` does not depend on them.
+Evaluates the dynamics of the resource sharer `r` at state `u`, parameters `p` and time `t`.
+Omitting `p` and `t` is allowed if the dynamics of `r` does not depend on them.
 """
 eval_dynamics(r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = dynamics(r)(u, h, p, t)
 eval_dynamics!(du, r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = begin
@@ -172,14 +172,17 @@ end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u, [], 0)
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
 
-show(io::IO, vf::ContinuousResourceSharer) = print("ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed ports")
-show(io::IO, vf::DelayResourceSharer) = print("DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed ports")
-show(io::IO, vf::DiscreteResourceSharer) = print("DiscreteResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed ports")
+show(io::IO, vf::ContinuousResourceSharer) = print(
+    "ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
+show(io::IO, vf::DelayResourceSharer) = print(
+    "DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
+show(io::IO, vf::DiscreteResourceSharer) = print(
+    "DiscreteResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
 eltype(r::AbstractResourceSharer{T}) where T = T
 
-"""    euler_approx(r::ContinuousResourceSharer, h)
+"""    euler_approx(r::ContinuousResourceSharer, h::Float)
 
-Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method with step size `h`. If the dynamics of `r` is given by ``\\dot{u}(t) = f(u(t),p,t)`` the the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, p, t)``.
+Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method with step size `h`. If the dynamics of `r` is given by ``\\dot{u}(t) = f(u(t),p,t)``, then the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, p, t)``.
 """
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
         nports(f), nstates(f), 
@@ -189,7 +192,8 @@ euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResou
 
 """    euler_approx(r::ContinuousResourceSharer)
 
-Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method where the step size is introduced as a new parameter, the last in the list of parameters.
+Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method.
+The step size parameter is appended to the end of the system's parameter list.
 """
 euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
     nports(f), nstates(f), 
@@ -197,10 +201,15 @@ euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}
     portmap(f)
 )
 
-euler_approx(fs::Vector{R}, args...) where {T, R<:ContinuousResourceSharer{T}} = 
+"""    euler_approx(rs::Vector{R}, args...) where {T,R<:ContinuousResourceSharer{T}}
+    euler_approx(rs::AbstractDict{S, R}, args...) where {S,T,R<:ContinuousResourceSharer{T}}
+
+Map `euler_approx` over a collection of resource sharers with identical `args`.
+"""
+euler_approx(fs::Vector{R}, args...) where {T, R<:ContinuousResourceSharer{T}} =
     map(f->euler_approx(f,args...), fs)
 
-euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResourceSharer{T}} = 
+euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResourceSharer{T}} =
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
 """    ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
@@ -256,9 +265,9 @@ end
 
 
 
-"""     oapply(d::AbstractUWD, rs::Vector)
+"""     oapply(d::AbstractUWD, rs::Vector{R}) where {R<:AbstractResourceSharer}
 
-Implements the operad algebras for undirected composition of dynamical systems given a composition pattern (implemented
+Implements the operad algebras for undirected composition of dynamical systems, given a composition pattern (implemented
 by an undirected wiring diagram `d`) and primitive systems (implemented by
 a collection of resource sharers `rs`). Returns the composite resource sharer.
 
@@ -269,16 +278,16 @@ oapply(d::AbstractUWD, xs::Vector{R}) where {R <: AbstractResourceSharer} =
 
 """    oapply(d::AbstractUWD, r::AbstractResourceSharer)
 
-A version of `oapply` where each box of `d` is filled with the resource sharer `r`.
+A version of `oapply` where each box of `d` is filled with the same resource sharer `r`.
 """
-oapply(d::AbstractUWD, x::AbstractResourceSharer) = 
+oapply(d::AbstractUWD, x::AbstractResourceSharer) =
     oapply(d, collect(repeated(x, nboxes(d))))
     
-"""     oapply(d::AbstractUWD, generators::Dict)
+"""     oapply(d::AbstractUWD, generators::AbstractDict{S,R}) where {S,R<:AbstractResourceSharer}
 
 A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding resource sharer.
 """
-oapply(d::AbstractUWD, xs::AbstractDict{S,R}) where {S, R <: AbstractResourceSharer} = 
+oapply(d::AbstractUWD, xs::AbstractDict{S,R}) where {S, R <: AbstractResourceSharer} =
     oapply(d, [xs[name] for name in subpart(d, :name)])
 
 

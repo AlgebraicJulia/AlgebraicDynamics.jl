@@ -5,6 +5,7 @@ using Literate
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
 using AlgebraicDynamics.DWDDynam
+using AlgebraicDynamics.CPortGraphDynam
 using Catlab
 using Catlab.WiringDiagrams
 using OrdinaryDiffEq

@@ -12,7 +12,7 @@ import Catlab.WiringDiagrams: oapply
 
 using ..DWDDynam
 using ...DWDDynam: AbstractInterface, destruct, get_readouts
-import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx
+import ..UWDDynam: nstates, nports, eval_dynamics, euler_approx, fills
 import ..DWDDynam: AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 ninputs, noutputs
 import Catlab.CategoricalAlgebra: migrate!
@@ -45,20 +45,24 @@ nports(d::OpenCPortGraph, b::Int) = incident(d, b, :box) |> length
 nports(d::OpenCPortGraph, b) = map(length, incident(d, b, :box))
 nports(d::OpenCPortGraph, b::Colon) = map(length, incident(d, :, :box))
 
+"""    fills(m::AbstractMachine, d::OpenCPortGraph, b::Int)
+
+Checks if `m` is of the correct signature to fill box `b` of the open CPG `d`.
+"""
 function fills(m::AbstractMachine, d::OpenCPortGraph, b::Int)
     nports = length(incident(d, b, :box))
     return (nports == ninputs(m)) && (nports == noutputs(m))
 end
 
-"""    oapply(d::OpenCPortGraph, ms::Vector)
+"""    oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:AbstractMachine}
 
-Implements the operad algebras for directed composition of dynamical systems given a 
+Implements the operad algebras for directed composition of dynamical systems, given a
 composition pattern (implemented by an open circular port graph `d`)
 and primitive systems (implemented by a collection of 
-machines `ms`).
+machines `ms`). Returns the composite machine.
 
-Each box of the composition pattern `d` is filled by a machine with the 
-appropriate type signature. Returns the composite machine.
+Each box of the composition pattern `d` must be filled by a machine with the
+appropriate type signature.
 """
 function oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:AbstractMachine}
     @assert nparts(d, :Box) == length(ms)
@@ -79,7 +83,7 @@ end
 
 """    oapply(d::OpenCPortGraph, m::AbstractMachine)
 
-A version of `oapply` where each box of `d` is filled with the machine `m`.
+A version of `oapply` where each box of `d` is filled with the same machine `m`.
 """
 function oapply(d::OpenCPortGraph, x::AbstractMachine)
     oapply(d, collect(repeated(x, nparts(d, :Box))))

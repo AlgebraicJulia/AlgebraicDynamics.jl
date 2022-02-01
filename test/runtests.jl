@@ -12,6 +12,6 @@ end
   include("cpg_dynam.jl")
 end
 
-@testset "Trajectories and Solutions" begin
+@testset "Trajectories" begin
   include("trajectories.jl")
 end

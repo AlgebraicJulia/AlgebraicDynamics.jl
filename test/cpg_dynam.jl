@@ -59,7 +59,7 @@ Catlab.Theories.id(OpenCPortGraph, n) = begin
     add_parts!(g, :OuterPort, n, con=1:n)
     return g
 end
-lob(n) = let 
+lob(n) = let
     b = barbell(n)
     p = add_parts!(b, :Port, n, box=1)
     add_parts!(b, :OuterPort, n, con=p)
@@ -81,7 +81,6 @@ sirfuncm = (u,x,p,t)->[-β*u[1]*u[2] - α₁*(u[1]-(x[1]+x[3])/2),
                         μ*u[2]
                         ]
 
-
 boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, (u,p,t)->u[1:2])
 middle    = ContinuousMachine{Float64}(4,3, sirfuncm, (u,p,t)->u[[1,2,1,2]])
 threecity = oapply(d₂, [boundary,middle,boundary])
@@ -92,7 +91,6 @@ traj = simulate(threecity, 100, 0.01, [100,1,0,100,0,0,100,0,0.0] )
 #     return (i1=u[2], i2=u[5], i3=u[8])
 # end |> pretty_table
 
-
 gl = @acset OpenCPortGraph begin
     Box = 3
     Port = 7
@@ -100,7 +98,7 @@ gl = @acset OpenCPortGraph begin
     OuterPort = 3
     box = [1,1,2,2,2,3,3]
     src = [2, 3, 5, 6]
-    tgt = [3, 2, 6, 5] 
+    tgt = [3, 2, 6, 5]
     con = [1,4,7]
 end
 
@@ -111,7 +109,7 @@ gm = @acset OpenCPortGraph begin
     OuterPort = 6
     box = [1,1,1,2,2,2,2,3,3,3]
     src = [2, 4, 6, 8]
-    tgt = [4, 2, 8, 6] 
+    tgt = [4, 2, 8, 6]
     con = [3, 7, 10, 1, 5, 9]
 end
 
@@ -122,7 +120,7 @@ gr = @acset OpenCPortGraph begin
     OuterPort = 3
     box = [1,1,2,2,2,3,3]
     src = [1, 3, 4, 6]
-    tgt = [3, 1, 6, 4] 
+    tgt = [3, 1, 6, 4]
     con = [2,5,7]
 end
 
@@ -141,7 +139,6 @@ g3 = migrate!(Graph(), pg3)
 @test g3[19:24, :src] == 1:6
 @test g3[19:24, :tgt] == [4,5,6,1,2,3]
 @test incident(pg3, 5, :box) == 11:14
-
 
 α₁ = 1
 fm = ContinuousMachine{Float64}(4, 1, (u,x,p,t) -> α₁ * (sum(x) .- u .* length(x)), (u,p,t)->collect(repeated(u[1], 4)))
@@ -165,7 +162,6 @@ u₀[5] = 1.0
 @test eval_dynamics(F, u₀, [], nothing, 1.0)[2] == α₁
 @test eval_dynamics(F, u₀, [], nothing, 1.0)[3] == 0
 
-
 d4 = @acset OpenCPortGraph begin
     Box = 3
     Port = 18
@@ -181,175 +177,161 @@ draw(pg3)
 # pg3[:, :con]
 
 @testset "Laplacians" begin
-@test eval_dynamics(oapply(gm, [ft, fm, fb]), ones(3), ones(6), nothing, 1.0) == zeros(3)
-@test eval_dynamics(oapply(gm, [ft, fm, fb]), [1,2,1], ones(6), nothing, 1.0) == [1,-4,1]
-@test eval_dynamics(oapply(gm, [ft, fm, fb]), [1,2,0], ones(6), nothing, 1.0) == [1,-5, 4]
+    @test eval_dynamics(oapply(gm, [ft, fm, fb]), ones(3), ones(6), nothing, 1.0) == zeros(3)
+    @test eval_dynamics(oapply(gm, [ft, fm, fb]), [1,2,1], ones(6), nothing, 1.0) == [1,-4,1]
+    @test eval_dynamics(oapply(gm, [ft, fm, fb]), [1,2,0], ones(6), nothing, 1.0) == [1,-5, 4]
 
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-@test nstates(F) == 9
-@test ninputs(F) == 6
-@test eval_dynamics(F, ones(9), ones(6), nothing, 1.0) == zeros(9)
-@test eval_dynamics(F, 2*ones(9), 2*ones(6), nothing, 1.0) == zeros(9)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    @test nstates(F) == 9
+    @test ninputs(F) == 6
+    @test eval_dynamics(F, ones(9), ones(6), nothing, 1.0) == zeros(9)
+    @test eval_dynamics(F, 2*ones(9), 2*ones(6), nothing, 1.0) == zeros(9)
 
-pg4 = ocompose(d4, [pg3, pg3, pg3])
-pg5 = ocompose(d4, [pg4, pg4, pg4])
-# draw(pg5)
+    pg4 = ocompose(d4, [pg3, pg3, pg3])
+    pg5 = ocompose(d4, [pg4, pg4, pg4])
+    # draw(pg5)
 
-@test (nstates(F),ninputs(F)) == (9,6)
-F2 = oapply(d4, [F, F, F])
-@test (nstates(F2),ninputs(F2)) == (27,6)
-@test eval_dynamics(F2, ones(Float64, 27), ones(Float64, 6), nothing, 0.0) == zeros(27)
-F3 = oapply(d4, [F2,F2,F2])
-@test (nstates(F3), ninputs(F3)) == (81, 6)
-@test eval_dynamics(F3, ones(Float64, 81), ones(Float64, 6), nothing, 0.0) == zeros(81)
+    @test (nstates(F),ninputs(F)) == (9,6)
+    F2 = oapply(d4, [F, F, F])
+    @test (nstates(F2),ninputs(F2)) == (27,6)
+    @test eval_dynamics(F2, ones(Float64, 27), ones(Float64, 6), nothing, 0.0) == zeros(27)
+    F3 = oapply(d4, [F2,F2,F2])
+    @test (nstates(F3), ninputs(F3)) == (81, 6)
+    @test eval_dynamics(F3, ones(Float64, 81), ones(Float64, 6), nothing, 0.0) == zeros(81)
 end
 
 @testset "Advection-Diffusion" begin
+    advecdiffuse(α₁, α₂) = begin
+        diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
+        advop(u,p,t)  = α₂ .* (p[end] .- u)
+        ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+        fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
+        fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+        return ft, fm, fb
+    end
 
-advecdiffuse(α₁, α₂) = begin
-    diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
-    advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
-    return ft, fm, fb
-end
+    ft, fm, fb = advecdiffuse(1.0,2.0)
+    eval_dynamics(ft, [1.0], [1,1,1.0], 0.0)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    eval_dynamics(F, zeros(9), ones(6), 0.0)
+    traj = simulate(F, 48, 0.1, zeros(9), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,3))
 
-ft, fm, fb = advecdiffuse(1.0,2.0)
-eval_dynamics(ft, [1.0], [1,1,1.0], 0.0)
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-eval_dynamics(F, zeros(9), ones(6), 0.0)
-traj = simulate(F, 48, 0.1, zeros(9), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,3))
+    F2 = oapply(d4, [F,F,F])
+    traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
 
-F2 = oapply(d4, [F,F,F])
-traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
+    ft, fm, fb = advecdiffuse(1.0,4.0)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    F2 = oapply(d4, [F,F,F])
+    traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
+    i=16
+    @test traj[i][end-2:end][1] == traj[i][end-2:end][2]
+    @test traj[i][end-2:end][2] == traj[i][end-2:end][3]
 
-ft, fm, fb = advecdiffuse(1.0,4.0)
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-F2 = oapply(d4, [F,F,F])
-traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-i=16
-@test traj[i][end-2:end][1] == traj[i][end-2:end][2] 
-@test traj[i][end-2:end][2] == traj[i][end-2:end][3] 
-
-traj = simulate(F2, 16, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-@test traj[i][end-2:end][1] <= traj[i][end-2:end][2] 
-@test traj[i][end-2:end][2] >= traj[i][end-2:end][3] 
+    traj = simulate(F2, 16, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
+    @test traj[i][end-2:end][1] <= traj[i][end-2:end][2]
+    @test traj[i][end-2:end][2] >= traj[i][end-2:end][3]
 end
 
 @testset "Reaction-Diffusion-Advection" begin
+    RDA(α₀, α₁, α₂) = begin
+        diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
+        advop(u,p,t)  = α₂ .* (p[end] .- u)
+        ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+        fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
+        fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
+        return ft, fm, fb
+    end
 
+    ft, fm, fb = RDA(0.1, 1.0,2.0)
+    eval_dynamics(ft, [1.0], [1,1,1.0], nothing, 0.0)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    eval_dynamics(F, zeros(9), ones(6), nothing, 0.0)
+    traj = simulate(F, 48, 0.1, zeros(9), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,3))
 
-RDA(α₀, α₁, α₂) = begin
-    diffop(u,p,t) = α₁ .* (sum(p) .- u .* length(p))
-    advop(u,p,t)  = α₂ .* (p[end] .- u)
-    ft = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
-    fm = ContinuousMachine{Float64}(4, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 4)))
-    fb = ContinuousMachine{Float64}(3, 1, (u,p,q,t) -> α₀ .* u .+ diffop(u,p,u) .+ advop(u,p,t), (u,p,t)->collect(repeated(u[1], 3)))
-    return ft, fm, fb
+    F2 = oapply(d4, [F,F,F])
+    traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
+
+    ft, fm, fb = RDA(0.1, 1.0,4.0)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    F2 = oapply(d4, [F,F,F])
+    traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
+    i=16
+    @test traj[i][end-2:end][1] ≈ traj[i][end-2:end][2] atol=1e-3
+    @test traj[i][end-2:end][2] ≈ traj[i][end-2:end][3] atol=1e-3
+
+    traj = simulate(F2, 64, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
+    @test traj[i][end-2:end][1] <= traj[i][end-2:end][2]
+    @test traj[i][end-2:end][2] >= traj[i][end-2:end][3]
+
+    ft, fm, fb = RDA(-0.4, 1.0,4.0)
+    F = oapply(d4, oapply(gm, [ft,fm,fb]))
+    F2 = oapply(d4, [F,F,F])
+    traj = simulate(F2, 128, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
+    # printsim(traj, t->t[end-2:end], identity, (3,9))
 end
-
-ft, fm, fb = RDA(0.1, 1.0,2.0)
-eval_dynamics(ft, [1.0], [1,1,1.0], nothing, 0.0)
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-eval_dynamics(F, zeros(9), ones(6), nothing, 0.0)
-traj = simulate(F, 48, 0.1, zeros(9), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,3))
-
-F2 = oapply(d4, [F,F,F])
-traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-
-ft, fm, fb = RDA(0.1, 1.0,4.0)
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-F2 = oapply(d4, [F,F,F])
-traj = simulate(F2, 16, 0.1, zeros(27), vcat(ones(3), zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-i=16
-@test traj[i][end-2:end][1] ≈ traj[i][end-2:end][2] atol=1e-3
-@test traj[i][end-2:end][2] ≈ traj[i][end-2:end][3] atol=1e-3
-
-traj = simulate(F2, 64, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-@test traj[i][end-2:end][1] <= traj[i][end-2:end][2] 
-@test traj[i][end-2:end][2] >= traj[i][end-2:end][3] 
-
-ft, fm, fb = RDA(-0.4, 1.0,4.0)
-F = oapply(d4, oapply(gm, [ft,fm,fb]))
-F2 = oapply(d4, [F,F,F])
-traj = simulate(F2, 128, 0.1, zeros(27), vcat([0,1,0], zeros(3)))
-# printsim(traj, t->t[end-2:end], identity, (3,9))
-end
-
 
 @testset "Grids" begin
-function testgridsize(n,m)
-    g = grid(n,m)
-    @test nparts(g, :Box) == n*m
-    @test nparts(g, :Port) == 6n + 4n*(m-2)
-    @test nparts(g, :Wire) == 2*((n-1)*m + (m-1)*n)
-end
-for (i,j) in Iterators.product(1:6, 2:4)
-    testgridsize(i,j)
-end
+    @testset for (n, m) in Iterators.product(1:6, 2:4)
+        g = grid(n, m)
+        @test nparts(g, :Box) == n*m
+        @test nparts(g, :Port) == 6n + 4n*(m-2)
+        @test nparts(g, :Wire) == 2*((n-1)*m + (m-1)*n)
+    end
 end
 
-@testset "DelayMachine" begin 
-# ross macdonald
-c = @acset OpenCPortGraph begin
-    Box = 2
-    Port = 2
-    Wire = 2
-    OuterPort = 0
-    box = [1,2]
-    src = [1,2]
-    tgt = [2,1] 
-    con = []
-end
+@testset "Ross-Macdonald model" begin
+    c = @acset OpenCPortGraph begin
+        Box = 2
+        Port = 2
+        Wire = 2
+        OuterPort = 0
+        box = [1,2]
+        src = [1,2]
+        tgt = [2,1]
+        con = []
+    end
+    dzdt_delay = function(u,x,h,p,t)
+        Y, Z = u
+        Y_delay, Z_delay = h(p, t - p.n)
+        X, X_delay = x[1]
 
-dzdt_delay = function(u,x,h,p,t)
-    Y, Z = u
-    Y_delay, Z_delay = h(p, t - p.n)
-    X, X_delay = x[1]
-    
-    [p.a*p.c*X*(1 - Y - Z) -
+        [p.a*p.c*X*(1 - Y - Z) -
+            p.a*p.c*X_delay*(1 - Y_delay - Z_delay)*exp(-p.g*p.n) -
+            p.g*Y,
         p.a*p.c*X_delay*(1 - Y_delay - Z_delay)*exp(-p.g*p.n) -
-        p.g*Y,
-    p.a*p.c*X_delay*(1 - Y_delay - Z_delay)*exp(-p.g*p.n) -
-        p.g*Z]
-end
+            p.g*Z]
+    end
+    dxdt_delay = function(u,x,h,p,t)
+        X, = u
+        Z, _ = x[1]
+        [p.m*p.a*p.b*Z*(1 - X) - p.r*X]
+    end
 
-dxdt_delay = function(u,x,h,p,t)
-    X, = u
-    Z, _ = x[1]
-    [p.m*p.a*p.b*Z*(1 - X) - p.r*X]
-end
+    mosquito_delay_model = DelayMachine{Float64, 2}(
+        1, 2, 1, dzdt_delay, (u,h,p,t) -> [[u[2], h(p,t - p.n)[2]]])
+    human_delay_model = DelayMachine{Float64, 2}(
+        1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
+    rm_model = oapply(c, [mosquito_delay_model, human_delay_model])
 
-#- 
+    params = LVector(a = 0.3, b = 0.55, c = 0.15,
+        g = 0.1, n = 10, r = 1.0/200, m = 0.5)
 
-1 + 1
-mosquito_delay_model = DelayMachine{Float64, 2}(
-    1, 2, 1, dzdt_delay, (u,h,p,t) -> [[u[2], h(p,t - p.n)[2]]])
+    u0_delay = [0.09, .01, 0.3]
+    tspan = (0.0, 365.0*5)
+    hist(p,t) = u0_delay;
 
-human_delay_model = DelayMachine{Float64, 2}(
-    1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
-rm_model = oapply(c, [mosquito_delay_model, human_delay_model])
-
-params = LVector(a = 0.3, b = 0.55, c = 0.15, 
-    g = 0.1, n = 10, r = 1.0/200, m = 0.5)
-
-u0_delay = [0.09, .01, 0.3]
-tspan = (0.0, 365.0*5)
-hist(p,t) = u0_delay;
-
-prob = DDEProblem(rm_model, u0_delay, [], hist, tspan, params)
-alg = MethodOfSteps(Tsit5())
-sol = solve(prob, alg)
-a, b, c, g, n, r, m = params
-R0 = (m*a^2*b*c*exp(-g*n))/(r*g)
-@test isapprox(last(sol)[3], (R0 - 1)/(R0 + (a*c)/g), atol = 1e-3)
+    prob = DDEProblem(rm_model, u0_delay, [], hist, tspan, params)
+    alg = MethodOfSteps(Tsit5())
+    sol = solve(prob, alg)
+    a, b, c, g, n, r, m = params
+    R0 = (m*a^2*b*c*exp(-g*n))/(r*g)
+    @test isapprox(last(sol)[3], (R0 - 1)/(R0 + (a*c)/g), atol = 1e-3)
 end

@@ -1,27 +1,49 @@
 # Library Reference
 
-## Resource Sharers and Machines
-
+## Types of Dynamical Systems
+### Machines
+```@docs
+AlgebraicDynamics.DWDDynam.AbstractMachine
+AlgebraicDynamics.DWDDynam.ContinuousMachine
+AlgebraicDynamics.DWDDynam.DelayMachine
+AlgebraicDynamics.DWDDynam.DiscreteMachine
+```
+### Resource Sharers
 ```@docs
 AlgebraicDynamics.UWDDynam.AbstractResourceSharer
 AlgebraicDynamics.UWDDynam.ContinuousResourceSharer
+AlgebraicDynamics.UWDDynam.DelayResourceSharer
 AlgebraicDynamics.UWDDynam.DiscreteResourceSharer
-AlgebraicDynamics.DWDDynam.AbstractMachine
-AlgebraicDynamics.DWDDynam.ContinuousMachine
-AlgebraicDynamics.DWDDynam.DiscreteMachine
-AlgebraicDynamics.UWDDynam.eval_dynamics
-AlgebraicDynamics.UWDDynam.euler_approx
 ```
 
-## `oapply`
+## Composition of Dynamical Systems
+### Operad Algebras
+```@docs
+AlgebraicDynamics.UWDDynam.oapply
+```
+### Checks
 ```@docs
 AlgebraicDynamics.UWDDynam.fills
-oapply
+AlgebraicDynamics.DWDDynam.fills
 ```
 
-## Integration with OrdinaryDiffEq.jl and DynamicalSystems.jl
+## Time Evolution
+### Instantaneous Dynamics
 ```@docs
-ODEProblem
-DiscreteDynamicalSystem
-trajectory
+AlgebraicDynamics.UWDDynam.eval_dynamics
+```
+### Time Discretization
+```@docs
+AlgebraicDynamics.UWDDynam.euler_approx
+```
+### Discrete Trajectory
+```@docs
+AlgebraicDynamics.UWDDynam.trajectory
+```
+
+## Integration with [DifferentialEquations.jl](https://diffeq.sciml.ai/stable/#Problem-Types)
+```@docs
+AlgebraicDynamics.UWDDynam.ODEProblem
+AlgebraicDynamics.UWDDynam.DDEProblem
+AlgebraicDynamics.UWDDynam.DiscreteProblem
 ```

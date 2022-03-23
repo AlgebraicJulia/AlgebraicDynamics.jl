@@ -6,7 +6,7 @@ using Catlab.CategoricalAlgebra
 using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
-import ..UWDDynam: nstates, eval_dynamics, euler_approx, AbstractInterface, trajectory
+import ..UWDDynam: AbstractInterface, nstates, eval_dynamics, euler_approx, trajectory
 
 using OrdinaryDiffEq, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem, DiscreteProblem
@@ -14,7 +14,7 @@ import DelayDiffEq: DDEProblem
 using Plots
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
-nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx
+nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx
 
 using Base.Iterators
 import Base: show, eltype, zero
@@ -73,10 +73,12 @@ dynamics(dynam::AbstractDirectedSystem) = dynam.dynamics
 readout(dynam::AbstractDirectedSystem) = dynam.readout
 
 
-""" 
+"""    Machine{T}
+    Machine{T,N}
 
-A directed open dynamical system operating on information fo type `T`.
-A machine  `m` has type signature  (`m.ninputs`, `m.outputs`).
+A directed open dynamical system operating on information of type `T`.
+For type arguments `{T,N}`, the system operates on arrays of type `T` and `ndims = N`.
+A machine  `m` has type signature  (`m.ninputs`, `m.noutputs`).
 """
 abstract type AbstractMachine{T, InterfaceType, SystemType} end
 
@@ -91,8 +93,6 @@ nstates(m::AbstractMachine) = nstates(system(m))
 dynamics(m::AbstractMachine) = dynamics(system(m))
 readout(m::AbstractMachine) = readout(system(m))
 
-
-
 struct Machine{T,I,S} <: AbstractMachine{T,I,S}
     interface::I 
     system::S
@@ -101,64 +101,69 @@ end
 
 """    ContinuousMachine{T}(ninputs, nstates, noutputs, f, r)
 
-An directed open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),x(t),p,t)`` where ``u`` is the state and ``x`` captures the exogenous variables.
+A directed open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),x(t),p,t)``, where
+``u`` is the state and ``x`` captures the exogenous variables.
 
-The readout function may depend on the state, parameters, and time, so it must be of the form ``r(u,p,t)``.
+The readout function `r` may depend on the state, parameters and time, so it must be of the form ``r(u,p,t)``.
+If it is left out, then ``r=u``.
 """
 const ContinuousMachine{T,I} = Machine{T, I, ContinuousDirectedSystem{T}}
 
-ContinuousMachine{T}(interface::I, system::ContinuousDirectedSystem{T}) where {T, I <: AbstractDirectedInterface} = 
+ContinuousMachine{T}(interface::I, system::ContinuousDirectedSystem{T}) where {T, I <: AbstractDirectedInterface} =
     ContinuousMachine{T, I}(interface, system)
 
-ContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
+ContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T =
     ContinuousMachine{T}(DirectedInterface{T}(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
-ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
+ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T =
     ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I <: AbstractDirectedInterface} = 
+ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I <: AbstractDirectedInterface} =
     ContinuousMachine{T,I}(I(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
-ContinuousMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
+ContinuousMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} =
     ContinuousMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
-ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
+ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I} =
     ContinuousMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 
 """    DelayMachine{T}(ninputs, nstates, noutputs, f, r)
 
-A delay open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t), x(t), h(p,t), p, t)`` where 
-``u`` is the states, ``x`` captures the exogenous variables, and ``h`` is a history function 
+A delay open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t), x(t), h(p,t), p, t)``, where
+``u`` is the state, ``x`` captures the exogenous variables, and ``h`` is a history function.
 
-The readout function may depend on the state, history, parameters, and time, so it has a signature ``r(u,h,p,t)``.
+The readout function `r` may depend on the state, history, parameters and time, so it has the signature ``r(u,h,p,t)``.
+If it is left out, then ``r=u``.
 """
 const DelayMachine{T,I} = Machine{T, I, DelayDirectedSystem{T}}
 
-DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} = 
+DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} =
     DelayMachine{T, I}(interface, system)
 
-DelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
+DelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T =
     DelayMachine{T}(DirectedInterface{T}(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-DelayMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
+DelayMachine{T}(ninputs::Int, nstates::Int, dynamics) where T =
     DelayMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} = 
+DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} =
     DelayMachine{T,I}(I(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-DelayMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
+DelayMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} =
     DelayMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
-DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
+DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
     DelayMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,h,p,t) -> u)
 
 
 """    DiscreteMachine{T}(ninputs, nstates, noutputs, f, r)
 
-A directed open discrete dynamical system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, x_n, p, t)`` where ``u_n`` is the state and ``x_n`` is the value of the exogenous variables at the ``n``th time step.
+A directed open discrete dynamical system. The dynamics function `f` defines a discrete update rule ``u_{n+1} = f(u_n, x_n, p, t)``, where
+``u_n`` is the state and ``x_n`` is the value of the exogenous variables at the ``n``th time step.
 
-The readout function may depend on the state, parameters, and time step, so it must be of the form ``r(u_n,p,n)``.
+The readout function `r` may depend on the state, parameters and time step, so it must be of the form ``r(u_n,p,n)``.
+If it is left out, then ``r_n=u_n``.
 """
 const DiscreteMachine{T,I} = Machine{T, I, DiscreteDirectedSystem{T}}
 
@@ -175,15 +180,18 @@ DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:
     DiscreteMachine{T,I}(I(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
 
 DiscreteMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} = 
-    DiscreteMachine{T, VectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
+    DiscreteMachine{T, DirectedVectorInterface{T, N}}(ninputs, nstates, noutputs, dynhamics, readout)
 
 DiscreteMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
     DiscreteMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
   
-show(io::IO, vf::ContinuousMachine) = print("ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
-show(io::IO, vf::DelayMachine) = print("DelayMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
-show(io::IO, vf::DiscreteMachine) = print("DiscreteMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
+show(io::IO, vf::ContinuousMachine) = print(
+    "ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
+show(io::IO, vf::DelayMachine) = print(
+    "DelayMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
+show(io::IO, vf::DiscreteMachine) = print(
+    "DiscreteMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
 
 eltype(::AbstractMachine{T}) where T = T
 
@@ -192,12 +200,19 @@ readout(f::DelayMachine, u::AbstractVector, h = nothing, p = nothing, t = 0) = r
 readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
 readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
 
-"""    eval_dynamics(m::AbstractMachine, u::AbstractVector, xs:AbstractVector, p, t)
+"""    eval_dynamics(m::AbstractMachine, u::AbstractVector, x:AbstractVector{F}, p, t) where {F<:Function}
+    eval_dynamics(m::AbstractMachine{T}, u::AbstractVector, x:AbstractVector{T}, p, t) where T
 
-Evaluates the dynamics of the machine `m` at state `u`, parameters `p`, and time `t`. The exogenous variables are set by `xs` which may either be a collection of functions ``x(t)`` or a collection of constant values. 
-
-The length of `xs` must equal the number of inputs to `m`.
+Evaluates the dynamics of the machine `m` at state `u`, parameters `p` and time `t`.
+The exogenous variables are set by `x`, which may be a collection either of functions ``x_i(t)`` or of constant values.
+In either case, the length of `x` must equal the number of inputs to `m`.
 """
+eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{F}, p=nothing, t=0) where F <: Function =
+    eval_dynamics(f, u, [x(t) for x in xs], p, t)
+
+# eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
+#     eval_dynamics(f, collect(u), collect(xs), args...)
+
 eval_dynamics(f::DelayMachine, u, xs, h, p=nothing, t=0) = begin
     ninputs(f) == length(xs) || error("$xs must have length $(ninputs(f)) to set the exogenous variables.")
     dynamics(f)(collect(u), collect(xs), h, p, t)
@@ -208,15 +223,9 @@ eval_dynamics(f::AbstractMachine, u, xs, p=nothing, t=0) = begin
     dynamics(f)(collect(u), collect(xs), p, t)
 end
 
-# eval_dynamics(f::AbstractMachine, u::S, xs::T, args...) where {S,T <: Union{FinDomFunction, AbstractVector}} =
-#     eval_dynamics(f, collect(u), collect(xs), args...)
+"""    euler_approx(m::ContinuousMachine, h::Float)
 
-eval_dynamics(f::AbstractMachine, u::AbstractVector, xs::AbstractVector{T}, p=nothing, t=0) where T <: Function =
-    eval_dynamics(f, u, [x(t) for x in xs], p, t)
-
-"""    euler_approx(m::ContinuousMachine, h)
-
-Transforms a continuous machine `m` into a discrete machine via Euler's method with step size `h`. If the dynamics of `m` is given by ``\\dot{u}(t) = f(u(t),x(t),p,t)`` the the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, x_n, p, t)``.
+Transforms a continuous machine `m` into a discrete machine via Euler's method with step size `h`. If the dynamics of `m` is given by ``\\dot{u}(t) = f(u(t),x(t),p,t)``, then the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, x_n, p, t)``.
 """
 euler_approx(f::ContinuousMachine{T}, h::Float64) where T = DiscreteMachine{T}(
     ninputs(f), nstates(f), noutputs(f), 
@@ -226,65 +235,93 @@ euler_approx(f::ContinuousMachine{T}, h::Float64) where T = DiscreteMachine{T}(
 
 """    euler_approx(m::ContinuousMachine)
 
-Transforms a continuous machine `m` into a discrete machine via Euler's method where the step size is introduced as a new parameter, the last in the list of parameters.
+Transforms a continuous machine `m` into a discrete machine via Euler's method.
+The step size parameter is appended to the end of the system's parameter list.
 """
 euler_approx(f::ContinuousMachine{T}) where T = DiscreteMachine{T}(
     ninputs(f), nstates(f), noutputs(f), 
     (u, x, p, t) -> u + p[end]*eval_dynamics(f, u, x, p[1:end-1], t),
     readout(f)
 )
-euler_approx(fs::Vector{M}, args...) where {M<:ContinuousMachine} = 
+
+"""    euler_approx(ms::Vector{M}, args...) where {M<:ContinuousMachine}
+    euler_approx(ms::AbstractDict{S, M}, args...) where {S,M<:ContinuousMachine}
+
+Map `euler_approx` over a collection of machines with identical `args`.
+"""
+euler_approx(fs::Vector{M}, args...) where {M<:ContinuousMachine} =
     map(f->euler_approx(f,args...), fs)
 
-euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} = 
+euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
 
 # Integration with ODEProblem in OrdinaryDiffEq.jl
 
-"""    ODEProblem(m::ContinuousMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
+"""    ODEProblem(m::ContinuousMachine, x::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
-Constructs an ODEProblem from the vector field defined by `(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`.
+Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> m.dynamics(u,x,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
 """
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T= 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, xs::AbstractVector, tspan, p=nothing; kwargs...)  where T =
     ODEProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
   
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T= 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, tspan, p=nothing; kwargs...) where T =
     ODEProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T = 
+ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T =
     ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    DDEProblem(m::DelayMachine, u0::Vector, xs::Vector, h::Function, tspan, p = nothing; kwargs...)
+"""    DDEProblem(m::DelayMachine, u0::Vector, x::Vector, h::Function, tspan, p=nothing; kwargs...)
+
+Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> m.dynamics(u,x,h,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
 """
 DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
     DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
-"""    DiscreteProblem(m::DiscreteMachine, xs::Vector, u0::Vector, tspan, p=nothing; kwargs...)
+"""    DiscreteProblem(m::DiscreteMachine, x::Vector, u0::Vector, tspan, p=nothing; kwargs...)
 
-Constructs an DiscreteDynamicalSystem from the equation of motion defined by 
-`(u,p,t) -> m.dynamics(u, x, p, t)`. The exogenous variables are determined by `xs`. Pass `nothing` in place of `p` if your system does not have parameters.
+Constructs a `DiscreteProblem` from the equation of motion defined by
+`(u,p,t) -> m.dynamics(u,x,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
+Pass `nothing` in place of `p` if your system does not have parameters.
 """
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, tspan, p; kwargs...) =
     DiscreteProblem((u,p,t) -> eval_dynamics(m, u, xs, p, t), u0, tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) = 
+DiscreteProblem(m::DiscreteMachine, u0::AbstractVector, x, tspan, p; kwargs...) =
   DiscreteProblem(m, u0, collect(repeated(x, ninputs(m))), tspan, p; kwargs...)
 
-DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T = 
+DiscreteProblem(m::DiscreteMachine{T}, u0, tspan, p; kwargs...) where T =
     DiscreteProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    trajectory(m::DiscreteMachine, u0::AbstractVector, xs::AbstractVector, p, nsteps::Int; dt::Int = 1)
+"""    trajectory(m::DiscreteMachine, u0::AbstractVector, x::AbstractVector, p, nsteps::Int; dt::Int = 1)
+    trajectory(m::DiscreteMachine, u0::AbstractVector, x::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
 
-Evolves the machine `m` for `nsteps` times with step size `dt`, initial condition `u0`, and parameters `p`. Any inputs to `m` are determied by `xs`. If `m` has no inputs then you can omit `xs`.
+Evolves the machine `m`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
+Any inputs to `m` are determined by `x` as in `eval_dynamics()`. If `m` has no inputs, then you can omit `x`.
 """
-function trajectory(m::DiscreteMachine, u0::AbstractVector, xs,  p, T::Int; dt::Int= 1) 
-  prob = DiscreteProblem(m, u0, xs, (0, T), p)
-  sol = solve(prob, FunctionMap(); dt = dt)
-  return sol.u
+trajectory(m::DiscreteMachine, u0::AbstractVector, p, T::Int; dt::Int= 1) =
+    trajectory(m, u0, p, (0, T); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, T::Int; dt::Int= 1) =
+    trajectory(m, u0, xs, p, (0, T); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, p, tspan::T; dt::T= one(T)) where {T<:Real} =
+    trajectory(m, u0, p, (zero(tspan), tspan); dt)
+
+trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, tspan::T; dt::T= one(T)) where {T<:Real} =
+    trajectory(m, u0, xs, p, (zero(tspan), tspan); dt)
+
+function trajectory(m::DiscreteMachine, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
+  prob = DiscreteProblem(m, u0, tspan, p)
+  solve(prob, FunctionMap(); dt = dt)
 end
-    
+
+function trajectory(m::DiscreteMachine, u0::AbstractVector, xs, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
+  prob = DiscreteProblem(m, u0, xs, tspan, p)
+  solve(prob, FunctionMap(); dt = dt)
+end
+
 
 ### Plotting backend
 @recipe function f(sol, m::AbstractMachine, p=nothing)
@@ -297,15 +334,15 @@ end
 end
 
 
-"""    oapply(d::WiringDiagram, ms::Vector)
+"""    oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
 
-Implements the operad algebras for directed composition of dynamical systems given a 
+Implements the operad algebras for directed composition of dynamical systems, given a
 composition pattern (implemented by a directed wiring diagram `d`)
 and primitive systems (implemented by a collection of 
-machines `ms`).
+machines `ms`). Returns the composite machine.
 
-Each box of the composition pattern `d` is filled by a machine with the 
-appropriate type signature. Returns the composite machine.
+Each box of the composition pattern `d` must be filled by a machine with the
+appropriate type signature.
 """
 function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
     isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
@@ -326,17 +363,17 @@ end
 
 """    oapply(d::WiringDiagram, m::AbstractMachine)
 
-A version of `oapply` where each box of `d` is filled with the machine `m`.
+A version of `oapply` where each box of `d` is filled with the same machine `m`.
 """
 function oapply(d::WiringDiagram, x::AbstractMachine)
     oapply(d, collect(repeated(x, nboxes(d))))
 end
 
-"""    oapply(d::WiringDiagram, generators::Dict)
+"""    oapply(d::WiringDiagram, generators::AbstractDict{S,M}) where {S,M<:AbstractMachine}
 
 A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding machine. 
 """
-function oapply(d::WiringDiagram, ms::AbstractDict)
+function oapply(d::WiringDiagram, ms::AbstractDict{S,M}) where {S, M <: AbstractMachine}
     oapply(d, [ms[box.value] for box in boxes(d)])
 end
 
@@ -414,7 +451,7 @@ end
 
 """    fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 
-Checks if `m` is of the correct signature to fill box `b` of the  wiring diagram `d`.
+Checks if `m` is of the correct signature to fill box `b` of the wiring diagram `d`.
 """
 function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
     b <= nboxes(d) || error("Trying to fill box $b, when $d has fewer than $b boxes")

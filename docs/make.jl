@@ -5,10 +5,16 @@ using Literate
 using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
 using AlgebraicDynamics.DWDDynam
+using AlgebraicDynamics.CPortGraphDynam
 using Catlab
 using Catlab.WiringDiagrams
 using OrdinaryDiffEq
-using DynamicalSystems
+
+import Base.Sort: defalg, DEFAULT_UNSTABLE
+
+defalg(v::AbstractArray{Missing}) = DEFAULT_UNSTABLE
+defalg(v::AbstractArray{Union{}}) = DEFAULT_UNSTABLE
+
 
 # Set Literate.jl config if not being compiled on recognized service.
 config = Dict{String,String}()

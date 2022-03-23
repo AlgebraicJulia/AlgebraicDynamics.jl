@@ -35,8 +35,10 @@ struct DILS{T}
 end
 
 DILS{T}(input_poly::Monomial, output_poly::Monomial, nstates::Int,
-        forward_readout::Function, backward_readout::Function, eval_dynamics::Function) where T =
-  DILS{T}([input_poly], [output_poly], nstates, forward_readout, backward_readout, eval_dynamics)
+        forward_readout::Function, backward_readout::Function,
+        eval_dynamics::Function) where T =
+  DILS{T}([input_poly], [output_poly], nstates, forward_readout,
+          backward_readout, eval_dynamics)
 
 
 
@@ -51,8 +53,10 @@ nstates(d::DILS) = d.nstates
 
 """ forward_readout(d::DILS, u::AbstractVector, x::AbstractVector)
 
-This is half of the map on positions for the DILS `d` given by ``Sy^S \\to [p,q]``. It takes a state ``u \\in \\mathbb{R}^S``
-and a position in the input polynomial ``x \\in p(1)`` and returns a position of the output polynomial.
+This is half of the map on positions for the DILS `d` given by
+  ``Sy^S \\to [p,q]``. It takes a state ``u \\in \\mathbb{R}^S``
+and a position in the input polynomial ``x \\in p(1)`` and returns a position of
+the output polynomial.
 """
 
 forward_readout(d::DILS, u::AbstractVector, x::AbstractVector) =
@@ -60,8 +64,10 @@ forward_readout(d::DILS, u::AbstractVector, x::AbstractVector) =
 
 """ backward_readout(d::DILS, u::AbstractVector, x::AbstractVector, y::AbstractVector)
 
-This is the other half of the map on positions. It takes a state, a position on the input polynomial
-and a position on the output polynomial and returns a direction on the input polynomial.
+This is the other half of the map on positions. It takes a state, a position on
+the input polynomial and a position on the output polynomial and returns a
+direction on the input polynomial.
+
 ``\\sum_{s \\in S} \\sum_{i\\in p(1)} q[f(s,i)] \\rightarrow p[i]``
 """
 
@@ -70,23 +76,24 @@ backward_readout(d::DILS, u::AbstractVector, x::AbstractVector, y::AbstractVecto
 
 """ eval_dynamics(d::DILS, u::AbstractVector, x::AbstractVector, y::AbstractVector)
 
-This is the map on directions of the DILS `d` given by ``{\\mathbb{R}^S}y^{\\mathbb{R}^S} \\to [p,q]`. It takes a state
-``u \\in \\mathbb{R}^S``, a position ``x \\in p(1)``, a direction ``y \\in q[f(u,x)]`` (where ``f`` is the `forward_readout`)
+This is the map on directions of the DILS `d` given by
+``{\\mathbb{R}^S}y^{\\mathbb{R}^S} \\to [p,q]`. It takes a state
+``u \\in \\mathbb{R}^S``, a position ``x \\in p(1)``, a direction
+``y \\in q[f(u,x)]`` (where ``f`` is the `forward_readout`)
 and returns an updated state in ``\\mathbb{R}^S``
 """
 
-eval_dynamics(d::DILS, u::AbstractVector, x::AbstractVector, y::AbstractVector) =
-  d.eval_dynamics(u, x, y)
+eval_dynamics(d::DILS, u::AbstractVector, x::AbstractVector,
+              y::AbstractVector) = d.eval_dynamics(u, x, y)
 
-isa_state(d::DILS{T}, u::AbstractVector{T}) where T =
-  length(u) == nstates(d)
+isa_state(d::DILS{T}, u::AbstractVector{T}) where T = length(u) == nstates(d)
 
 
 # A DILS based on a function
 function DILS{T}(f::Function, ninput::Int, noutput::Int; monomial=true) where T
   DILS{T}(
     monomial ? 0=>ninput : [0=>1 for _ in 1:ninput],  # input poly is ninput y^0
-    monomial ? 0=>noutput : [0=>1 for _ in 1:noutput], # input poly is nouput y^0
+    monomial ? 0=>noutput : [0=>1 for _ in 1:noutput], # out poly is noutput y^0
     0,          # trivial state
     (_, x) -> f(x),  #forward map
     (_, _, _) -> T[], # backward map
@@ -95,12 +102,14 @@ function DILS{T}(f::Function, ninput::Int, noutput::Int; monomial=true) where T
 end
 
 # A DILS that outputs constant values
-DILS{T}(c::AbstractVector; monomial=true) where T = DILS{T}(_ -> c, 0, length(c); monomial=monomial)
+DILS{T}(c::AbstractVector; monomial=true) where T =
+  DILS{T}(_ -> c, 0, length(c); monomial=monomial)
 
 """
 Basically a (dependent) lens
 """
-function DILS{T}(forward::Function, backward::Function, ninput::Int, noutput::Int) where T
+function DILS{T}(forward::Function, backward::Function, ninput::Int,
+                 noutput::Int) where T
   DILS{T}(
     [ninput=>ninput],
     [noutput=>noutput],

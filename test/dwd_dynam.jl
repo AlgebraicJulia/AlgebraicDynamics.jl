@@ -126,7 +126,7 @@ add_wires!(d_big, Pair[
   end
 end
 
-@testset "Partially Dependent Systems" begin
+@testset "Instantaneous Machines" begin
   d = WiringDiagram([:X, :X], [:Y, :Z])
   b1 = add_box!(d, Box(:f, [:X], [:X]))
   b2 = add_box!(d, Box(:g, [:X, :X], [:X]))
@@ -139,8 +139,8 @@ end
     (b2, 1) => (output_id(d), 2)
   ])
 
-  f1 = DiscreteMachine{Float64}(1, 0, 1, (u,x,p,t)->u, (u,x,p,t)->x, [1=>1])
-  f2 = DiscreteMachine{Float64}(2, 1, 1, (u,x,p,t)->x[1]*u, (u,x,p,t)->[x[2]], [1=>2])
+  f1 = InstantaneousDiscreteMachine{Float64}(1, 0, 1, (u,x,p,t)->u, (u,x,p,t)->x, [1=>1])
+  f2 = InstantaneousDiscreteMachine{Float64}(2, 1, 1, (u,x,p,t)->x[1]*u, (u,x,p,t)->[x[2]], [1=>2])
   ms = [f1, f2]
 
   @test readout(f1, [], [2.0]) == [2.0]
@@ -154,7 +154,7 @@ end
   @test eval_dynamics(f, u, xs) == [5.0]
   @test dependency_pairs(f) == [1 => 1, 2 => 1]
 
-  f3 = DiscreteMachine{Float64}(x -> [sum(x)], 2, 1)
+  f3 = InstantaneousDiscreteMachine{Float64}(x -> [sum(x)], 2, 1)
   @test readout(f3, [], xs) == [5.0]
   @test eval_dynamics(f3, [], xs) == []
   @test dependency_pairs(f3) == [1 => 1, 1 => 2]
@@ -283,3 +283,5 @@ end
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
   end
 end
+
+

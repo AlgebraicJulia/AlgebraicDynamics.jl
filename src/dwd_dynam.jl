@@ -468,8 +468,7 @@ end
 
 
 ### Helper functions for `oapply`
-
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T,I, M<:AbstractMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {M<:AbstractMachine}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
@@ -528,7 +527,7 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get
 
 end
     
-function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I, M<:AbstractMachine{T,I}}
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {M<:AbstractMachine}
     function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)

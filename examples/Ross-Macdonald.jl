@@ -180,6 +180,15 @@ malaria_model = oapply(rm,
     Dict(:humans => human_model, :mosquitos => mosquito_model, :bloodmeal => bloodmeal_model)
 )
 
+params = LVector(a = 0.3, b = 0.55, c = 0.15, 
+    g = 0.1, n = 10, r = 1.0/200, m = 0.5)
+
+u0 = [0.1, 0.3, 0, 0]
+tspan = (0.0, 365.0*2)
+
+prob = ODEProblem(malaria_model, u0, tspan, params)
+sol = solve(prob, Tsit5());
+
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the
 # mosquito population. To do so we can replace the models with delay differential equations 

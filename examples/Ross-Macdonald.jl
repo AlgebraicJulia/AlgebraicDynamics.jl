@@ -132,6 +132,54 @@ N = length(sol)
 plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
 plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, color = "magenta")
 
+# ## ODE Model using instantaneous machines
+# One way to decouple systems or isolate coupling points between different parts of a dynamical system
+# is to use instantaneous machines, which do not 
+
+rm = WiringDiagram([], [:mosquitos, :humans, :bloodmeal])
+human_box = add_box!(rm, Box(:humans, [:EIR], [:X]))
+mosquito_box = add_box!(rm, Box(:mosquitos, [:κ], [:Z]))
+bloodmeal_box = add_box!(rm, Box(:bloodmeal, [:X, :Z], [:κ, :EIR]))
+output_box = output_id(rm)
+
+add_wires!(rm, Pair[
+    (bloodmeal_box, 1)  => (mosquito_box, 1),
+    (bloodmeal_box, 2) => (human_box, 1),
+    (human_box, 1)  => (bloodmeal_box, 1),
+    (mosquito_box, 1) => (bloodmeal_box, 2),
+    (mosquito_box, 1)  => (output_box, 1),
+    (human_box, 1) => (output_box, 2)]
+)
+
+to_graphviz(rm)
+
+
+bloodmeal = function(u,x,p,t)
+    X = x[1]
+    Z = [2]
+    [p.c*X, p.m*p.a*Z]
+end
+
+dZdt = function(u,x,p,t)
+    Z = u[1]
+    κ = x[1]
+    [p.a*κ*(exp(-p.g*p.n) - Z) - p.g*Z]
+end
+
+dXdt = function(u,x,p,t)
+    X = u[1]
+    EIR = x[1]
+    [p.b*EIR*(1 - X) - p.r*X]
+end
+
+bloodmeal_model = InstantaneousContinuousMachine{Float64}(2, 2, 2, bloodmeal, (u,x,p,t)->u, nothing)
+mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
+human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
+
+malaria_model = oapply(rm,
+    Dict(:humans => human_model, :mosquitos => mosquito_model, :bloodmeal => bloodmeal_model)
+)
+
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the
 # mosquito population. To do so we can replace the models with delay differential equations 

@@ -156,7 +156,7 @@ to_graphviz(rm)
 
 bloodmeal = function(u,x,p,t)
     X = x[1]
-    Z = [2]
+    Z = x[2]
     [p.c*X, p.m*p.a*Z]
 end
 

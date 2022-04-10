@@ -153,7 +153,6 @@ add_wires!(rm, Pair[
 
 to_graphviz(rm)
 
-
 bloodmeal = function(u,x,p,t)
     X = x[1]
     Z = x[2]
@@ -172,7 +171,7 @@ dXdt = function(u,x,p,t)
     [p.b*EIR*(1 - X) - p.r*X]
 end
 
-bloodmeal_model = InstantaneousContinuousMachine{Float64}(2, 2, 2, bloodmeal, (u,x,p,t)->u, nothing)
+bloodmeal_model = InstantaneousContinuousMachine{Float64}(2, 0, 2, (u,x,p,t)->u, bloodmeal, [1=>1,2=>2])
 mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
 human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 
@@ -183,7 +182,7 @@ malaria_model = oapply(rm,
 params = LVector(a = 0.3, b = 0.55, c = 0.15, 
     g = 0.1, n = 10, r = 1.0/200, m = 0.5)
 
-u0 = [0.1, 0.3, 0, 0]
+u0 = [0.1, 0.3]
 tspan = (0.0, 365.0*2)
 
 prob = ODEProblem(malaria_model, u0, tspan, params)

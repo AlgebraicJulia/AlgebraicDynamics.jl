@@ -46,11 +46,11 @@ struct InstantaneousDirectedInterface{T} <: AbstractDirectedInterface{T}
   dependency::Span # P_in <- R -> P_out
 end
 
-InstantaneousDirectedInterface{T}(input_ports::AbstractVector, output_ports::AbstractVector, dependency_pairs::AbstractVector{P}) where {T, P<:Pair} = 
+InstantaneousDirectedInterface{T}(input_ports::AbstractVector, output_ports::AbstractVector, dependency_pairs::AbstractVector) where {T} = 
   InstantaneousDirectedInterface{T}(input_ports, output_ports, 
     Span(
-      FinFunction(last.(dependency_pairs), length(dependency_pairs), length(input_ports)), 
-      FinFunction(first.(dependency_pairs), length(dependency_pairs), length(output_ports))
+      FinFunction(Array{Int}(last.(dependency_pairs)), length(dependency_pairs), length(input_ports)), 
+      FinFunction(Array{Int}(first.(dependency_pairs)), length(dependency_pairs), length(output_ports))
     ))
 
 InstantaneousDirectedInterface{T}(ninputs::Int, noutputs::Int, dependency) where {T} = 
@@ -669,13 +669,13 @@ function induced_dependency(d, dependency_colims)
     w.target.port 
   end
 
-  pb1 = pullback(FinFunction(pins, nv(h)), FinFunction(src(h), nv(h)))
-  pb2 = pullback(FinFunction(tgt(h), nv(h)), FinFunction(pouts, nv(h)))
+  pb1 = pullback(FinFunction(Array{Int}(pins), nv(h)), FinFunction(Array{Int}(src(h)), nv(h)))
+  pb2 = pullback(FinFunction(Array{Int}(tgt(h)), nv(h)), FinFunction(Array{Int}(pouts), nv(h)))
 
   pb = pullback(legs(pb1)[2], legs(pb2)[1])
 
-  p1 = FinFunction(qins, length(input_ports(d))) ∘ legs(pb1)[1] ∘ legs(pb)[1]
-  p2 = FinFunction(qouts, length(output_ports(d))) ∘ (legs(pb2)[2] ∘ legs(pb)[2])
+  p1 = FinFunction(Array{Int}(qins), length(input_ports(d))) ∘ legs(pb1)[1] ∘ legs(pb)[1]
+  p2 = FinFunction(Array{Int}(qouts), length(output_ports(d))) ∘ (legs(pb2)[2] ∘ legs(pb)[2])
 
   map(1:length(apex(pb))) do i 
     p2(i) => p1(i)

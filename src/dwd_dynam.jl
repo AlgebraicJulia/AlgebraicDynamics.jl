@@ -161,7 +161,6 @@ ContinuousMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,
 ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I} =
     ContinuousMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-
 ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
     ContinuousMachine{T, I}(I(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
@@ -169,7 +168,7 @@ InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout,
     ContinuousMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
 InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
-    ContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+    InstantaneousContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
 
 """    DelayMachine{T}(ninputs, nstates, noutputs, f, r)
@@ -205,7 +204,7 @@ InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, depe
     DelayMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
 InstantaneousDelayMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
-    DelayMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+    InstantaneousDelayMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
 
   
@@ -238,12 +237,12 @@ DiscreteMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
 
 DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
     DiscreteMachine{T, I}(I(ninputs, noutputs, dependency), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
-  
-InstantaneousDiscreteMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
-    InstantaneousDiscreteMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
 InstantaneousDiscreteMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where T = 
     DiscreteMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
+  
+InstantaneousDiscreteMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
+    InstantaneousDiscreteMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
 
 show(io::IO, vf::ContinuousMachine) = print(
@@ -259,10 +258,10 @@ eltype(::AbstractMachine{T}) where T = T
 readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
 readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
 
-readout(f::DelayMachine, u::AbstractVector, h = nothing, p = nothing, t = 0) = readout(f)(u, h, p, t)
-
 readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface{T}, S} = 
   readout(m)(u,x,p,t)
+
+readout(f::DelayMachine{T,I}, u::AbstractVector, h=nothing, p = nothing, t = 0) where {T, I<:Union{DirectedInterface, DirectedVectorInterface}}= readout(f)(u, h, p, t)
 readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface} = 
   readout(m)(u,x,h,p,t)
 
@@ -525,7 +524,6 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get
         eval_dynamics(ms[i], states[i], inputs, p, t)
       end)
   end
-
 end
     
 function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I, M<:AbstractMachine{T,I}}
@@ -597,7 +595,7 @@ get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} 
     readout(m, states[i], hists[i], p, t)
 end
 
-# A function which iteratively produces the readouts of a 
+# A function which iteratively produces the readouts for an composite of InstantaneousDirected interface
 function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbstractColimit}
 
   _, vertex_box, sorted_vs, _ = dependency_graph(d, dependency_colims)

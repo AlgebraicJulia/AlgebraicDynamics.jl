@@ -182,6 +182,29 @@ end
   @test readout(g, u, xs) == [6.0]
   @test eval_dynamics(g, u, xs) == [5.0]
 
+  @testset "Fibonacci" begin 
+    d = WiringDiagram([], [:N])
+    b_plus = add_box!(d, Box(:plus, [:n, :n], [:n]))
+    b_delay1 = add_box!(d, Box(:delay, [:n], [:n]))
+    b_delay2 = add_box!(d, Box(:delay, [:n], [:n]))
+    add_wires!(d, Pair[
+      (b_plus, 1) => (b_delay1, 1),
+      (b_delay1, 1) => (b_plus, 1), 
+      (b_delay1, 1) => (b_delay2, 1),
+      (b_delay2, 1) => (b_plus, 2),
+      (b_delay2, 1) => (output_id(d), 1)
+    ])
+    plus = InstantaneousDiscreteMachine{Int}(x -> [sum(x)], 2, 1)
+    delay = InstantaneousDiscreteMachine{Int}(1, 1, 1, (u,x,p,t) -> x, (u,x,p,t) -> u, [])
+    fib = oapply(d, Dict(:plus => plus, :delay => delay))
+    u0 = [1,1]
+    true_fib = [1,1,2,3,5,8,13,21]
+    for i in 1:7
+      @test readout(fib, u0, [])[1] == true_fib[i]
+      u0 = eval_dynamics(fib, u0, [])
+    end
+  end
+
 end
 
 @testset "DDE Problems" begin
@@ -283,5 +306,6 @@ end
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
   end
 end
+
 
 

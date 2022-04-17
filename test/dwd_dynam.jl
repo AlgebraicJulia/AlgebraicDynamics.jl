@@ -182,6 +182,11 @@ end
   @test readout(g, u, xs) == [6.0]
   @test eval_dynamics(g, u, xs) == [5.0]
 
+  m = InstantaneousDiscreteMachine(DiscreteMachine{Int}(1, 1, 1, (u,x,p,t) -> x .+ u, (u,p,t) -> u))
+  @test length(dependency_pairs(m)) == 0
+  @test readout(m, [1], [2], nothing, 0) == [1]
+  @test eval_dynamics(m, [1], [2], nothing, 0) == [3]
+
   @testset "Fibonacci" begin 
     d = WiringDiagram([], [:N])
     b_plus = add_box!(d, Box(:plus, [:n, :n], [:n]))

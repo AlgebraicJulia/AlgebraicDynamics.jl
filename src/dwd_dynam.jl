@@ -170,6 +170,12 @@ InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout,
 InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
     InstantaneousContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
+InstantaneousContinuousMachine(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         ContinuousDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
+    
+
 
 """    DelayMachine{T}(ninputs, nstates, noutputs, f, r)
 
@@ -206,7 +212,10 @@ InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, depe
 InstantaneousDelayMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
     InstantaneousDelayMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
-
+InstantaneousDelayMachine(m::DelayMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    DelayMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         DelayDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
   
 
 """    DiscreteMachine{T}(ninputs, nstates, noutputs, f, r)
@@ -244,6 +253,10 @@ InstantaneousDiscreteMachine{T}(ninputs, nstates, noutputs, dynamics, readout, d
 InstantaneousDiscreteMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
     InstantaneousDiscreteMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
+InstantaneousDiscreteMachine(m::DiscreteMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    DiscreteMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         DiscreteDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
 
 show(io::IO, vf::ContinuousMachine) = print(
     "ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")

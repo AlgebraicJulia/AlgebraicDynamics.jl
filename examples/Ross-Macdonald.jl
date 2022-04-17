@@ -164,6 +164,11 @@ add_wires!(rmb, Pair[
 # of humans to mosquitoes, commonly denoted $\kappa$. The EIR is $maZ$ where $Z$ is the mosquito
 # state variable, and $\kappa$ is $cX$ where $X$ is the human state variable.
 
+# These two terms are sent from the bloodmeal machine to the mosquito and human machines
+# via their input ports. Then the dynamical system filling the mosquito machine is
+# $\dot{Z} = a*\kappa*(e^{-gn} - Z) - gZ$ and $\dot{X} = bEIR(1-X) - rX$ is the dynamical system
+# filling the human machine.
+
 to_graphviz(rmb)
 
 #- 
@@ -197,13 +202,7 @@ malaria_model = oapply(rmb,
 )
 
 # We use the same parameter values as previously given to solve the composed system, and plot
-# the analytic equilibrium.
-
-params = LVector(a = 0.3, b = 0.55, c = 0.15, 
-    g = 0.1, n = 10, r = 1.0/200, m = 0.5)
-
-u0 = [0.1, 0.3]
-tspan = (0.0, 365.0*2)
+# the analytic equilibrium. Results are the same as for the previous system.
 
 prob = ODEProblem(malaria_model, u0, tspan, params)
 sol = solve(prob, Tsit5());

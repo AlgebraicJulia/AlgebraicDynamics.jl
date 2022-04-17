@@ -65,12 +65,12 @@ using Plots
 # First we must construct a diagram of systems which describes the interaction between the mosquito and 
 # host populations. The arrows between the two subsystems represents the bidirectional infection during bloodmeals. 
 
-bloodmeal = WiringDiagram([], [:mosquitos, :humans])
-mosq_box   = add_box!(bloodmeal, Box(:mosquitos, [:x], [:z]))
-human_box  = add_box!(bloodmeal, Box(:humans, [:z], [:x]))
-output_box = output_id(bloodmeal)
+rm = WiringDiagram([], [:mosquitos, :humans])
+mosq_box   = add_box!(rm, Box(:mosquitos, [:x], [:z]))
+human_box  = add_box!(rm, Box(:humans, [:z], [:x]))
+output_box = output_id(rm)
 
-add_wires!(bloodmeal, Pair[
+add_wires!(rm, Pair[
     (mosq_box, 1)  => (human_box, 1),
     (human_box, 1) => (mosq_box, 1),
     (mosq_box, 1)  => (output_box, 1),
@@ -78,7 +78,7 @@ add_wires!(bloodmeal, Pair[
 )
 
 
-to_graphviz(bloodmeal)
+to_graphviz(rm)
 
 # ## ODE Model
 # Next we implement the concrete mosquito and host dynamics given in Equation (1), and apply them to the diagram 
@@ -101,7 +101,7 @@ end
 mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
 human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 
-malaria_model = oapply(bloodmeal, 
+malaria_model = oapply(rm, 
     Dict(:humans => human_model, :mosquitos => mosquito_model)
 )
 
@@ -144,13 +144,13 @@ plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, c
 # complex systems it can be beneficial to have seperate components which compute terms which
 # are dependent on state variables "external" to a particular machine.
 
-rm = WiringDiagram([], [:mosquitos, :humans, :bloodmeal])
-mosquito_box = add_box!(rm, Box(:mosquitos, [:κ], [:Z]))
-human_box = add_box!(rm, Box(:humans, [:EIR], [:X]))
-bloodmeal_box = add_box!(rm, Box(:bloodmeal, [:X, :Z], [:κ, :EIR]))
-output_box = output_id(rm)
+rmb = WiringDiagram([], [:mosquitos, :humans, :bloodmeal])
+mosquito_box = add_box!(rmb, Box(:mosquitos, [:κ], [:Z]))
+human_box = add_box!(rmb, Box(:humans, [:EIR], [:X]))
+bloodmeal_box = add_box!(rmb, Box(:bloodmeal, [:X, :Z], [:κ, :EIR]))
+output_box = output_id(rmb)
 
-add_wires!(rm, Pair[
+add_wires!(rmb, Pair[
     (bloodmeal_box, 1)  => (mosquito_box, 1),
     (bloodmeal_box, 2) => (human_box, 1),
     (human_box, 1)  => (bloodmeal_box, 1),
@@ -164,7 +164,7 @@ add_wires!(rm, Pair[
 # of humans to mosquitoes, commonly denoted $\kappa$. The EIR is $maZ$ where $Z$ is the mosquito
 # state variable, and $\kappa$ is $cX$ where $X$ is the human state variable.
 
-to_graphviz(rm)
+to_graphviz(rmb)
 
 #- 
 bloodmeal = function(u,x,p,t)
@@ -192,7 +192,7 @@ human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 instantaneous_mosquito_model = InstantaneousContinuousMachine{Float64}(mosquito_model)
 instantaneous_human_model = InstantaneousContinuousMachine{Float64}(human_model)
 
-malaria_model = oapply(rm,
+malaria_model = oapply(rmb,
     Dict(:mosquitos => instantaneous_mosquito_model, :humans => instantaneous_human_model, :bloodmeal => bloodmeal_model)
 )
 
@@ -251,7 +251,7 @@ mosquito_delay_model = DelayMachine{Float64, 2}(
 human_delay_model = DelayMachine{Float64, 2}(
     1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
 
-malaria_delay_model = oapply(bloodmeal, 
+malaria_delay_model = oapply(rm, 
     Dict(:humans => human_delay_model, :mosquitos => mosquito_delay_model)
 )
 #- 

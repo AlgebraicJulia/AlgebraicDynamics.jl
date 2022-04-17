@@ -17,7 +17,7 @@ export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine,
 nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx, 
 dependency_pairs
-
+using Infiltrator
 using Base.Iterators
 import Base: show, eltype, zero
 
@@ -587,11 +587,17 @@ destruct(C::Colimit, h) = map(1:length(C)) do i
 end
 
 get_readouts(ms::AbstractArray{M}, states, p, t) where {M <: AbstractMachine} = map(enumerate(ms)) do (i, m) 
+    Infiltrator.@infiltrate
     readout(m, states[i], p, t)
 end 
 
 get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} = map(enumerate(ms)) do (i, m) 
     readout(m, states[i], hists[i], p, t)
+end
+
+get_readouts(ms::AbstractArray{M}, states, inputs, p, t) where {T,I<:InstantaneousDirectedInterface{T},M<:Machine{T, I}} = map(enumerate(ms)) do (i, m) 
+  Infiltrator.@infiltrate
+  readout(m, states[i], inputs[i], p, t)
 end
 
 # A function which iteratively produces the readouts for an composite of InstantaneousDirected interface

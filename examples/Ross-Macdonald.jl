@@ -2,7 +2,7 @@
 #
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/Ross-Macdonald.ipynb)
 
-# Authors: Sean Wu and Sophie Libkind
+# Authors: Sean L. Wu and Sophie Libkind
 
 using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
@@ -187,6 +187,10 @@ tspan = (0.0, 365.0*2)
 
 prob = ODEProblem(malaria_model, u0, tspan, params)
 sol = solve(prob, Tsit5());
+
+# error
+# these methods are not passed the input port x states
+methods(malaria_model.system.readout.get_readouts)
 
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the

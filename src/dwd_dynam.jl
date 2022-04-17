@@ -17,7 +17,7 @@ export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
 InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine,
 nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx, 
 dependency_pairs
-using Infiltrator
+
 using Base.Iterators
 import Base: show, eltype, zero
 
@@ -170,7 +170,7 @@ InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout,
 InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
     InstantaneousContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
-InstantaneousContinuousMachine(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+InstantaneousContinuousMachine{T}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
                          ContinuousDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
     )
@@ -480,7 +480,8 @@ end
 
 
 ### Helper functions for `oapply`
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {M<:AbstractMachine}
+
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T,I, M<:AbstractMachine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
@@ -538,7 +539,7 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get
   end
 end
     
-function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {M<:AbstractMachine}
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I, M<:AbstractMachine{T,I}}
     function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)
@@ -600,17 +601,11 @@ destruct(C::Colimit, h) = map(1:length(C)) do i
 end
 
 get_readouts(ms::AbstractArray{M}, states, p, t) where {M <: AbstractMachine} = map(enumerate(ms)) do (i, m) 
-    Infiltrator.@infiltrate
     readout(m, states[i], p, t)
 end 
 
 get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} = map(enumerate(ms)) do (i, m) 
     readout(m, states[i], hists[i], p, t)
-end
-
-get_readouts(ms::AbstractArray{M}, states, inputs, p, t) where {T,I<:InstantaneousDirectedInterface{T},M<:Machine{T, I}} = map(enumerate(ms)) do (i, m) 
-  Infiltrator.@infiltrate
-  readout(m, states[i], inputs[i], p, t)
 end
 
 # A function which iteratively produces the readouts for an composite of InstantaneousDirected interface

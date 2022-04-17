@@ -134,11 +134,19 @@ plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, c
 
 # ## ODE Model using instantaneous machines
 # One way to decouple systems or isolate coupling points between different parts of a dynamical system
-# is to use instantaneous machines, which do not 
+# is to use instantaneous machines, which allow processing of information to occur without (optionally) storing
+# state themselves.
+
+# In this case we seperate the bloodmeal, where pathogen transmission occurs between the two
+# species, into a seperate machine. This way, the dynamics of the human and mosquito machines
+# do not need the other's state value, all the information has already been computed in
+# the bloodmeal machine. For such a simple system, this arrangement may be superfluous, but in
+# complex systems it can be beneficial to have seperate components which compute terms which
+# are dependent on state variables "external" to a particular machine.
 
 rm = WiringDiagram([], [:mosquitos, :humans, :bloodmeal])
-human_box = add_box!(rm, Box(:humans, [:EIR], [:X]))
 mosquito_box = add_box!(rm, Box(:mosquitos, [:κ], [:Z]))
+human_box = add_box!(rm, Box(:humans, [:EIR], [:X]))
 bloodmeal_box = add_box!(rm, Box(:bloodmeal, [:X, :Z], [:κ, :EIR]))
 output_box = output_id(rm)
 
@@ -151,8 +159,14 @@ add_wires!(rm, Pair[
     (human_box, 1) => (output_box, 2)]
 )
 
+# The wiring diagram is below. The bloodmeal machine computes the EIR (entomological inoculation rate)
+# which is proportional to the force of infection upon susceptible humans, and the net infectiousness
+# of humans to mosquitoes, commonly denoted $\kappa$. The EIR is $maZ$ where $Z$ is the mosquito
+# state variable, and $\kappa$ is $cX$ where $X$ is the human state variable.
+
 to_graphviz(rm)
 
+#- 
 bloodmeal = function(u,x,p,t)
     X = x[1]
     Z = x[2]
@@ -175,9 +189,15 @@ bloodmeal_model = InstantaneousContinuousMachine{Float64}(2, 0, 2, (u,x,p,t)->u,
 mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
 human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 
+instantaneous_mosquito_model = InstantaneousContinuousMachine{Float64}(mosquito_model)
+instantaneous_human_model = InstantaneousContinuousMachine{Float64}(human_model)
+
 malaria_model = oapply(rm,
-    Dict(:humans => human_model, :mosquitos => mosquito_model, :bloodmeal => bloodmeal_model)
+    Dict(:mosquitos => instantaneous_mosquito_model, :humans => instantaneous_human_model, :bloodmeal => bloodmeal_model)
 )
+
+# We use the same parameter values as previously given to solve the composed system, and plot
+# the analytic equilibrium.
 
 params = LVector(a = 0.3, b = 0.55, c = 0.15, 
     g = 0.1, n = 10, r = 1.0/200, m = 0.5)
@@ -188,9 +208,16 @@ tspan = (0.0, 365.0*2)
 prob = ODEProblem(malaria_model, u0, tspan, params)
 sol = solve(prob, Tsit5());
 
-# error
-# these methods are not passed the input port x states
-methods(malaria_model.system.readout.get_readouts)
+#- 
+plot(sol, label = ["mosquitos" "humans"],
+    lw=2, title = "Ross-Macdonald Malaria model", 
+    xlabel = "time", ylabel = "proportion infectious",
+    color = ["magenta" "blue"]
+)
+N = length(sol)
+plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
+plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, color = "magenta")
+
 
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the

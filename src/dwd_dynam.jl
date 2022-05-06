@@ -170,7 +170,7 @@ InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout,
 InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
     InstantaneousContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
-InstantaneousContinuousMachine(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+InstantaneousContinuousMachine{T}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
                          ContinuousDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
     )

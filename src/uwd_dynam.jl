@@ -20,6 +20,8 @@ eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
 using Base.Iterators
 import Base: show, eltype
 
+using Requires
+
 ### Interface
 abstract type AbstractInterface{T} end
 abstract type AbstractUndirectedInterface{T} <: AbstractInterface{T} end
@@ -373,6 +375,27 @@ function induced_dynamics(d::AbstractUWD, xs::Vector{R}, state_map::FinFunction,
         # add along junctions
         return u′+ [sum(Array{T}(view(Δu, preimage(state_map, i)))) for i in codom(state_map)]
     end
+end
+
+
+# AlgebraicPetri constructors
+##########################
+
+function __init__()
+  @require AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"  begin
+    using .AlgebraicPetri
+
+    function ContinuousResourceSharer{T}(pn::Union{OpenPetriNet, OpenLabelledPetriNet}) where T
+      nstates = nparts(apex(pn), :S)
+      portmap = vcat(map(legs(pn)) do f
+        f[:S](parts(dom(f), :S))
+      end...)
+      nports = length(portmap)
+      vf(u, p, t) = vectorfield(apex(pn))(zeros(nstates), u, p, t)
+    
+      ContinuousResourceSharer{T}(nports, nstates, vf, portmap)
+    end
+  end
 end
 
 end #module

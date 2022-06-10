@@ -126,6 +126,92 @@ add_wires!(d_big, Pair[
   end
 end
 
+@testset "Instantaneous Machines" begin
+  d = WiringDiagram([:X, :X], [:Y, :Z])
+  b1 = add_box!(d, Box(:f, [:X], [:X]))
+  b2 = add_box!(d, Box(:g, [:X, :X], [:X]))
+  add_wires!(d, Pair[
+    (input_id(d), 1) => (b1, 1),
+    (input_id(d), 2) => (b2, 1),
+    (b1, 1) => (b2, 2), 
+    (b2, 1) => (b2, 1),
+    (b1, 1) => (output_id(d), 1),
+    (b2, 1) => (output_id(d), 2)
+  ])
+
+  f1 = InstantaneousDiscreteMachine{Float64}(1, 0, 1, (u,x,p,t)->u, (u,x,p,t)->x, [1=>1])
+  f2 = InstantaneousDiscreteMachine{Float64}(2, 1, 1, (u,x,p,t)->x[1]*u, (u,x,p,t)->[x[2]], [1=>2])
+  ms = [f1, f2]
+
+  @test readout(f1, [], [2.0]) == [2.0]
+  @test eval_dynamics(f1, [], [2.0]) == []
+
+  f = oapply(d, ms)
+  
+  u = [1.0]
+  xs = [2.0, 3.0]
+  @test readout(f, u, xs) == [2.0, 2.0]
+  @test eval_dynamics(f, u, xs) == [5.0]
+  @test dependency_pairs(f) == [1 => 1, 2 => 1]
+
+  f3 = InstantaneousDiscreteMachine{Float64}(x -> [sum(x)], 2, 1)
+  @test readout(f3, [], xs) == [5.0]
+  @test eval_dynamics(f3, [], xs) == []
+  @test dependency_pairs(f3) == [1 => 1, 1 => 2]
+
+  d = WiringDiagram([:X, :X], [:Y])
+  b1 = add_box!(d, Box(:f, [:X, :X], [:X, :X]))
+  b2 = add_box!(d, Box(:g, [:X, :X], [:X]))
+  add_wires!(d, Pair[
+    (input_id(d), 1) => (b1, 2), 
+    (b1, 1) => (b2, 1),
+    (b1, 2) => (b2, 2),
+    (b2, 1) => (output_id(d), 1)
+  ])
+
+  ms = [f, f3]
+  g = oapply(d, ms)
+  @test dependency_pairs(g) == []
+  @test readout(g, u, xs) == [0.0]
+  @test eval_dynamics(g, u, xs) == [2.0]
+
+  add_wire!(d, (input_id(d), 2) => (b1, 1))
+  g = oapply(d, ms)
+
+  @test dependency_pairs(g) == [1=>2]
+  @test readout(g, u, xs) == [6.0]
+  @test eval_dynamics(g, u, xs) == [5.0]
+
+  m = InstantaneousDiscreteMachine(DiscreteMachine{Int}(1, 1, 1, (u,x,p,t) -> x .+ u, (u,p,t) -> u))
+  @test length(dependency_pairs(m)) == 0
+  @test readout(m, [1], [2], nothing, 0) == [1]
+  @test eval_dynamics(m, [1], [2], nothing, 0) == [3]
+
+  @testset "Fibonacci" begin 
+    d = WiringDiagram([], [:N])
+    b_plus = add_box!(d, Box(:plus, [:n, :n], [:n]))
+    b_delay1 = add_box!(d, Box(:delay, [:n], [:n]))
+    b_delay2 = add_box!(d, Box(:delay, [:n], [:n]))
+    add_wires!(d, Pair[
+      (b_plus, 1) => (b_delay1, 1),
+      (b_delay1, 1) => (b_plus, 1), 
+      (b_delay1, 1) => (b_delay2, 1),
+      (b_delay2, 1) => (b_plus, 2),
+      (b_delay2, 1) => (output_id(d), 1)
+    ])
+    plus = InstantaneousDiscreteMachine{Int}(x -> [sum(x)], 2, 1)
+    delay = InstantaneousDiscreteMachine{Int}(1, 1, 1, (u,x,p,t) -> x, (u,x,p,t) -> u, [])
+    fib = oapply(d, Dict(:plus => plus, :delay => delay))
+    u0 = [1,1]
+    true_fib = [1,1,2,3,5,8,13,21]
+    for i in 1:7
+      @test readout(fib, u0, [])[1] == true_fib[i]
+      u0 = eval_dynamics(fib, u0, [])
+    end
+  end
+
+end
+
 @testset "DDE Problems" begin
   rf(u,h,p,t) = u
   delay_rf(u,h,p,t) = h(p, t - p.τ)
@@ -225,3 +311,6 @@ end
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
   end
 end
+
+
+

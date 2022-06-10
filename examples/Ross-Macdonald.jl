@@ -2,7 +2,7 @@
 #
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/Ross-Macdonald.ipynb)
 
-# Authors: Sean Wu and Sophie Libkind
+# Authors: Sean L. Wu and Sophie Libkind
 
 using AlgebraicDynamics.DWDDynam
 using Catlab.WiringDiagrams
@@ -65,12 +65,12 @@ using Plots
 # First we must construct a diagram of systems which describes the interaction between the mosquito and 
 # host populations. The arrows between the two subsystems represents the bidirectional infection during bloodmeals. 
 
-bloodmeal = WiringDiagram([], [:mosquitos, :humans])
-mosq_box   = add_box!(bloodmeal, Box(:mosquitos, [:x], [:z]))
-human_box  = add_box!(bloodmeal, Box(:humans, [:z], [:x]))
-output_box = output_id(bloodmeal)
+rm = WiringDiagram([], [:mosquitos, :humans])
+mosq_box   = add_box!(rm, Box(:mosquitos, [:x], [:z]))
+human_box  = add_box!(rm, Box(:humans, [:z], [:x]))
+output_box = output_id(rm)
 
-add_wires!(bloodmeal, Pair[
+add_wires!(rm, Pair[
     (mosq_box, 1)  => (human_box, 1),
     (human_box, 1) => (mosq_box, 1),
     (mosq_box, 1)  => (output_box, 1),
@@ -78,7 +78,7 @@ add_wires!(bloodmeal, Pair[
 )
 
 
-to_graphviz(bloodmeal)
+to_graphviz(rm)
 
 # ## ODE Model
 # Next we implement the concrete mosquito and host dynamics given in Equation (1), and apply them to the diagram 
@@ -101,7 +101,7 @@ end
 mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
 human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
 
-malaria_model = oapply(bloodmeal, 
+malaria_model = oapply(rm, 
     Dict(:humans => human_model, :mosquitos => mosquito_model)
 )
 
@@ -131,6 +131,92 @@ Z̄ = (a*c*X̄)/(g + a*c*X̄)*exp(-g*n)
 N = length(sol)
 plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
 plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, color = "magenta")
+
+# ## ODE Model using instantaneous machines
+# One way to decouple systems or isolate coupling points between different parts of a dynamical system
+# is to use instantaneous machines, which allow processing of information to occur without (optionally) storing
+# state themselves.
+
+# In this case we seperate the bloodmeal, where pathogen transmission occurs between the two
+# species, into a seperate machine. This way, the dynamics of the human and mosquito machines
+# do not need the other's state value, all the information has already been computed in
+# the bloodmeal machine. For such a simple system, this arrangement may be superfluous, but in
+# complex systems it can be beneficial to have seperate components which compute terms which
+# are dependent on state variables "external" to a particular machine.
+
+rmb = WiringDiagram([], [:mosquitos, :humans, :bloodmeal])
+mosquito_box = add_box!(rmb, Box(:mosquitos, [:κ], [:Z]))
+human_box = add_box!(rmb, Box(:humans, [:EIR], [:X]))
+bloodmeal_box = add_box!(rmb, Box(:bloodmeal, [:X, :Z], [:κ, :EIR]))
+output_box = output_id(rmb)
+
+add_wires!(rmb, Pair[
+    (bloodmeal_box, 1)  => (mosquito_box, 1),
+    (bloodmeal_box, 2) => (human_box, 1),
+    (human_box, 1)  => (bloodmeal_box, 1),
+    (mosquito_box, 1) => (bloodmeal_box, 2),
+    (mosquito_box, 1)  => (output_box, 1),
+    (human_box, 1) => (output_box, 2)]
+)
+
+# The wiring diagram is below. The bloodmeal machine computes the EIR (entomological inoculation rate)
+# which is proportional to the force of infection upon susceptible humans, and the net infectiousness
+# of humans to mosquitoes, commonly denoted $\kappa$. The EIR is $maZ$ where $Z$ is the mosquito
+# state variable, and $\kappa$ is $cX$ where $X$ is the human state variable.
+
+# These two terms are sent from the bloodmeal machine to the mosquito and human machines
+# via their input ports. Then the dynamical system filling the mosquito machine is
+# $\dot{Z} = a*\kappa*(e^{-gn} - Z) - gZ$ and $\dot{X} = bEIR(1-X) - rX$ is the dynamical system
+# filling the human machine.
+
+to_graphviz(rmb)
+
+#- 
+bloodmeal = function(u,x,p,t)
+    X = x[1]
+    Z = x[2]
+    [p.c*X, p.m*p.a*Z]
+end
+
+dZdt = function(u,x,p,t)
+    Z = u[1]
+    κ = x[1]
+    [p.a*κ*(exp(-p.g*p.n) - Z) - p.g*Z]
+end
+
+dXdt = function(u,x,p,t)
+    X = u[1]
+    EIR = x[1]
+    [p.b*EIR*(1 - X) - p.r*X]
+end
+
+bloodmeal_model = InstantaneousContinuousMachine{Float64}(2, 0, 2, (u,x,p,t)->u, bloodmeal, [1=>1,2=>2])
+mosquito_model = ContinuousMachine{Float64}(1, 1, 1, dZdt, (u,p,t) -> u)
+human_model    = ContinuousMachine{Float64}(1, 1, 1, dXdt, (u,p,t) ->  u)
+
+instantaneous_mosquito_model = InstantaneousContinuousMachine{Float64}(mosquito_model)
+instantaneous_human_model = InstantaneousContinuousMachine{Float64}(human_model)
+
+malaria_model = oapply(rmb,
+    Dict(:mosquitos => instantaneous_mosquito_model, :humans => instantaneous_human_model, :bloodmeal => bloodmeal_model)
+)
+
+# We use the same parameter values as previously given to solve the composed system, and plot
+# the analytic equilibrium. Results are the same as for the previous system.
+
+prob = ODEProblem(malaria_model, u0, tspan, params)
+sol = solve(prob, Tsit5());
+
+#- 
+plot(sol, label = ["mosquitos" "humans"],
+    lw=2, title = "Ross-Macdonald Malaria model", 
+    xlabel = "time", ylabel = "proportion infectious",
+    color = ["magenta" "blue"]
+)
+N = length(sol)
+plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
+plot!(sol.t, fill(Z̄, N), label = "mosquito equilibrium", ls = :dash, lw = 2, color = "magenta")
+
 
 # ## Delay Model 
 # The previous models did not capture the incubation period for the disease in the
@@ -164,7 +250,7 @@ mosquito_delay_model = DelayMachine{Float64, 2}(
 human_delay_model = DelayMachine{Float64, 2}(
     1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
 
-malaria_delay_model = oapply(bloodmeal, 
+malaria_delay_model = oapply(rm, 
     Dict(:humans => human_delay_model, :mosquitos => mosquito_delay_model)
 )
 #- 

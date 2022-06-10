@@ -2,7 +2,7 @@ module DWDDynam
 
 using Catlab.Theories
 using Catlab.WiringDiagrams.DirectedWiringDiagrams
-using Catlab.CategoricalAlgebra
+using Catlab.CategoricalAlgebra, Catlab.Graphs
 using Catlab.CategoricalAlgebra.FinSets
 import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
@@ -13,15 +13,18 @@ import OrdinaryDiffEq: ODEProblem, DiscreteProblem
 import DelayDiffEq: DDEProblem
 using Plots
 
-export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine,
-nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx
+export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine, 
+InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine,
+nstates, ninputs, noutputs, eval_dynamics, trajectory, readout, euler_approx, 
+dependency_pairs
 
 using Base.Iterators
 import Base: show, eltype, zero
 
-### Interface
+######## Interfaces #######
 abstract type AbstractDirectedInterface{T} <: AbstractInterface{T} end
 
+# DirectedInterface
 struct DirectedInterface{T} <: AbstractDirectedInterface{T}
     input_ports::Vector
     output_ports::Vector 
@@ -35,6 +38,37 @@ struct DirectedVectorInterface{T,N} <: AbstractDirectedInterface{T}
 end
 DirectedVectorInterface{T,N}(ninputs::Int, noutputs::Int) where {T,N} = 
     DirectedVectorInterface{T,N}(1:ninputs, 1:noutputs)
+
+# InstantaneousDirectedInterface
+struct InstantaneousDirectedInterface{T} <: AbstractDirectedInterface{T} 
+  input_ports::Vector 
+  output_ports::Vector
+  dependency::Span # P_in <- R -> P_out
+end
+
+InstantaneousDirectedInterface{T}(input_ports::AbstractVector, output_ports::AbstractVector, dependency_pairs::AbstractVector) where {T} = 
+  InstantaneousDirectedInterface{T}(input_ports, output_ports, 
+    Span(
+      FinFunction(Array{Int}(last.(dependency_pairs)), length(dependency_pairs), length(input_ports)), 
+      FinFunction(Array{Int}(first.(dependency_pairs)), length(dependency_pairs), length(output_ports))
+    ))
+
+InstantaneousDirectedInterface{T}(ninputs::Int, noutputs::Int, dependency) where {T} = 
+  InstantaneousDirectedInterface{T}(1:ninputs, 1:noutputs, dependency)
+
+InstantaneousDirectedInterface{T}(input_ports::AbstractVector, output_ports::AbstractVector, ::Nothing) where T = 
+  InstantaneousDirectedInterface{T}(input_ports, output_ports, vcat(
+    map(1:length(input_ports)) do i 
+      map(1:length(output_ports)) do j 
+        j => i
+      end
+    end...)
+  )
+
+dependency(interface::InstantaneousDirectedInterface) = interface.dependency
+dependency_pairs(interface::InstantaneousDirectedInterface) = map(apex(dependency(interface))) do i 
+  legs(dependency(interface))[2](i) => legs(dependency(interface))[1](i)
+end |> sort
 
 input_ports(interface::AbstractDirectedInterface) = interface.input_ports
 output_ports(interface::AbstractDirectedInterface) = interface.output_ports
@@ -98,6 +132,8 @@ struct Machine{T,I,S} <: AbstractMachine{T,I,S}
     system::S
 end
 
+dependency(m::Machine{T,I}) where {T, I<:InstantaneousDirectedInterface{T}} = dependency(interface(m))
+dependency_pairs(m::Machine{T,I}) where {T, I<:InstantaneousDirectedInterface{T}} = dependency_pairs(interface(m))
 
 """    ContinuousMachine{T}(ninputs, nstates, noutputs, f, r)
 
@@ -108,15 +144,13 @@ The readout function `r` may depend on the state, parameters and time, so it mus
 If it is left out, then ``r=u``.
 """
 const ContinuousMachine{T,I} = Machine{T, I, ContinuousDirectedSystem{T}}
+const InstantaneousContinuousMachine{T} = Machine{T, InstantaneousDirectedInterface{T}, ContinuousDirectedSystem{T}}
 
 ContinuousMachine{T}(interface::I, system::ContinuousDirectedSystem{T}) where {T, I <: AbstractDirectedInterface} =
     ContinuousMachine{T, I}(interface, system)
 
 ContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T =
     ContinuousMachine{T}(DirectedInterface{T}(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
-
-ContinuousMachine{T}(ninputs::Int, nstates::Int, dynamics) where T =
-    ContinuousMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I <: AbstractDirectedInterface} =
     ContinuousMachine{T,I}(I(ninputs, noutputs), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
@@ -126,6 +160,21 @@ ContinuousMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,
 
 ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I} =
     ContinuousMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
+
+ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
+    ContinuousMachine{T, I}(I(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where T = 
+    ContinuousMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
+    InstantaneousContinuousMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+
+InstantaneousContinuousMachine{T}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         ContinuousDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
+    
 
 
 """    DelayMachine{T}(ninputs, nstates, noutputs, f, r)
@@ -137,15 +186,13 @@ The readout function `r` may depend on the state, history, parameters and time, 
 If it is left out, then ``r=u``.
 """
 const DelayMachine{T,I} = Machine{T, I, DelayDirectedSystem{T}}
+const InstantaneousDelayMachine{T} = Machine{T, InstantaneousDirectedInterface{T}, DelayDirectedSystem{T}}
 
 DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} =
     DelayMachine{T, I}(interface, system)
 
 DelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T =
     DelayMachine{T}(DirectedInterface{T}(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
-
-DelayMachine{T}(ninputs::Int, nstates::Int, dynamics) where T =
-    DelayMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} =
     DelayMachine{T,I}(I(ninputs, noutputs), DelayDirectedSystem{T}(nstates, dynamics, readout))
@@ -156,6 +203,20 @@ DelayMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} =
 DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
     DelayMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,h,p,t) -> u)
 
+DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
+    DelayMachine{T, I}(I(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where T = 
+    DelayMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousDelayMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
+    InstantaneousDelayMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+
+InstantaneousDelayMachine(m::DelayMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    DelayMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         DelayDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
+  
 
 """    DiscreteMachine{T}(ninputs, nstates, noutputs, f, r)
 
@@ -166,15 +227,13 @@ The readout function `r` may depend on the state, parameters and time step, so i
 If it is left out, then ``r_n=u_n``.
 """
 const DiscreteMachine{T,I} = Machine{T, I, DiscreteDirectedSystem{T}}
+const InstantaneousDiscreteMachine{T} = Machine{T, InstantaneousDirectedInterface{T}, DiscreteDirectedSystem{T}}
 
 DiscreteMachine{T}(interface::I, system::DiscreteDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} = 
     DiscreteMachine{T, I}(interface, system)
 
 DiscreteMachine{T}(ninputs, nstates, noutputs, dynamics, readout) where T = 
     DiscreteMachine{T}(DirectedInterface{T}(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
-
-DiscreteMachine{T}(ninputs::Int, nstates::Int, dynamics) where T  = 
-    DiscreteMachine{T}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
 DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout) where {T,I<:AbstractDirectedInterface} = 
     DiscreteMachine{T,I}(I(ninputs, noutputs), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
@@ -185,7 +244,20 @@ DiscreteMachine{T, N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N
 DiscreteMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  = 
     DiscreteMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
+DiscreteMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
+    DiscreteMachine{T, I}(I(ninputs, noutputs, dependency), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousDiscreteMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where T = 
+    DiscreteMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DiscreteDirectedSystem{T}(nstates, dynamics, readout))
   
+InstantaneousDiscreteMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
+    InstantaneousDiscreteMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+
+InstantaneousDiscreteMachine(m::DiscreteMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+    DiscreteMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
+                         DiscreteDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+    )
+
 show(io::IO, vf::ContinuousMachine) = print(
     "ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
 show(io::IO, vf::DelayMachine) = print(
@@ -196,9 +268,16 @@ show(io::IO, vf::DiscreteMachine) = print(
 eltype(::AbstractMachine{T}) where T = T
 
 
-readout(f::DelayMachine, u::AbstractVector, h = nothing, p = nothing, t = 0) = readout(f)(u, h, p, t)
 readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
 readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
+
+readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface{T}, S} = 
+  readout(m)(u,x,p,t)
+
+readout(f::DelayMachine{T,I}, u::AbstractVector, h=nothing, p = nothing, t = 0) where {T, I<:Union{DirectedInterface, DirectedVectorInterface}}= readout(f)(u, h, p, t)
+readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface} = 
+  readout(m)(u,x,h,p,t)
+
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, x:AbstractVector{F}, p, t) where {F<:Function}
     eval_dynamics(m::AbstractMachine{T}, u::AbstractVector, x:AbstractVector{T}, p, t) where T
@@ -360,6 +439,27 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
         induced_readout(d, ms, S))
 end
 
+function oapply(d::WiringDiagram, ms::Vector{M}) where {T, I<:InstantaneousDirectedInterface, M<:AbstractMachine{T, I}} 
+  isempty(wires(d, input_id(d), output_id(d))) || error("d is not a valid composition syntax because it has pass wires")
+  nboxes(d) == length(ms) || error("there are $nboxes(d) boxes but $length(ms) machines")
+  for box in 1:nboxes(d)
+      fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
+  end
+
+  S = coproduct((FinSet∘nstates).(ms))
+  dependency_colims = (colimit∘dependency).(ms)
+  get_readouts = define_get_readouts(d, dependency_colims)
+
+  return M(input_ports(d), 
+    length(apex(S)),
+    output_ports(d),
+    induced_dynamics(d, ms, S, get_readouts),
+    induced_readout(d, ms, S, get_readouts), 
+    induced_dependency(d, dependency_colims)
+  )
+
+end
+
 
 """    oapply(d::WiringDiagram, m::AbstractMachine)
 
@@ -381,7 +481,7 @@ end
 
 ### Helper functions for `oapply`
 
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:AbstractMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T,I, M<:AbstractMachine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
         states = destruct(S, u) # a list of the states by box
@@ -399,7 +499,7 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:Abs
     end
 end
 
-function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:DelayMachine{T,I}}
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T,I, M<:DelayMachine{T,I}}
 
     function v(u::AbstractVector, xs::AbstractVector, h, p, t::Real) 
         states = destruct(S, u) # a list of the states by box
@@ -420,8 +520,26 @@ function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S) where {T,I, M<:Del
         end)
     end
 end 
+
+function induced_dynamics(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T,I<:InstantaneousDirectedInterface{T}, M<:AbstractMachine{T,I}}
+
+  function v(u::AbstractVector, xs::AbstractVector, p, t::Real)  
+      states = destruct(S, u) # a list of the states by box
+      readouts = get_readouts(ms, states, xs, p, t)
     
-function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:AbstractMachine{T,I}}
+      reduce(vcat, map(1:nboxes(d)) do i
+        inputs = map(1:length(input_ports(d,i))) do port
+          sum(map(in_wires(d,i,port)) do w
+            ys = w.source.box == input_id(d) ? xs : readouts[w.source.box]
+            ys[w.source.port]
+          end; init = zero(I))
+        end
+        eval_dynamics(ms[i], states[i], inputs, p, t)
+      end)
+  end
+end
+    
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I, M<:AbstractMachine{T,I}}
     function r(u::AbstractVector, p, t)
         states = destruct(S, u)
         readouts = get_readouts(ms, states, p, t)
@@ -434,7 +552,20 @@ function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:Abs
     end
 end
 
-function induced_readout(d::WiringDiagram, ms::Vector{M}, S) where {T, I, M<:DelayMachine{T,I}}
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I<:InstantaneousDirectedInterface{T}, M<:AbstractMachine{T,I}}
+  function r(u::AbstractVector, xs, p, t)
+    states = destruct(S, u)
+    readouts = get_readouts(ms, states, xs, p, t)
+
+    map(1:length(output_ports(d))) do p
+      sum(map(in_wires(d, output_id(d), p)) do w
+        readouts[w.source.box][w.source.port]
+      end; init = zero(I))
+    end
+  end 
+end
+
+function induced_readout(d::WiringDiagram, ms::Vector{M}, S, get_readouts = get_readouts) where {T, I, M<:DelayMachine{T,I}}
     function r(u::AbstractVector, h, p, t)
         states = destruct(S, u)
         hists = destruct(S, h)
@@ -476,6 +607,94 @@ end
 get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} = map(enumerate(ms)) do (i, m) 
     readout(m, states[i], hists[i], p, t)
 end
+
+# A function which iteratively produces the readouts for an composite of InstantaneousDirected interface
+function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbstractColimit}
+
+  _, vertex_box, sorted_vs, _ = dependency_graph(d, dependency_colims)
+
+  function get_readouts(ms::AbstractArray{M}, states, xs, p, t) where {T,I<:InstantaneousDirectedInterface{T},M<:Machine{T, I}} 
+    readouts = [zeros(T, noutputs(m)) for m in ms]
+    for v in sorted_vs
+      b = vertex_box[v]
+      inputs = map(1:ninputs(ms[b])) do port 
+        sum(map(in_wires(d, b, port)) do w
+          ys = w.source.box == input_id(d) ? xs : readouts[w.source.box]
+          ys[w.source.port]
+        end; init = zero(I))
+      end
+      readouts[b] = readout(ms[b], states[b], inputs, p, t)
+    end
+    return readouts
+  end
+  
+end
+
+function dependency_graph(d, dependency_colims) 
+  g = Graph()
+  vs = map(dependency_colims) do c
+    add_vertices!(g, length(apex(c)))
+  end
+  vertex_box = zeros(Int, nv(g))
+  for b in 1:length(vs)
+    vertex_box[vs[b]] .= b 
+  end 
+  map(wires(d, :Wire)) do w
+    i = last(legs(dependency_colims[w.source.box]))(w.source.port)  # the output port in the pushout that corresponds to the source port of the wire
+    j = first(legs(dependency_colims[w.target.box]))(w.target.port) # the input port in the pushout that corresponds to the target port of the wire
+    add_edge!(g, vs[w.source.box][i], vs[w.target.box][j])
+  end
+
+  sorted_vs = topological_sort(g) # you can get rid of the vs that are "just" input ports (i.e. on which not ouptut port is dependent)
+  return g, vertex_box, sorted_vs, vs
+end
+
+function induced_dependency(d, dependency_colims)
+  g, _, sorted_vs, vs = dependency_graph(d, dependency_colims)
+
+  # flatten 
+  h = Graph(nv(g))
+  add_edges!(h, src(g), tgt(g))
+
+  for v in sorted_vs
+    for w in inneighbors(h, v)
+      for z in inneighbors(h, w)
+        add_edge!(h, z, v)
+      end
+    end
+  end
+
+  add_edges!(h, 1:nv(h), 1:nv(h))
+
+  # really awkward
+  pins = map(wires(d, :InWire)) do w
+    i = first(legs(dependency_colims[w.target.box]))(w.target.port)
+    vs[w.target.box][i]
+  end
+  qins = map(wires(d, :InWire)) do w 
+    w.source.port 
+  end
+  pouts = map(wires(d, :OutWire)) do w
+    i = last(legs(dependency_colims[w.source.box]))(w.source.port)  # the output port in the pushout that corresponds to the source port of the wire
+    vs[w.source.box][i]
+  end
+  qouts = map(wires(d, :OutWire)) do w 
+    w.target.port 
+  end
+
+  pb1 = pullback(FinFunction(Array{Int}(pins), nv(h)), FinFunction(Array{Int}(src(h)), nv(h)))
+  pb2 = pullback(FinFunction(Array{Int}(tgt(h)), nv(h)), FinFunction(Array{Int}(pouts), nv(h)))
+
+  pb = pullback(legs(pb1)[2], legs(pb2)[1])
+
+  p1 = FinFunction(Array{Int}(qins), length(input_ports(d))) ∘ legs(pb1)[1] ∘ legs(pb)[1]
+  p2 = FinFunction(Array{Int}(qouts), length(output_ports(d))) ∘ (legs(pb2)[2] ∘ legs(pb)[2])
+
+  map(1:length(apex(pb))) do i 
+    p2(i) => p1(i)
+  end |> unique
+end
+
 
 
 

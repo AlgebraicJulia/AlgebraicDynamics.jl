@@ -127,7 +127,7 @@ end
 symedges(g) = g.tables.W[g.tables.W.src .<= g.tables.W.tgt]
 sympairs(z) = Iterators.filter(x->x[1] <= x[2], z)
 pg2 = ocompose(barbell(3), [gl, gm])
-g2 = migrate!(Graph(), pg2)
+g2 = migrate!(Catlab.Graphs.Graph(), pg2)
 @test g2[ 9:11, :src] == [1,2,3]
 @test g2[ 9:11, :tgt] == [4,5,6]
 @test g2[12:14, :src] == [4,5,6]
@@ -135,7 +135,7 @@ g2 = migrate!(Graph(), pg2)
 
 d3 = ocompose(barbell(3), [id(OpenCPortGraph, 3), lob(3)])
 pg3 = ocompose(d3, [gl,gm,gr])
-g3 = migrate!(Graph(), pg3)
+g3 = migrate!(Catlab.Graphs.Graph(), pg3)
 @test g3[19:24, :src] == 1:6
 @test g3[19:24, :tgt] == [4,5,6,1,2,3]
 @test incident(pg3, 5, :box) == 11:14

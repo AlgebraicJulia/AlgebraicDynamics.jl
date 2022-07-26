@@ -63,20 +63,20 @@ to_graphviz(UAV)
 
 # Then we assign behaviors to inhabit the boxes.
 function 𝗟(𝐖)
-    𝐿(u, x, p, t) = LVector( sc = -p.𝓐l * (u[1] - x[1] - x[2]) );
-    𝐶(u, x, p, t) = LVector( sl = -p.𝓐c * (u[1] + p.𝓑c*x[1] - x[2]) );
-    𝐷(u, x, p, t) = LVector( α = -0.313*u[1] +  56.7*u[2] +  0.232*x[1],
+    𝐿(u, x, p, t) = [ -p.𝓐l * (u[1] - x[1] - x[2]) ] # sc
+    𝐶(u, x, p, t) = [ -p.𝓐c * (u[1] + p.𝓑c*x[1] - x[2]) ] # sl
+    𝐷(u, x, p, t) = LVector(α = -0.313*u[1] +  56.7*u[2] +  0.232*x[1],
                              q = -0.013*u[1] - 0.426*u[2] + 0.0203*x[1],
-                             θ =  56.7*u[2]              );
+                             θ =  56.7*u[2]              )
 
-    u_𝐿(u,p,t) = [ u[1] ];  # outputs sl
-    u_𝐶(u,p,t) = [ u[1] ];  # outputs sc
-    u_𝐷(u,p,t) = [ u[3] ];  # outputs θ
+    u_𝐿(u,p,t) = [ u[1] ] # outputs sl
+    u_𝐶(u,p,t) = [ u[1] ] # outputs sc
+    u_𝐷(u,p,t) = [ u[3] ] # outputs θ
 
     return oapply(𝐖,
                   Dict(:sensor     => ContinuousMachine{Float64}(2, 1, 1, 𝐿, u_𝐿),
                        :controller => ContinuousMachine{Float64}(2, 1, 1, 𝐶, u_𝐶),
-                       :dynamics   => ContinuousMachine{Float64}(1, 3, 1, 𝐷, u_𝐷)));
+                       :dynamics   => ContinuousMachine{Float64}(1, 3, 1, 𝐷, u_𝐷)))
 end
 
 𝑢ᵤₐᵥ = 𝗟(UAV)

@@ -1,5 +1,5 @@
 .DS_Store
-/Manifest.toml
+Manifest.toml
 /dev/
 
 /notebooks/.ipynb_checkpoints

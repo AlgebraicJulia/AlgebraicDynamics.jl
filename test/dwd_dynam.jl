@@ -310,6 +310,22 @@ end
     @test readout(m, vcat(u1, u2, u3), nothing, 0) == [u1 + u2, u2, u3]
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
   end
+
+  @testset "VectorInterface for InstantaneousContinuousMachine" begin
+    m1 = InstantaneousContinuousMachine{Float64,3}(
+      1, 3, 1,
+      (u, x, p, t) -> x*1.5,
+      (u, x, p, t) -> u+x,
+      [1 => 1]
+    )
+
+    x1 = [1,2,3]
+    u1 = [4,5,6]
+
+    @test readout(m1, u1, x1, nothing, 0) == u1+x1
+    @test eval_dynamics(m1, u1, [x1], nothing, 0) == x1*1.5
+
+  end
 end
 
 

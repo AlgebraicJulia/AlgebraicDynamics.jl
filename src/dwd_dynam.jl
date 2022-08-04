@@ -197,8 +197,8 @@ ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I} =
 ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
     ContinuousMachine{T, I}(I(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I <: AbstractDirectedInterface} = 
-    ContinuousMachine{T, I}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
+InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
+    ContinuousMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
 InstantaneousContinuousMachine{T,N}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,N} = 
     ContinuousMachine{T, InstantaneousDirectedVectorInterface{T,N}}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
@@ -206,7 +206,7 @@ InstantaneousContinuousMachine{T,N}(ninputs, nstates, noutputs, dynamics, readou
 InstantaneousContinuousMachine{T, I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I} = 
     InstantaneousContinuousMachine{T, I}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
-InstantaneousContinuousMachine{T, I}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+InstantaneousContinuousMachine{T}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
                          ContinuousDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
     )
@@ -242,16 +242,16 @@ DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
 DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
     DelayMachine{T, I}(I(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where T = 
-    DelayMachine{T}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
+    DelayMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
 InstantaneousDelayMachine{T,N}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,N} = 
-    DelayMachine{T}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+    DelayMachine{T,InstantaneousDirectedVectorInterface{T,N}}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousDelayMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where T = 
-    InstantaneousDelayMachine{T}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+InstantaneousDelayMachine{T, I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I} = 
+    InstantaneousDelayMachine{T, I}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
 
-InstantaneousDelayMachine(m::DelayMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
+InstantaneousDelayMachine{T}(m::DelayMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     DelayMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
                          DelayDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
     )

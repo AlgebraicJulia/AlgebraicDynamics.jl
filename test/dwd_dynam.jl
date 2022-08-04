@@ -330,5 +330,27 @@ end
     sol = solve(prob, Tsit5())
     
     @test sol.u[end] ≈ [x*exp(1.5*0.05) for x in u1]
+
+    # check it composes
+    m1 = InstantaneousContinuousMachine{Float64,3}(2, 3, 1,
+      (u, x, p, t) -> x[1] + x[2],
+      (u,p,t) -> [u])
+    m2 = InstantaneousContinuousMachine{Float64, 3}(1, 3, 2,
+      (u, x, p, t) -> x[1] + u,
+      (u,p,t) -> [u, 2*u])
+    m3 = InstantaneousContinuousMachine{Float64, 3}(1, 3, 1,
+      (u, x, p, t) -> x[1],
+      (u,p,t) -> [u])
+    m = oapply(d_big, [m1, m2, m3])
+
+    u1 = 1:3; u2 = 4:6; u3 = 7:9;
+    x1 = ones(3); x2 = fill(0.5, 3)
+
+    @test readout(m, vcat(u1, u2, u3), nothing, 0) == [u1 + u2, u2, u3]
+    @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
+
   end
 end
+
+
+

@@ -312,21 +312,23 @@ end
   end
 
   @testset "VectorInterface for InstantaneousContinuousMachine" begin
-    m1 = InstantaneousContinuousMachine{Float64,3}(
+    m = InstantaneousContinuousMachine{Float64,3}(
       1, 3, 1,
-      (u, x, p, t) -> x*1.5,
-      (u, x, p, t) -> u+x,
+      (u, x, p, t) -> u*1.5, # dynamics
+      (u, x, p, t) -> u+x, # readout
       [1 => 1]
     )
+    
+    x1 = Float64.([1,2,3])
+    u1 = Float64.([4,5,6])
+    
+    @test readout(m, u1, x1, nothing, 0) == u1+x1
+    @test eval_dynamics(m, u1, [x1], nothing, 0) == u1*1.5
 
-    x1 = [1,2,3]
-    u1 = [4,5,6]
-
-    @test readout(m1, u1, x1, nothing, 0) == u1+x1
-    @test eval_dynamics(m1, u1, [x1], nothing, 0) == x1*1.5
-
+    # compare to analytic soln
+    prob = ODEProblem(m, u1, [x1], (0.0, 0.05))
+    sol = solve(prob, Tsit5())
+    
+    @test sol.u[end] ≈ [x*exp(1.5*0.05) for x in u1]
   end
 end
-
-
-

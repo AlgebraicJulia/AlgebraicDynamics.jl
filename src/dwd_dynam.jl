@@ -39,8 +39,11 @@ end
 DirectedVectorInterface{T,N}(ninputs::Int, noutputs::Int) where {T,N} = 
     DirectedVectorInterface{T,N}(1:ninputs, 1:noutputs)
 
+# Instantaneous interfaces
+abstract type AbstractInstantaneousDirectedInterface{T} <: AbstractDirectedInterface{T} end 
+
 # InstantaneousDirectedInterface
-struct InstantaneousDirectedInterface{T} <: AbstractDirectedInterface{T} 
+struct InstantaneousDirectedInterface{T} <: AbstractInstantaneousDirectedInterface{T}
   input_ports::Vector 
   output_ports::Vector
   dependency::Span # P_in <- R -> P_out
@@ -65,13 +68,8 @@ InstantaneousDirectedInterface{T}(input_ports::AbstractVector, output_ports::Abs
     end...)
   )
 
-dependency(interface::InstantaneousDirectedInterface) = interface.dependency
-dependency_pairs(interface::InstantaneousDirectedInterface) = map(apex(dependency(interface))) do i 
-  legs(dependency(interface))[2](i) => legs(dependency(interface))[1](i)
-end |> sort
-
 # InstantaneousDirectedVectorInterface
-struct InstantaneousDirectedVectorInterface{T,N} <: AbstractDirectedInterface{T} 
+struct InstantaneousDirectedVectorInterface{T,N} <: AbstractInstantaneousDirectedInterface{T}
   input_ports::Vector 
   output_ports::Vector
   dependency::Span # P_in <- R -> P_out
@@ -96,8 +94,9 @@ InstantaneousDirectedVectorInterface{T,N}(input_ports::AbstractVector, output_po
     end...)
 )
 
-dependency(interface::InstantaneousDirectedVectorInterface) = interface.dependency
-dependency_pairs(interface::InstantaneousDirectedVectorInterface) = map(apex(dependency(interface))) do i 
+# get dependency
+dependency(interface::AbstractInstantaneousDirectedInterface) = interface.dependency
+dependency_pairs(interface::AbstractInstantaneousDirectedInterface) = map(apex(dependency(interface))) do i 
   legs(dependency(interface))[2](i) => legs(dependency(interface))[1](i)
 end |> sort
 

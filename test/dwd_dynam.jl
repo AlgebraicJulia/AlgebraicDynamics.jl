@@ -350,7 +350,36 @@ end
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
 
   end
+
+  @testset "VectorInterface for InstantaneousDelayMachine" begin
+    m = InstantaneousDelayMachine{Float64,3}(
+      1, 3, 1, # ninputs, nstates, noutputs
+      (u, x, h, p, t) -> -h(p, t-1), # dynamics
+      (u, x, h, p, t) -> u+x, # readout
+      [1 => 1] # output -> input dependency
+    )
+    
+    x1 = Float64.([1,2,3])
+    u1 = Float64.([4,5,6])
+    hist(p,t) = u1
+    
+    @test readout(m, u1, x1, hist, nothing, 0)  == u1+x1
+    @test eval_dynamics(m, u1, [x1], hist, nothing, 0) == -u1
+    
+    prob = DDEProblem(m, u1, [x1], hist, (0.0, 3.0), nothing)
+    sol = solve(prob,MethodOfSteps(Tsit5()),abstol=1e-12,reltol=1e-12)
+    
+    # DiffEq.jl solution
+    prob1 = DDEProblem((du,u,h,p,t) -> begin
+      x_lag = -h(p, t-1)
+      du[1] = x_lag[1]
+      du[2] = x_lag[2]
+      du[3] = x_lag[3]
+    end, u1, hist, (0.0, 3.0), nothing)
+    
+    sol1 = solve(prob1,MethodOfSteps(Tsit5()),abstol=1e-12,reltol=1e-12)
+    
+    @test sol.u[end] ≈ sol1.u[end]
+    
+  end
 end
-
-
-

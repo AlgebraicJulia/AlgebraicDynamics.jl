@@ -310,7 +310,76 @@ end
     @test readout(m, vcat(u1, u2, u3), nothing, 0) == [u1 + u2, u2, u3]
     @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
   end
+
+  @testset "VectorInterface for InstantaneousContinuousMachine" begin
+    m = InstantaneousContinuousMachine{Float64,3}(
+      1, 3, 1,
+      (u, x, p, t) -> u*1.5, # dynamics
+      (u, x, p, t) -> u+x[1], # readout
+      [1 => 1]
+    )
+    
+    x1 = Float64.([1,2,3])
+    u1 = Float64.([4,5,6])
+    
+    @test readout(m, u1, [x1], nothing, 0) == u1+x1
+    @test eval_dynamics(m, u1, [x1], nothing, 0) == u1*1.5
+
+    # compare to analytic soln
+    prob = ODEProblem(m, u1, [x1], (0.0, 0.05))
+    sol = solve(prob, Tsit5())
+    
+    @test sol.u[end] ≈ [x*exp(1.5*0.05) for x in u1]
+
+    # check it composes
+    m1 = InstantaneousContinuousMachine{Float64,3}(2, 3, 1,
+      (u, x, p, t) -> x[1] + x[2],
+      (u,p,t) -> [u])
+    m2 = InstantaneousContinuousMachine{Float64, 3}(1, 3, 2,
+      (u, x, p, t) -> x[1] + u,
+      (u,p,t) -> [u, 2*u])
+    m3 = InstantaneousContinuousMachine{Float64, 3}(1, 3, 1,
+      (u, x, p, t) -> x[1],
+      (u,p,t) -> [u])
+    m = oapply(d_big, [m1, m2, m3])
+
+    u1 = 1:3; u2 = 4:6; u3 = 7:9;
+    x1 = ones(3); x2 = fill(0.5, 3)
+
+    @test readout(m, vcat(u1, u2, u3), nothing, 0) == [u1 + u2, u2, u3]
+    @test eval_dynamics(m, vcat(u1, u2, u3), [x1, x2], nothing, 0) == vcat(x1, u2 + x1 + 2*u2 + u3, x2)
+
+  end
+
+  @testset "VectorInterface for InstantaneousDelayMachine" begin
+    m = InstantaneousDelayMachine{Float64,3}(
+      1, 3, 1, # ninputs, nstates, noutputs
+      (u, x, h, p, t) -> -h(p, t-1), # dynamics
+      (u, x, h, p, t) -> u+x[1], # readout
+      [1 => 1] # output -> input dependency
+    )
+    
+    x1 = Float64.([1,2,3])
+    u1 = Float64.([4,5,6])
+    hist(p,t) = u1
+    
+    @test readout(m, u1, [x1], hist, nothing, 0)  == u1+x1
+    @test eval_dynamics(m, u1, [x1], hist, nothing, 0) == -u1
+    
+    prob = DDEProblem(m, u1, [x1], hist, (0.0, 3.0), nothing)
+    sol = solve(prob,MethodOfSteps(Tsit5()),abstol=1e-12,reltol=1e-12)
+    
+    # DiffEq.jl solution
+    prob1 = DDEProblem((du,u,h,p,t) -> begin
+      x_lag = -h(p, t-1)
+      du[1] = x_lag[1]
+      du[2] = x_lag[2]
+      du[3] = x_lag[3]
+    end, u1, hist, (0.0, 3.0), nothing)
+    
+    sol1 = solve(prob1,MethodOfSteps(Tsit5()),abstol=1e-12,reltol=1e-12)
+    
+    @test sol.u[end] ≈ sol1.u[end]
+    
+  end
 end
-
-
-

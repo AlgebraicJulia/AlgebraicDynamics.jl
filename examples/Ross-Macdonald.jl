@@ -166,7 +166,7 @@ add_wires!(rmb, Pair[
 
 # These two terms are sent from the bloodmeal machine to the mosquito and human machines
 # via their input ports. Then the dynamical system filling the mosquito machine is
-# $\dot{Z} = a*\kappa*(e^{-gn} - Z) - gZ$ and $\dot{X} = bEIR(1-X) - rX$ is the dynamical system
+# $\dot{Z} = a\kappa (e^{-gn} - Z) - gZ$ and $\dot{X} = bEIR(1-X) - rX$ is the dynamical system
 # filling the human machine.
 
 to_graphviz(rmb)
@@ -270,6 +270,9 @@ plot(sol, label=["non-infectious mosquito population" "infectious mosquito popul
     xlabel = "time", ylabel = "proportion infectious",
     color = ["magenta" "red" "blue"]
 )
+N = length(sol)
+plot!(sol.t, fill(X̄, N), label = "human equilibrium", ls = :dash, lw = 2, color = "blue")
+plot!(sol.t, fill(Z̄, N), label = "infectious mosquito equilibrium", ls = :dash, lw = 2, color = "red")
 
 # While the equilibrium points of the two models are identical, they exhibit different dynamical behavior 
 # before settling down to equilibrium. Because models are often used to examine how the system may respond 

@@ -329,18 +329,11 @@ readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u),
 
 readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:AbstractInstantaneousDirectedInterface{T}, S} = 
   readout(m)(u,x,p,t)
-# readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface{T}, S} = 
-#   readout(m)(u,x,p,t)
-# readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface, S} = 
-#   readout(m)(u,x,p,t)
 
 readout(f::DelayMachine{T,I}, u::AbstractVector, h=nothing, p = nothing, t = 0) where {T, I<:Union{DirectedInterface, DirectedVectorInterface}}= readout(f)(u, h, p, t)
 readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:AbstractInstantaneousDirectedInterface} = 
   readout(m)(u,x,h,p,t)
-# readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface} = 
-#   readout(m)(u,x,h,p,t)
-# readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface} = 
-#   readout(m)(u,x,h,p,t)
+  
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, x:AbstractVector{F}, p, t) where {F<:Function}
     eval_dynamics(m::AbstractMachine{T}, u::AbstractVector, x:AbstractVector{T}, p, t) where T

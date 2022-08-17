@@ -97,7 +97,9 @@ exposed_states(r::ResourceSharer, u::AbstractVector) = exposed_states(system(r),
 
 """    ContinuousResourceSharer{T}(nports, nstates, f, portmap)
 
-An undirected open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),p,t)``.
+An undirected open continuous system. The dynamics function `f` defines an ODE ``\\dot u(t) = f(u(t),p,t)``, 
+where ``u(t)`` has length `nstates`. `nports` is the number of exposed ports and `portmap` is a list of exposed states. 
+For example, if `portmap = [2,2,3]` then there are three ports which expose the state variables 2, 2, and 3 respectively.
 """
 const ContinuousResourceSharer{T, I} = ResourceSharer{T, I, ContinuousUndirectedSystem}
 
@@ -112,7 +114,11 @@ ContinuousResourceSharer{T}(interface::I, system::ContinuousUndirectedSystem{T})
 
 ContinuousResourceSharer{T}(nports, nstates, dynamics, portmap) where {T} =
   ContinuousResourceSharer{T}(UndirectedInterface{T}(nports), ContinuousUndirectedSystem{T}(nstates, dynamics, portmap))
-
+            
+"""    ContinuousResourceSharer{T}(nstates, f)
+If `nports` and `portmap` are not specified by the user, then it is assumed that `nports` is equal to `nstates` and 
+`portmap` is the identity map.
+"""
 ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T =
     ContinuousResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 

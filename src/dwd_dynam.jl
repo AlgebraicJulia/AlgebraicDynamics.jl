@@ -199,11 +199,20 @@ ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency
 InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
     ContinuousMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
+InstantaneousContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,I<:InstantaneousDirectedInterface{T}} = 
+    ContinuousMachine{T,I}(I(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
+
 InstantaneousContinuousMachine{T,N}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,N} = 
     ContinuousMachine{T, InstantaneousDirectedVectorInterface{T,N}}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousContinuousMachine{T, I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I} = 
-    InstantaneousContinuousMachine{T, I}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+InstantaneousContinuousMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T} = 
+  ContinuousMachine{T,InstantaneousDirectedInterface{T}}(ninputs, 0, noutputs, (u,x,p,t)->f(x), (u,x,p,t)->T[], dependency)
+
+InstantaneousContinuousMachine{T,I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I<:AbstractInstantaneousDirectedInterface{T}} = 
+  ContinuousMachine{T,I}(ninputs, 0, noutputs, (u,x,p,t)->f(x), (u,x,p,t)->T[], dependency)
+
+InstantaneousContinuousMachine{T,N}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,N} = 
+  InstantaneousContinuousMachine{T,N}(ninputs, 0, noutputs, (u,x,p,t)->f(x), (u,x,p,t)->T[], dependency)
 
 InstantaneousContinuousMachine{T}(m::ContinuousMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     ContinuousMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
@@ -221,7 +230,7 @@ The readout function `r` may depend on the state, history, parameters and time, 
 If it is left out, then ``r=u``.
 """
 const DelayMachine{T,I} = Machine{T, I, DelayDirectedSystem{T}}
-const InstantaneousDelayMachine{T, I} = Machine{T, I, DelayDirectedSystem{T}}
+const InstantaneousDelayMachine{T,I} = Machine{T, I, DelayDirectedSystem{T}}
 
 DelayMachine{T}(interface::I, system::DelayDirectedSystem{T}) where {T, I<:AbstractDirectedInterface} =
     DelayMachine{T, I}(interface, system)
@@ -244,15 +253,24 @@ DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) whe
 InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
     DelayMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousDelayMachine{T,N}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,N} = 
-    DelayMachine{T,InstantaneousDirectedVectorInterface{T,N}}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+InstantaneousDelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,I<:InstantaneousDirectedInterface{T}} = 
+    DelayMachine{T,I}(I(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
-InstantaneousDelayMachine{T, I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I} = 
-    InstantaneousDelayMachine{T, I}(ninputs, 0, noutputs, (u,x,p,t)->T[], (u,x,p,t)->f(x), dependency)
+InstantaneousDelayMachine{T,N}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,N} = 
+    DelayMachine{T, InstantaneousDirectedVectorInterface{T,N}}(InstantaneousDirectedVectorInterface{T,N}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
+
+InstantaneousDelayMachine{T}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T} = 
+    DelayMachine{T,InstantaneousDirectedInterface{T}}(ninputs, 0, noutputs, (u,x,h,p,t)->f(x), (u,x,h,p,t)->T[], dependency)
+
+InstantaneousDelayMachine{T,I}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,I<:AbstractInstantaneousDirectedInterface{T}} = 
+    DelayMachine{T,I}(ninputs, 0, noutputs, (u,x,h,p,t)->f(x), (u,x,h,p,t)->T[], dependency)
+
+InstantaneousDelayMachine{T,N}(f::Function, ninputs::Int, noutputs::Int, dependency = nothing) where {T,N} = 
+    InstantaneousDelayMachine{T,N}(ninputs, 0, noutputs, (u,x,h,p,t)->f(x), (u,x,h,p,t)->T[], dependency)
 
 InstantaneousDelayMachine{T}(m::DelayMachine{T, I}) where {T, I<:DirectedInterface{T}} = 
     DelayMachine{T}(InstantaneousDirectedInterface{T}(input_ports(m), output_ports(m), []), 
-                         DelayDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
+                         DelayDirectedSystem{T}(nstates(m), dynamics(m), (u,x,h,p,t) -> readout(m, u, p, t))
     )
   
 
@@ -309,16 +327,20 @@ eltype(::AbstractMachine{T}) where T = T
 readout(f::AbstractMachine, u::AbstractVector, p = nothing, t = 0) = readout(f)(u, p, t)
 readout(f::AbstractMachine, u::FinDomFunction, args...) = readout(f, collect(u), args...)
 
-readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface{T}, S} = 
+readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:AbstractInstantaneousDirectedInterface{T}, S} = 
   readout(m)(u,x,p,t)
-readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface, S} = 
-  readout(m)(u,x,p,t)
+# readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface{T}, S} = 
+#   readout(m)(u,x,p,t)
+# readout(m::Machine{T,I,S}, u::AbstractVector, x::AbstractVector, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface, S} = 
+#   readout(m)(u,x,p,t)
 
 readout(f::DelayMachine{T,I}, u::AbstractVector, h=nothing, p = nothing, t = 0) where {T, I<:Union{DirectedInterface, DirectedVectorInterface}}= readout(f)(u, h, p, t)
-readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface} = 
+readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:AbstractInstantaneousDirectedInterface} = 
   readout(m)(u,x,h,p,t)
-readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface} = 
-  readout(m)(u,x,h,p,t)
+# readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedInterface} = 
+#   readout(m)(u,x,h,p,t)
+# readout(m::DelayMachine{T,I}, u::AbstractVector, x::AbstractVector, h=nothing, p=nothing, t=0) where {T, I<:InstantaneousDirectedVectorInterface} = 
+#   readout(m)(u,x,h,p,t)
 
 """    eval_dynamics(m::AbstractMachine, u::AbstractVector, x:AbstractVector{F}, p, t) where {F<:Function}
     eval_dynamics(m::AbstractMachine{T}, u::AbstractVector, x:AbstractVector{T}, p, t) where T

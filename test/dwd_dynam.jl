@@ -315,14 +315,14 @@ end
     m = InstantaneousContinuousMachine{Float64,3}(
       1, 3, 1,
       (u, x, p, t) -> u*1.5, # dynamics
-      (u, x, p, t) -> u+x, # readout
+      (u, x, p, t) -> u+x[1], # readout
       [1 => 1]
     )
     
     x1 = Float64.([1,2,3])
     u1 = Float64.([4,5,6])
     
-    @test readout(m, u1, x1, nothing, 0) == u1+x1
+    @test readout(m, u1, [x1], nothing, 0) == u1+x1
     @test eval_dynamics(m, u1, [x1], nothing, 0) == u1*1.5
 
     # compare to analytic soln
@@ -355,7 +355,7 @@ end
     m = InstantaneousDelayMachine{Float64,3}(
       1, 3, 1, # ninputs, nstates, noutputs
       (u, x, h, p, t) -> -h(p, t-1), # dynamics
-      (u, x, h, p, t) -> u+x, # readout
+      (u, x, h, p, t) -> u+x[1], # readout
       [1 => 1] # output -> input dependency
     )
     
@@ -363,7 +363,7 @@ end
     u1 = Float64.([4,5,6])
     hist(p,t) = u1
     
-    @test readout(m, u1, x1, hist, nothing, 0)  == u1+x1
+    @test readout(m, u1, [x1], hist, nothing, 0)  == u1+x1
     @test eval_dynamics(m, u1, [x1], hist, nothing, 0) == -u1
     
     prob = DDEProblem(m, u1, [x1], hist, (0.0, 3.0), nothing)

@@ -1,7 +1,7 @@
 name = "AlgebraicDynamics"
 uuid = "5fd6ff03-a254-427e-8840-ba658f502e32"
 authors = ["James Fairbanks", "Sophie Libkind"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"

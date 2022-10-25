@@ -10,10 +10,11 @@ using Catlab
 using Catlab.WiringDiagrams
 using OrdinaryDiffEq
 
-import Base.Sort: defalg, DEFAULT_UNSTABLE
-
-defalg(v::AbstractArray{Missing}) = DEFAULT_UNSTABLE
-defalg(v::AbstractArray{Union{}}) = DEFAULT_UNSTABLE
+# This is to resolve method ambiguity and is inlcuded in Base as of 1.8
+if VERSION < v"1.8.0"
+    Base.Sort.defalg(v::AbstractArray{Missing}) = Base.DEFAULT_UNSTABLE
+    Base.Sort.defalg(v::AbstractArray{Union{}}) = Base.DEFAULT_UNSTABLE
+end
 
 
 # Set Literate.jl config if not being compiled on recognized service.

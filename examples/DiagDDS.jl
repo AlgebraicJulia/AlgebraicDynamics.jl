@@ -117,6 +117,8 @@ X₂ = @acset DDS begin
   next = [2, 3, 4, 5, 4]
 end
 
+# We can implement a simple simulator with some logging to record the trajectory for further analysis.
+
 """    HybridSystem
 
 A hybrid systems is a diagram amongst the state spaces and a dynamics for each object
@@ -201,50 +203,6 @@ struct SimulationTrace
   states::Vector{HybridState}
   steps::Vector{SimulationStep}
 end
-
-# """    simulate(hds::HybridSystem, state₀::HybridState, nsteps)
-#
-# 1. Take a step of internal dynamics
-# 2. Take the first available transition
-# 3. Step internal dynamics in the jump set
-# 4. Take the first available transition out of the jump set.
-#
-# """
-# function simulate(hds::HybridSystem, state₀::HybridState, nsteps)
-#   states = [state₀]
-#   steps = SimulationStep[]
-#   for i in 1:nsteps
-#     priorstate = states[end]
-#     state = step(hds, states[end])
-#     println("Dynam Step\t $state")
-#     push!(states, state)
-#     push!(steps, DynamStep(i, state.system, priorstate, state))
-#     jumpsets = backjump(hds, state)
-#     if !isempty(jumpsets)
-#       println("Reverse Jump\t $jumpsets")
-#       # when we go into a jump we have to record where we came from.
-#       fromsystem = state.system
-#       priorstate = state
-#       state = HybridState(jumpsets[1][1], jumpsets[1][2][1])
-#       push!(states, state)
-#       push!(steps, BackJump(i, fromsystem, priorstate, state, jumpsets))
-#       priorstate = state
-#       state = step(hds, state)
-#       println("Jump Step\t $state")
-#       push!(states, state)
-#       push!(steps, DynamStep(i, state.system, priorstate, state))
-#       jumpset = forwardjump(hds, state)
-#       # don't want to go back where we came from
-#       jumpset = filter(p-> p[1] != fromsystem, jumpset)
-#       println("Forward Jump\t $jumpset")
-#       priorstate = state
-#       state = HybridState(jumpset[1]...)
-#       push!(states, state)
-#       push!(steps, ForwardJump(i, fromsystem, priorstate, state, jumpset))
-#     end
-#   end
-#   return states, steps
-# end
 
 """    step!(hds::HybridSystem, log::SimulationTrace, i::Int)
 

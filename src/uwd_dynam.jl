@@ -14,8 +14,8 @@ import DelayDiffEq: DDEProblem
 using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
-euler_approx, nstates, nports, portmap, portfunction, 
-eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
+  euler_approx, nstates, nports, portmap, portfunction,
+  eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
 
 using Base.Iterators
 import Base: show, eltype
@@ -114,13 +114,13 @@ ContinuousResourceSharer{T}(interface::I, system::ContinuousUndirectedSystem{T})
 
 ContinuousResourceSharer{T}(nports, nstates, dynamics, portmap) where {T} =
   ContinuousResourceSharer{T}(UndirectedInterface{T}(nports), ContinuousUndirectedSystem{T}(nstates, dynamics, portmap))
-            
+
 """    ContinuousResourceSharer{T}(nstates, f)
 If `nports` and `portmap` are not specified by the user, then it is assumed that `nports` is equal to `nstates` and 
 `portmap` is the identity map.
 """
 ContinuousResourceSharer{T}(nstates::Int, dynamics::Function) where T =
-    ContinuousResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
+  ContinuousResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 
 """    DelayResourceSharer{T}(nports, nstates, f, portmap)
 
@@ -142,7 +142,7 @@ DelayResourceSharer{T}(nports, nstates, dynamics, portmap) where {T}=
   DelayResourceSharer{T}(UndirectedInterface{T}(nports), DelayUndirectedSystem{T}(nstates, dynamics, portmap))
 
 DelayResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
-    DelayResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
+  DelayResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 
 """    DiscreteResourceSharer{T}(nports, nstates, f, portmap)
 
@@ -162,7 +162,7 @@ DiscreteResourceSharer{T}(nports, nstates, dynamics, portmap) where {T}=
   DiscreteResourceSharer{T}(UndirectedInterface{T}(nports), DiscreteUndirectedSystem{T}(nstates, dynamics, portmap))
 
 DiscreteResourceSharer{T}(nstates::Int, dynamics::Function) where T = 
-    DiscreteResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
+  DiscreteResourceSharer{T}(nstates,nstates, dynamics, 1:nstates)
 
 """    eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t)
 
@@ -171,21 +171,21 @@ Omitting `p` and `t` is allowed if the dynamics of `r` does not depend on them.
 """
 eval_dynamics(r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = dynamics(r)(u, h, p, t)
 eval_dynamics!(du, r::DelayResourceSharer, u::AbstractVector, h, p, t::Real) = begin
-    du .= eval_dynamics(r, u, h, p, t)
+  du .= eval_dynamics(r, u, h, p, t)
 end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = dynamics(r)(u, p, t)
 eval_dynamics!(du, r::AbstractResourceSharer, u::AbstractVector, p, t::Real) = begin
-    du .= eval_dynamics(r, u, p, t)
+  du .= eval_dynamics(r, u, p, t)
 end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u, [], 0)
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
 
 show(io::IO, vf::ContinuousResourceSharer) = print(
-    "ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
+  "ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
 show(io::IO, vf::DelayResourceSharer) = print(
-    "DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
+  "DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
 show(io::IO, vf::DiscreteResourceSharer) = print(
-    "DiscreteResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
+  "DiscreteResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
 eltype(r::AbstractResourceSharer{T}) where T = T
 
 """    euler_approx(r::ContinuousResourceSharer, h::Float)
@@ -193,9 +193,9 @@ eltype(r::AbstractResourceSharer{T}) where T = T
 Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method with step size `h`. If the dynamics of `r` is given by ``\\dot{u}(t) = f(u(t),p,t)``, then the dynamics of the new discrete system is given by the update rule ``u_{n+1} = u_n + h f(u_n, p, t)``.
 """
 euler_approx(f::ContinuousResourceSharer{T}, h::Float64) where T = DiscreteResourceSharer{T}(
-        nports(f), nstates(f), 
-        (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
-        portmap(f)
+  nports(f), nstates(f),
+  (u, p, t) -> u + h*eval_dynamics(f, u, p, t),
+  portmap(f)
 )
 
 """    euler_approx(r::ContinuousResourceSharer)
@@ -204,9 +204,9 @@ Transforms a continuous resource sharer `r` into a discrete resource sharer via 
 The step size parameter is appended to the end of the system's parameter list.
 """
 euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}(
-    nports(f), nstates(f), 
-    (u, p, t) -> u + p[end]*eval_dynamics(f, u, p[1:end-1], t),
-    portmap(f)
+  nports(f), nstates(f),
+  (u, p, t) -> u + p[end]*eval_dynamics(f, u, p[1:end-1], t),
+  portmap(f)
 )
 
 """    euler_approx(rs::Vector{R}, args...) where {T,R<:ContinuousResourceSharer{T}}
@@ -215,31 +215,31 @@ euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}
 Map `euler_approx` over a collection of resource sharers with identical `args`.
 """
 euler_approx(fs::Vector{R}, args...) where {T, R<:ContinuousResourceSharer{T}} =
-    map(f->euler_approx(f,args...), fs)
+  map(f->euler_approx(f,args...), fs)
 
 euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResourceSharer{T}} =
-    Dict(name => euler_approx(f, args...) for (name, f) in fs)
+  Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
 """    ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
 
 Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> r.dynamics(u,p,t)`.
 """
 ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
+  ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
 
 """    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
 
 Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> r.dynamics(u,h,p,t)`.
 """
 DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
-    DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
-    
+  DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
+
 """    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a `DiscreteProblem` from the equation of motion defined by `(u,p,t) -> r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
 """
 DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
+  DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
 
 """    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
     trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
@@ -247,7 +247,7 @@ DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing;
 Evolves the resouce sharer `r`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
 """
 trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) =
-    trajectory(r, u0, p, (0, T); dt)
+  trajectory(r, u0, p, (0, T); dt)
 
 function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
   prob = DiscreteProblem(r, u0, tspan, p)
@@ -267,8 +267,8 @@ end
 Checks if `r` is of the correct signature to fill box `b` of the undirected wiring diagram `d`.
 """
 function fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
-    b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
-    return nports(r) == length(incident(d, b, :box))
+  b <= nparts(d, :Box) || error("Trying to fill box $b, when $d has fewer than $b boxes")
+  return nports(r) == length(incident(d, b, :box))
 end
 
 
@@ -282,39 +282,39 @@ a collection of resource sharers `rs`). Returns the composite resource sharer.
 Each box of `d` must be filled by a resource sharer of the appropriate type signature. 
 """
 oapply(d::AbstractUWD, xs::Vector{R}) where {R <: AbstractResourceSharer} =
-    oapply(d, xs, induced_states(d, xs))
+  oapply(d, xs, induced_states(d, xs))
 
 """    oapply(d::AbstractUWD, r::AbstractResourceSharer)
 
 A version of `oapply` where each box of `d` is filled with the same resource sharer `r`.
 """
 oapply(d::AbstractUWD, x::AbstractResourceSharer) =
-    oapply(d, collect(repeated(x, nboxes(d))))
-    
+  oapply(d, collect(repeated(x, nboxes(d))))
+
 """     oapply(d::AbstractUWD, generators::AbstractDict{S,R}) where {S,R<:AbstractResourceSharer}
 
 A version of `oapply` where `generators` is a dictionary mapping the name of each box to its corresponding resource sharer.
 """
 oapply(d::AbstractUWD, xs::AbstractDict{S,R}) where {S, R <: AbstractResourceSharer} =
-    oapply(d, [xs[name] for name in subpart(d, :name)])
+  oapply(d, [xs[name] for name in subpart(d, :name)])
 
 
 
 function oapply(d::AbstractUWD, xs::Vector{R}, S′::Pushout) where {R <: AbstractResourceSharer}
-    
-    S = coproduct((FinSet∘nstates).(xs))
-    states(b::Int) = legs(S)[b].func
 
-    v = induced_dynamics(d, xs, legs(S′)[1], states)
+  S = coproduct((FinSet∘nstates).(xs))
+  states(b::Int) = legs(S)[b].func
 
-    junction_map = legs(S′)[2]
-    outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
+  v = induced_dynamics(d, xs, legs(S′)[1], states)
 
-    return R(
-        induced_ports(d), 
-        length(apex(S′)), 
-        v, 
-        compose(outer_junction_map, junction_map).func)
+  junction_map = legs(S′)[2]
+  outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
+
+  return R(
+    induced_ports(d),
+    length(apex(S′)),
+    v,
+    compose(outer_junction_map, junction_map).func)
 end
 
 
@@ -325,62 +325,62 @@ induced_ports(d::RelationDiagram) = subpart(d, [:outer_junction, :variable])
 
 ### Returns a pushout where the left leg is the union of all primitive states 
 function induced_states(d::AbstractUWD, xs::Vector{R}) where {R <: AbstractResourceSharer}
-    for box in parts(d, :Box)
-        fills(xs[box], d, box) || error("$(xs[box]) does not fill box $box")
-    end
-    
-    S = coproduct((FinSet∘nstates).(xs))  
-    total_portfunction = copair([compose( portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
-    
-    return pushout(total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
+  for box in parts(d, :Box)
+    fills(xs[box], d, box) || error("$(xs[box]) does not fill box $box")
+  end
+
+  S = coproduct((FinSet∘nstates).(xs))
+  total_portfunction = copair([compose( portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
+
+  return pushout(total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
 end
 
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{R}, state_map::FinFunction, states::Function) where {T, R<:ContinuousResourceSharer{T}}
   
-    function v(u′::AbstractVector, p, t::Real)
-      u = getindex(u′,  state_map.func)
-      du = zero(u)
-      # apply dynamics
-      for b in parts(d, :Box)
-        eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), p, t)
-      end
-      # add along junctions
-      du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
-      return du′
+  function v(u′::AbstractVector, p, t::Real)
+    u = getindex(u′,  state_map.func)
+    du = zero(u)
+    # apply dynamics
+    for b in parts(d, :Box)
+      eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), p, t)
     end
+    # add along junctions
+    du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
+    return du′
+  end
 
 end
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{R}, state_map::FinFunction, states::Function) where {T, R<:DelayResourceSharer{T}}
   
-    function v(u′::AbstractVector, h′, p, t::Real)
-      u = getindex(u′, state_map.func)
-      hist(p,t) = getindex(h′(p,t), state_map.func)
-      du = zero(u)
-      # apply dynamics
-      for b in parts(d, :Box)
-        eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), (p,t) -> view(hist(p,t), states(b)), p, t)
-      end
-      # add along junctions
-      du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
-      return du′
+  function v(u′::AbstractVector, h′, p, t::Real)
+    u = getindex(u′, state_map.func)
+    hist(p,t) = getindex(h′(p,t), state_map.func)
+    du = zero(u)
+    # apply dynamics
+    for b in parts(d, :Box)
+      eval_dynamics!(view(du, states(b)), xs[b], view(u, states(b)), (p,t) -> view(hist(p,t), states(b)), p, t)
     end
+    # add along junctions
+    du′ = [sum(Array{T}(view(du, preimage(state_map, i)))) for i in codom(state_map)]
+    return du′
+  end
 
 end
 
 function induced_dynamics(d::AbstractUWD, xs::Vector{R}, state_map::FinFunction, states::Function) where {T, R<:DiscreteResourceSharer{T}}
-    function v(u′::AbstractVector, p, t::Real)
-        u0 = getindex(u′,  state_map.func)
-        u1 = zero(u0)
-        # apply dynamics
-        for b in parts(d, :Box)
-          eval_dynamics!(view(u1, states(b)), xs[b], view(u0, states(b)), p, t)
-        end
-        Δu = u1 - u0
-        # add along junctions
-        return u′+ [sum(Array{T}(view(Δu, preimage(state_map, i)))) for i in codom(state_map)]
+  function v(u′::AbstractVector, p, t::Real)
+    u0 = getindex(u′,  state_map.func)
+    u1 = zero(u0)
+    # apply dynamics
+    for b in parts(d, :Box)
+      eval_dynamics!(view(u1, states(b)), xs[b], view(u0, states(b)), p, t)
     end
+    Δu = u1 - u0
+    # add along junctions
+    return u′+ [sum(Array{T}(view(Δu, preimage(state_map, i)))) for i in codom(state_map)]
+  end
 end
 
 
@@ -394,11 +394,11 @@ function __init__()
     function ContinuousResourceSharer{T}(pn::Union{OpenPetriNet, OpenLabelledPetriNet}) where T
       nstates = nparts(apex(pn), :S)
       portmap = vcat(map(legs(pn)) do f
-        f[:S](parts(dom(f), :S))
-      end...)
+                       f[:S](parts(dom(f), :S))
+                     end...)
       nports = length(portmap)
       vf(u, p, t) = vectorfield(apex(pn))(zeros(nstates), u, p, t)
-    
+
       ContinuousResourceSharer{T}(nports, nstates, vf, portmap)
     end
   end

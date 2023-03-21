@@ -493,11 +493,12 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
 
   S = coproduct((FinSet∘nstates).(ms))
 
-  return M(input_ports(d),
-           length(apex(S)),
-           output_ports(d),
-           induced_dynamics(d, ms, S),
-           induced_readout(d, ms, S))
+  return M(
+    input_ports(d),
+    length(apex(S)),
+    output_ports(d),
+    induced_dynamics(d, ms, S),
+    induced_readout(d, ms, S))
 end
 
 function oapply(d::WiringDiagram, ms::Vector{M}) where {T, I<:InstantaneousDirectedInterface, M<:AbstractMachine{T, I}} 
@@ -511,13 +512,14 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {T, I<:InstantaneousDirec
   dependency_colims = (colimit∘dependency).(ms)
   get_readouts = define_get_readouts(d, dependency_colims)
 
-  return M(input_ports(d), 
-           length(apex(S)),
-           output_ports(d),
-           induced_dynamics(d, ms, S, get_readouts),
-           induced_readout(d, ms, S, get_readouts),
-           induced_dependency(d, dependency_colims)
-           )
+  return M(
+    input_ports(d),
+    length(apex(S)),
+    output_ports(d),
+    induced_dynamics(d, ms, S, get_readouts),
+    induced_readout(d, ms, S, get_readouts),
+    induced_dependency(d, dependency_colims)
+  )
 
 end
 

@@ -2,12 +2,8 @@ using AlgebraicDynamics.CPortGraphDynam
 using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath
 using AlgebraicDynamics.DWDDynam: trajectory
-using Catlab.WiringDiagrams
-using Catlab.WiringDiagrams.CPortGraphs
-using Catlab.CategoricalAlgebra
-using Catlab.Theories
-using Catlab.Graphs
 using Catlab
+using ACSets
 
 using DelayDiffEq
 using LabelledArrays

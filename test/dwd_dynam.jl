@@ -1,5 +1,6 @@
 using AlgebraicDynamics.DWDDynam
-using Catlab.WiringDiagrams, Catlab.Present, Catlab.Theories, Catlab.Programs
+using Catlab
+using ACSets
 using LabelledArrays
 using DelayDiffEq
 using Test

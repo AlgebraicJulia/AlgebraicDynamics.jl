@@ -2,8 +2,8 @@ using AlgebraicDynamics
 using AlgebraicDynamics.UWDDynam
 using AlgebraicDynamics.DWDDynam
 
-using Catlab.WiringDiagrams
-using Catlab.CategoricalAlgebra
+using Catlab
+using ACSets
 
 using OrdinaryDiffEq
 

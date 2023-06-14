@@ -1,6 +1,6 @@
 [deps]
 AlgebraicDynamics = "5fd6ff03-a254-427e-8840-ba658f502e32"
-AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"
+ACSets = "227ef7b5-1206-438b-ac65-934d6da304b8"
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
 LabelledArrays = "2ee39098-c373-598a-b85f-a56591580800"

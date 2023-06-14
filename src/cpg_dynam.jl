@@ -1,10 +1,7 @@
 module CPortGraphDynam
 
-using Catlab.WiringDiagrams
-using Catlab.WiringDiagrams.CPortGraphs
-using  Catlab.CategoricalAlgebra
-using  Catlab.CategoricalAlgebra.FinSets
-using Catlab.Graphs
+using Catlab
+using ACSets
 import Catlab.Graphs: Graph
 using Catlab.Graphics.GraphvizGraphs: to_graphviz
 

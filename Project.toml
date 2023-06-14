@@ -32,7 +32,7 @@ RecipesBase = "1"
 RecursiveArrayTools = "^2.10.0"
 Requires = "1"
 StaticArrays = "0.12, 1.0"
-julia = "1.0"
+julia = "1.9"
 
 [extras]
 AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"

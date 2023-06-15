@@ -1,7 +1,7 @@
 module CPortGraphDynam
 
 using Catlab
-using ACSets
+
 import Catlab.Graphs: Graph
 using Catlab.Graphics.GraphvizGraphs: to_graphviz
 

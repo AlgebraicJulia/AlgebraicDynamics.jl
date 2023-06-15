@@ -3,7 +3,7 @@ using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath
 using AlgebraicDynamics.DWDDynam: trajectory
 using Catlab
-using ACSets
+
 
 using DelayDiffEq
 using LabelledArrays

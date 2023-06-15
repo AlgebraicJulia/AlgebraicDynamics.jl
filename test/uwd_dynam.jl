@@ -1,9 +1,9 @@
 using AlgebraicDynamics.UWDDynam
 using Catlab
-using ACSets
+
 using DelayDiffEq
 using Test
-#using AlgebraicPetri
+using AlgebraicPetri
 
 const UWD = UndirectedWiringDiagram
 
@@ -253,7 +253,7 @@ end
   end
 end
 
-#=@testset "AlgebraicPetri" begin 
+@testset "AlgebraicPetri" begin 
   birth_petri = Open(PetriNet(1, 1=>(1,1)));
   rs = ContinuousResourceSharer{Float64}(birth_petri)
   @test nstates(rs) == 1
@@ -274,4 +274,4 @@ end
   @test nstates(rs) == 6
   @test nports(rs) == 4
   @test portmap(rs) == [1,3, 1,2]
-end=#
+end

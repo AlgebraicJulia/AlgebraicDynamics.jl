@@ -1,7 +1,7 @@
 module DWDDynam
 
 using Catlab
-using ACSets
+
 import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
 import ..UWDDynam: AbstractInterface, nstates, eval_dynamics, euler_approx, trajectory

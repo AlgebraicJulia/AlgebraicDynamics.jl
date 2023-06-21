@@ -7,3 +7,7 @@ end
 @testset "DelayDiffEq Extension" begin
     include("DelayDiffEq.jl")
 end
+
+@testset "AlgebraicPetri Extension" begin
+    include("AlgebraicPetri.jl")
+end

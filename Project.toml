@@ -13,16 +13,17 @@ LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
-Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"
 
 [extensions]
-AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
 AlgebraicDynamicsDelayDiffEqExt = "DelayDiffEq"
+AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
+AlgebraicDynamicsAlgebraicPetriExt = "AlgebraicPetri"
 
 [compat]
 Catlab = "0.15"
@@ -34,9 +35,5 @@ OrdinaryDiffEq = "^5.49.0, 6"
 Plots = "^1.10.0"
 RecipesBase = "1"
 RecursiveArrayTools = "^2.10.0"
-Requires = "1"
 StaticArrays = "0.12, 1.0"
 julia = "1.9"
-
-[extras]
-AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"

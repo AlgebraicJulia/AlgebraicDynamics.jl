@@ -14,8 +14,6 @@ eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 using Base.Iterators
 import Base: show, eltype
 
-using Requires
-
 ### Interface
 abstract type AbstractInterface{T} end
 abstract type AbstractUndirectedInterface{T} <: AbstractInterface{T} end
@@ -352,7 +350,7 @@ end
 # AlgebraicPetri constructors
 ##########################
 
-function __init__()
+#=function __init__()
   @require AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"  begin
     using .AlgebraicPetri
 
@@ -367,6 +365,6 @@ function __init__()
       ContinuousResourceSharer{T}(nports, nstates, vf, portmap)
     end
   end
-end
+end=#
 
 end #module

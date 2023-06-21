@@ -12,6 +12,6 @@ end
   include("cpg_dynam.jl")
 end
 
-@testset "DiffEqExt" begin
+@testset "Extensions" begin
   include("ext/extensions.jl")
 end

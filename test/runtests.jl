@@ -12,6 +12,6 @@ end
   include("cpg_dynam.jl")
 end
 
-@testset "Trajectories" begin
-  include("trajectories.jl")
+@testset "DifferentialEquations Package Extension" begin
+  include("ext/extensions.jl")
 end

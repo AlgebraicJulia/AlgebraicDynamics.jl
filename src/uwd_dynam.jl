@@ -12,7 +12,7 @@ using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, 
-eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
+eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 using Base.Iterators
 import Base: show, eltype
@@ -217,39 +217,7 @@ euler_approx(fs::Vector{R}, args...) where {T, R<:ContinuousResourceSharer{T}} =
 euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResourceSharer{T}} =
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""    ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
 
-Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> r.dynamics(u,p,t)`.
-"""
-ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
-
-"""    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
-
-Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> r.dynamics(u,h,p,t)`.
-"""
-DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
-    DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
-    
-"""    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
-
-Constructs a `DiscreteProblem` from the equation of motion defined by `(u,p,t) -> r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
-"""
-DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
-
-"""    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
-    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
-
-Evolves the resouce sharer `r`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
-"""
-trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) =
-    trajectory(r, u0, p, (0, T); dt)
-
-function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
-  prob = DiscreteProblem(r, u0, tspan, p)
-  solve(prob, FunctionMap(); dt = dt)
-end
 
 ### Plotting backend
 @recipe function f(sol, r::ResourceSharer)

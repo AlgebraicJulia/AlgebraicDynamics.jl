@@ -1,11 +1,12 @@
 module AlgebraicDynamicsDiffEqExt
 
-using AlgebraicDynamics
+using AlgebraicDynamics.UWDDynam
+using AlgebraicDynamics.DWDDynam
+using AlgebraicDynamics.CPortGraphDynam
+import AlgebraicDynamics.UWDDynam: trajectory
 using OrdinaryDiffEq, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem, DiscreteProblem
 import DelayDiffEq: DDEProblem
-
-export trajectory
 
 # DWDDynam Integration
 ######################

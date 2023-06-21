@@ -5,13 +5,10 @@ using Catlab
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports
 
-using OrdinaryDiffEq, DelayDiffEq
-import OrdinaryDiffEq: ODEProblem, DiscreteProblem
-import DelayDiffEq: DDEProblem
 using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
-euler_approx, nstates, nports, portmap, portfunction, 
+euler_approx, nstates, nports, portmap, portfunction, trajectory,
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 using Base.Iterators
@@ -218,6 +215,9 @@ euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResource
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
 
+
+# Trajectories
+function trajectory() end
 
 ### Plotting backend
 @recipe function f(sol, r::ResourceSharer)

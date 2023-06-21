@@ -1,9 +1,6 @@
 using AlgebraicDynamics
-using AlgebraicDynamics.UWDDynam
-using AlgebraicDynamics.DWDDynam
 
 using Catlab
-
 
 using OrdinaryDiffEq
 

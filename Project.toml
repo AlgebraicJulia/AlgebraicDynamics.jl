@@ -18,18 +18,16 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
-DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 
 [extensions]
-AlgebraicDynamicsDiffEqExt = ["OrdinaryDiffEq", "DelayDiffEq"]
-
+AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
+AlgebraicDynamicsDelayDiffEqExt = "DelayDiffEq"
 
 [compat]
 Catlab = "0.15"
 Compose = "^0.9.1"
 DelayDiffEq = "5"
-DifferentialEquations = "^6.16.0, 7"
 LabelledArrays = "1"
 LinearMaps = "^3.1.0"
 OrdinaryDiffEq = "^5.49.0, 6"

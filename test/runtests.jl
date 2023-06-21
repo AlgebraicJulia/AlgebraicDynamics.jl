@@ -12,6 +12,6 @@ end
   include("cpg_dynam.jl")
 end
 
-@testset "DifferentialEquations Package Extension" begin
+@testset "DiffEqs Extensions" begin
   include("ext/extensions.jl")
 end

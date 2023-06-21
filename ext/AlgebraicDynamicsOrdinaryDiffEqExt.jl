@@ -1,14 +1,12 @@
-module AlgebraicDynamicsDiffEqExt
+module AlgebraicDynamicsOrdinaryDiffEqExt
 
 using AlgebraicDynamics.UWDDynam
 using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam
 import AlgebraicDynamics.UWDDynam: trajectory
-using OrdinaryDiffEq, DelayDiffEq
+using OrdinaryDiffEq
 import OrdinaryDiffEq: ODEProblem, DiscreteProblem
-import DelayDiffEq: DDEProblem
 using Base.Iterators
-#using AlgebraicDynamics.UWDDynam.dynamics
 
 # DWDDynam Integration
 ######################
@@ -26,12 +24,6 @@ ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, x::Union{T, Function}, t
 ODEProblem(m::ContinuousMachine{T}, u0::AbstractVector, tspan, p=nothing; kwargs...) where T =
     ODEProblem(m, u0, T[], tspan, p; kwargs...)
 
-"""    DDEProblem(m::DelayMachine, u0::Vector, x::Vector, h::Function, tspan, p=nothing; kwargs...)
-
-Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> m.dynamics(u,x,h,p,t)`, where the exogenous variables are determined by `x` as in `eval_dynamics()`.
-"""
-DDEProblem(m::DelayMachine, u0::AbstractVector, xs::AbstractVector, hist, tspan, params=nothing; kwargs...) = 
-    DDEProblem((u,h,p,t) -> eval_dynamics(m, u, xs, h, p, t), u0, hist, tspan, params; kwargs...)
 
 
 """    DiscreteProblem(m::DiscreteMachine, x::Vector, u0::Vector, tspan, p=nothing; kwargs...)
@@ -87,13 +79,7 @@ Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> r.dynami
 ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
     ODEProblem(UWDDynam.dynamics(r), u0, tspan, p; kwargs...)
 
-"""    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
 
-Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> r.dynamics(u,h,p,t)`.
-"""
-DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
-    DDEProblem(UWDDynam.dynamics(r), u0, h, tspan, p; kwargs...)
-    
 """    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a `DiscreteProblem` from the equation of motion defined by `(u,p,t) -> r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.

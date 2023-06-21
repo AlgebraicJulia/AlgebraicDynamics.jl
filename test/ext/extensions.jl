@@ -1,13 +1,9 @@
 using Test
 
-@testset "DWDDynam DiffEq Integration" begin
-    include("DWDDynamDiffEqExt.jl")
+@testset "OrdinaryDiffEq Extension" begin
+    include("OrdinaryDiffEq.jl")
 end
 
-@testset "UWDDynam DiffEq Integration" begin
-    include("UWDDynamDiffEqExt.jl")
-end
-
-@testset "Trajectories DiffEq Integration" begin
-    include("trajectories.jl")
+@testset "DelayDiffEq Extension" begin
+    include("DelayDiffEq.jl")
 end

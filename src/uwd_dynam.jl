@@ -1,9 +1,6 @@
 module UWDDynam
 using Catlab
-using Catlab.WiringDiagrams, Catlab.Programs
-using Catlab.CategoricalAlgebra
-using Catlab.CategoricalAlgebra.FinSets
-using Catlab.Theories
+
 
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports

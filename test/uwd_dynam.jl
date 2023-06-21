@@ -1,5 +1,6 @@
 using AlgebraicDynamics.UWDDynam
-using Catlab.WiringDiagrams,  Catlab.Programs
+using Catlab
+
 using DelayDiffEq
 using Test
 using AlgebraicPetri

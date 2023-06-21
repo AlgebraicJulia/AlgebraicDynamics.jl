@@ -1,6 +1,6 @@
 using AlgebraicDynamics
 using Catlab
-using DelayDiffEq
+using OrdinaryDiffEq, DelayDiffEq
 
 # CPGDynam Integration
 ######################

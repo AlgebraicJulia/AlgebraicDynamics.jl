@@ -1,6 +1,6 @@
 using Test
 using AlgebraicDynamics.UWDDynam
-using DelayDiffEq
+using OrdinaryDiffEq, DelayDiffEq
 using Catlab
 
 # UWDDynam Integration

@@ -2,7 +2,7 @@ using AlgebraicDynamics
 
 using Catlab
 
-using OrdinaryDiffEq
+using OrdinaryDiffEq, DelayDiffEq
 
 using Test
 const UWD = UndirectedWiringDiagram

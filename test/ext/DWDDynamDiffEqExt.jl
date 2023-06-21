@@ -1,6 +1,6 @@
 using Test
 using AlgebraicDynamics.DWDDynam
-using DelayDiffEq
+using OrdinaryDiffEq, DelayDiffEq
 using LabelledArrays
 using Catlab
 

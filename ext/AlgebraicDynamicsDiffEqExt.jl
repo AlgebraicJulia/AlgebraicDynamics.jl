@@ -7,6 +7,8 @@ import AlgebraicDynamics.UWDDynam: trajectory
 using OrdinaryDiffEq, DelayDiffEq
 import OrdinaryDiffEq: ODEProblem, DiscreteProblem
 import DelayDiffEq: DDEProblem
+using Base.Iterators
+#using AlgebraicDynamics.UWDDynam.dynamics
 
 # DWDDynam Integration
 ######################
@@ -83,21 +85,21 @@ end
 Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> r.dynamics(u,p,t)`.
 """
 ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
+    ODEProblem(UWDDynam.dynamics(r), u0, tspan, p; kwargs...)
 
 """    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
 
 Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> r.dynamics(u,h,p,t)`.
 """
 DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
-    DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
+    DDEProblem(UWDDynam.dynamics(r), u0, h, tspan, p; kwargs...)
     
 """    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
 
 Constructs a `DiscreteProblem` from the equation of motion defined by `(u,p,t) -> r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
 """
 DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
+    DiscreteProblem(UWDDynam.dynamics(r), u0, tspan, p; kwargs...)
 
 """    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
     trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}

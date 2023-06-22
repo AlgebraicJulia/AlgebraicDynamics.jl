@@ -5,19 +5,14 @@ using Catlab
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports
 
-using OrdinaryDiffEq, DelayDiffEq
-import OrdinaryDiffEq: ODEProblem, DiscreteProblem
-import DelayDiffEq: DDEProblem
 using Plots
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
-euler_approx, nstates, nports, portmap, portfunction, 
-eval_dynamics, eval_dynamics!, trajectory, exposed_states, fills, induced_states
+euler_approx, nstates, nports, portmap, portfunction, trajectory,
+eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 using Base.Iterators
 import Base: show, eltype
-
-using Requires
 
 ### Interface
 abstract type AbstractInterface{T} end
@@ -217,39 +212,10 @@ euler_approx(fs::Vector{R}, args...) where {T, R<:ContinuousResourceSharer{T}} =
 euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResourceSharer{T}} =
     Dict(name => euler_approx(f, args...) for (name, f) in fs)
 
-"""    ODEProblem(r::ContinuousResourceSharer, u0::Vector, tspan)
 
-Constructs an `ODEProblem` from the vector field defined by `(u,p,t) -> r.dynamics(u,p,t)`.
-"""
-ODEProblem(r::ContinuousResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    ODEProblem(dynamics(r), u0, tspan, p; kwargs...)
 
-"""    DDEProblem(r::DelayResourceSharer, u0::Vector, h, tspan)
-
-Constructs a `DDEProblem` from the vector field defined by `(u,h,p,t) -> r.dynamics(u,h,p,t)`.
-"""
-DDEProblem(r::DelayResourceSharer, u0::AbstractVector, h, tspan, p=nothing; kwargs...) = 
-    DDEProblem(dynamics(r), u0, h, tspan, p; kwargs...)
-    
-"""    DiscreteProblem(r::DiscreteResourceSharer, u0::Vector, p)
-
-Constructs a `DiscreteProblem` from the equation of motion defined by `(u,p,t) -> r.dynamics(u,p,t)`.  Pass `nothing` in place of `p` if your system does not have parameters.
-"""
-DiscreteProblem(r::DiscreteResourceSharer, u0::AbstractVector, tspan, p=nothing; kwargs...) =
-    DiscreteProblem(dynamics(r), u0, tspan, p; kwargs...)
-
-"""    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, nsteps::Int; dt::Int = 1)
-    trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
-
-Evolves the resouce sharer `r`, for `nsteps` times or over `tspan`, with step size `dt`, initial condition `u0` and parameters `p`.
-"""
-trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, T::Int; dt::Int= 1) =
-    trajectory(r, u0, p, (0, T); dt)
-
-function trajectory(r::DiscreteResourceSharer, u0::AbstractVector, p, tspan::Tuple{T,T}; dt::T= one(T)) where {T<:Real}
-  prob = DiscreteProblem(r, u0, tspan, p)
-  solve(prob, FunctionMap(); dt = dt)
-end
+# Trajectories
+function trajectory() end
 
 ### Plotting backend
 @recipe function f(sol, r::ResourceSharer)
@@ -378,27 +344,6 @@ function induced_dynamics(d::AbstractUWD, xs::Vector{R}, state_map::FinFunction,
         # add along junctions
         return u′+ [sum(Array{T}(view(Δu, preimage(state_map, i)))) for i in codom(state_map)]
     end
-end
-
-
-# AlgebraicPetri constructors
-##########################
-
-function __init__()
-  @require AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"  begin
-    using .AlgebraicPetri
-
-    function ContinuousResourceSharer{T}(pn::Union{OpenPetriNet, OpenLabelledPetriNet}) where T
-      nstates = nparts(apex(pn), :S)
-      portmap = vcat(map(legs(pn)) do f
-        f[:S](parts(dom(f), :S))
-      end...)
-      nports = length(portmap)
-      vf(u, p, t) = vectorfield(apex(pn))(zeros(nstates), u, p, t)
-    
-      ContinuousResourceSharer{T}(nports, nstates, vf, portmap)
-    end
-  end
 end
 
 end #module

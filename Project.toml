@@ -20,6 +20,7 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+ACSets = "0.2"
 Catlab = "0.15"
 Compose = "^0.9.1"
 DelayDiffEq = "5"

@@ -3,13 +3,7 @@
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/Ecosystem.ipynb)
 
 using AlgebraicDynamics
-using AlgebraicDynamics.DWDDynam
-using AlgebraicDynamics.UWDDynam
-
-using Catlab.CategoricalAlgebra
-using Catlab.WiringDiagrams
-using Catlab.Graphics
-using Catlab.Programs
+using Catlab
 
 using LabelledArrays
 using OrdinaryDiffEq

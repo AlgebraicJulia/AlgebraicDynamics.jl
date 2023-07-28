@@ -188,9 +188,6 @@ ContinuousMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,
 ContinuousMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I} =
     ContinuousMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,p,t) -> u)
 
-ContinuousMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
-    ContinuousMachine{T, I}(I(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
-
 InstantaneousContinuousMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
     ContinuousMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), ContinuousDirectedSystem{T}(nstates, dynamics, readout))
 
@@ -241,12 +238,6 @@ DelayMachine{T,N}(ninputs, nstates, noutputs, dynhamics, readout) where {T,N} =
 
 DelayMachine{T,I}(ninputs::Int, nstates::Int, dynamics) where {T,I}  =
     DelayMachine{T,I}(ninputs, nstates, nstates, dynamics, (u,h,p,t) -> u)
-
-DelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T, I<:InstantaneousDirectedInterface{T}} = 
-    DelayMachine{T, I}(I(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
-
-InstantaneousDelayMachine{T}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T} = 
-    DelayMachine{T, InstantaneousDirectedInterface{T}}(InstantaneousDirectedInterface{T}(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))
 
 InstantaneousDelayMachine{T,I}(ninputs, nstates, noutputs, dynamics, readout, dependency) where {T,I<:InstantaneousDirectedInterface{T}} = 
     DelayMachine{T,I}(I(ninputs, noutputs, dependency), DelayDirectedSystem{T}(nstates, dynamics, readout))

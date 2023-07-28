@@ -9,11 +9,7 @@
 # 2. Categorical Semantics of Cyber-Physical Systems Theory - [https://doi.org/10.1145/3461669](https://doi.org/10.1145/3461669)
 
 using AlgebraicDynamics
-using AlgebraicDynamics.DWDDynam
-
-using Catlab.WiringDiagrams
-using Catlab.Graphics
-using Catlab.Graphics.Graphviz
+using Catlab
 
 using LabelledArrays
 using DifferentialEquations

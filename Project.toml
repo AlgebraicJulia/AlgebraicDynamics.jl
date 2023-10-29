@@ -27,7 +27,7 @@ AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
 
 [compat]
 AlgebraicPetri = "0.9"
-Catlab = "0.15"
+Catlab = "0.15, 0.16"
 Compose = "^0.9.1"
 DelayDiffEq = "5"
 LabelledArrays = "1"

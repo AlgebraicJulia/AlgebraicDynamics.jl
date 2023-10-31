@@ -8,6 +8,8 @@ using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam
 using Catlab
 using Catlab.WiringDiagrams
+using AlgebraicPetri
+using DelayDiffEq
 using OrdinaryDiffEq
 
 # This is to resolve method ambiguity and is inlcuded in Base as of 1.8
@@ -40,9 +42,12 @@ for (root, dirs, files) in walkdir(literate_dir)
   end
 end
 
+extensions = ["AlgebraicPetri", "DelayDiffEq", "OrdinaryDiffEq"]
+extension_modules = [Base.get_extension(AlgebraicDynamics, Symbol("AlgebraicDynamics"*ext*"Ext")) for ext in extensions]
+
 @info "Building Documenter.jl docs"
 makedocs(
-  modules   = [AlgebraicDynamics],
+  modules   = vcat([AlgebraicDynamics], extension_modules),
   format    = Documenter.HTML(
     assets = ["assets/analytics.js"],
   ),

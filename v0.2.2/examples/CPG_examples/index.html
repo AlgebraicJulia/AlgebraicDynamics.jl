@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Open Circular Port Graph Examples · AlgebraicDynamics.jl</title><meta name="title" content="Open Circular Port Graph Examples · AlgebraicDynamics.jl"/><meta property="og:title" content="Open Circular Port Graph Examples · AlgebraicDynamics.jl"/><meta property="twitter:title" content="Open Circular Port Graph Examples · AlgebraicDynamics.jl"/><meta name="description" content="Documentation for AlgebraicDynamics.jl."/><meta property="og:description" content="Documentation for AlgebraicDynamics.jl."/><meta property="twitter:description" content="Documentation for AlgebraicDynamics.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/analytics.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">AlgebraicDynamics.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">AlgebraicDynamics.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../Lotka-Volterra/">Lotka-Volterra Three Ways</a></li><li><a class="tocitem" href="../Ecosystem/">Ecosystem Models</a></li><li class="is-active"><a class="tocitem" href>Open Circular Port Graph Examples</a><ul class="internal"><li><a class="tocitem" href="#SIR-Epidemiology-Model"><span>SIR Epidemiology Model</span></a></li><li><a class="tocitem" href="#Cellular-automata"><span>Cellular automata</span></a></li></ul></li><li><a class="tocitem" href="../Cyber-Physical/">Cyber Physical Systems Example</a></li><li><a class="tocitem" href="../Ross-Macdonald/">Ross-Macdonald Malaria Modeling</a></li></ul></li><li><a class="tocitem" href="../../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Open Circular Port Graph Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Open Circular Port Graph Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/blob/main/examples/CPG_examples.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="cpg_examples"><a class="docs-heading-anchor" href="#cpg_examples">Open Circular Port Graph Examples</a><a id="cpg_examples-1"></a><a class="docs-heading-anchor-permalink" href="#cpg_examples" title="Permalink"></a></h1><p><a href="https://nbviewer.jupyter.org/github/AlgebraicJulia/AlgebraicDynamics.jl/blob/gh-pages/v0.2.2/examples/CPG_examples.ipynb"><img src="https://img.shields.io/badge/show-nbviewer-579ACA.svg" alt/></a></p><pre><code class="language-julia hljs">using AlgebraicDynamics
+using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath
+using Catlab
+
+using OrdinaryDiffEq
+using Plots, Plots.PlotMeasures
+using PrettyTables</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">WARNING: using Plots.grid in module Main conflicts with an existing identifier.</code></pre><h2 id="SIR-Epidemiology-Model"><a class="docs-heading-anchor" href="#SIR-Epidemiology-Model">SIR Epidemiology Model</a><a id="SIR-Epidemiology-Model-1"></a><a class="docs-heading-anchor-permalink" href="#SIR-Epidemiology-Model" title="Permalink"></a></h2><p>An SIR epidemiology model has three types of people: susceptible, infected, and recovered. When a susceptible person interacts with infected person, the susceptible person also becomes infected. Over time infected people  recover. Transition rates determine the how frequently susceptible people come into contact with infected people and how fast infected people recover. The system evolves according to the law of mass action.</p><p>In a multi-city SIR model, each city has susceptible, infected, and recovered populations. To see the spread of the disease we will consider both susceptible and infected people moving between cities. To define a multi-city SIR model, we can compose multiple single-city SIR models using the composition syntax of open CPGs. The composition pattern will consist of three boxes each of which will be filled by a single-city SIR model. Ports expose the susceptible and infected populations of each city. One set of wires connect the susceptible and infected populations of cities 1 and 2. A second set of wires connect the susceptible and infected popuation of cities 2 and 3.</p><pre><code class="language-julia hljs"># Define the composition pattern
+d₀ = OpenCPortGraph()
+add_parts!(d₀, :Box, 1)
+d₁ = barbell(2)
+F = ACSetTransformation((Box=[2],), d₀, d₁)
+G = ACSetTransformation((Box=[1],), d₀, d₁)
+d₂ = apex(pushout(F,G))
+
+# Define the primitive systems
+β, μ, α₁, α₂ = 0.4, 0.4, 0.01, 0.01
+
+sirfuncb = (u,x,p,t)-&gt;[-β*u[1]*u[2] - α₁*(u[1]-x[1]), # Ṡ
+                        β*u[1]*u[2] - μ*u[2] - α₂*(u[2]-x[2]), #İ
+                        μ*u[2] # Ṙ
+                        ]
+sirfuncm = (u,x,p,t)-&gt;[-β*u[1]*u[2] - α₁*(u[1]-(x[1]+x[3])/2),
+                        β*u[1]*u[2] - μ*u[2] - α₂*(u[2]-(x[2]+x[4])/2),
+                        μ*u[2]
+                       ]
+
+boundary  = ContinuousMachine{Float64}(2,3,sirfuncb, (u,p,t)-&gt;u[1:2])
+middle    = ContinuousMachine{Float64}(4,3, sirfuncm, (u,p,t)-&gt;u[[1,2,1,2]])
+
+# Compose
+threecity = oapply(d₂, [boundary,middle,boundary])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><p>First, we will approximate the solution to the three city SIR model using Euler&#39;s method. The initial condition has 100 susceptible people in each city a single infected person in the first city. We show the infected populations in each city over time.</p><pre><code class="language-julia hljs">u0 = [100,1,0,100,0,0,100,0,0.0]
+
+h = 0.01
+tspan = (0.0, 1.0)
+threecity_approx = euler_approx(threecity, h)
+prob = DiscreteProblem(threecity_approx, u0, [], tspan, nothing)
+sol = solve(prob, FunctionMap(); dt = h)
+
+map(sol) do u
+    return (i1=u[2], i2=u[5], i3=u[8])
+end |&gt; pretty_table</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌─────────┬─────────────┬─────────────┐
+│      i1 │          i2 │          i3 │
+│ Float64 │     Float64 │     Float64 │
+├─────────┼─────────────┼─────────────┤
+│     1.0 │         0.0 │         0.0 │
+│  1.3959 │      5.0e-5 │         0.0 │
+│  1.9463 │  0.00013959 │      5.0e-9 │
+│  2.7094 │ 0.000292169 │  2.09385e-8 │
+│ 3.76334 │ 0.000543308 │  5.84449e-8 │
+│ 5.21121 │  0.00094657 │  1.35914e-7 │
+│ 7.18564 │  0.00158188 │   2.8438e-7 │
+│ 9.85078 │  0.00256741 │  5.55153e-7 │
+│ 13.3983 │  0.00407637 │  1.03168e-6 │
+│ 18.0311 │  0.00636006 │  1.84776e-6 │
+│ 23.9277 │   0.0097794 │  3.21529e-6 │
+│ 31.1815 │   0.0148471 │  5.46617e-6 │
+│ 39.7176 │   0.0222833 │  9.11493e-6 │
+│ 49.2146 │   0.0330891 │  1.49519e-5 │
+│ 59.0815 │   0.0486455 │  2.41802e-5 │
+│ 68.5483 │   0.0708489 │  3.86177e-5 │
+│ 76.8715 │    0.102305 │  6.09913e-5 │
+│ 83.5617 │     0.14661 │  9.53683e-5 │
+│ 88.4952 │    0.208744 │ 0.000147786 │
+│ 91.8553 │    0.295635 │ 0.000227168 │
+│ 93.9784 │    0.416918 │ 0.000346667 │
+│ 95.2144 │    0.585974 │ 0.000525604 │
+│ 95.8529 │    0.821336 │ 0.000792287 │
+│ 96.1049 │     1.14857 │  0.00118809 │
+│ 96.1134 │     1.60277 │   0.0017733 │
+│ 95.9711 │     2.23173 │  0.00263561 │
+│ 95.7361 │     3.09995 │   0.0039022 │
+│  95.445 │     4.29318 │  0.00575701 │
+│ 95.1199 │     5.92314 │   0.0084654 │
+│ 94.7747 │     8.13108 │   0.0124089 │
+│ 94.4178 │     11.0877 │    0.018134 │
+│ 94.0544 │      14.985 │   0.0264207 │
+│ 93.6876 │     20.0143 │   0.0383764 │
+│ 93.3194 │     26.3226 │   0.0555651 │
+│ 92.9511 │     33.9449 │   0.0801831 │
+│ 92.5834 │     42.7238 │    0.115296 │
+│ 92.2167 │     52.2483 │     0.16516 │
+│ 91.8514 │     61.8688 │    0.235662 │
+│ 91.4875 │     70.8272 │    0.334923 │
+│ 91.1249 │     78.4739 │    0.474149 │
+│ 90.7636 │     84.4564 │    0.668803 │
+│ 90.4034 │     88.7674 │     0.94022 │
+│ 90.0444 │     91.6474 │     1.31776 │
+│ 89.6865 │     93.4347 │      1.8416 │
+│ 89.3296 │     94.4517 │     2.56633 │
+│ 88.9739 │     94.9542 │     3.56516 │
+│ 88.6194 │      95.125 │     4.93473 │
+│ 88.2662 │     95.0865 │     6.79946 │
+│ 87.9142 │      94.918 │     9.31398 │
+│ 87.5635 │     94.6694 │     12.6602 │
+│ 87.2141 │     94.3719 │     17.0337 │
+│ 86.8661 │     94.0449 │     22.6133 │
+│ 86.5195 │     93.7002 │     29.5066 │
+│ 86.1742 │     93.3454 │      37.674 │
+│ 85.8302 │     92.9848 │     46.8507 │
+│ 85.4877 │     92.6213 │     56.5124 │
+│ 85.1464 │     92.2566 │      65.938 │
+│ 84.8066 │     91.8916 │     74.3883 │
+│ 84.4681 │      91.527 │     81.3273 │
+│ 84.1309 │     91.1632 │     86.5583 │
+│ 83.7951 │     90.8002 │     90.2011 │
+│ 83.4606 │     90.4383 │     92.5573 │
+│ 83.1275 │     90.0774 │     93.9686 │
+│ 82.7957 │     89.7178 │     94.7313 │
+│ 82.4652 │     89.3594 │     95.0685 │
+│  82.136 │     89.0024 │     95.1342 │
+│ 81.8081 │     88.6466 │     95.0299 │
+│ 81.4816 │     88.2922 │     94.8204 │
+│ 81.1564 │     87.9391 │     94.5464 │
+│ 80.8324 │     87.5874 │     94.2331 │
+│ 80.5098 │     87.2372 │     93.8962 │
+│ 80.1884 │     86.8882 │     93.5451 │
+│ 79.8683 │     86.5407 │      93.186 │
+│ 79.5495 │     86.1946 │     92.8223 │
+│  79.232 │     85.8498 │     92.4565 │
+│ 78.9157 │     85.5064 │     92.0898 │
+│ 78.6007 │     85.1644 │     91.7232 │
+│ 78.2869 │     84.8237 │     91.3572 │
+│ 77.9745 │     84.4844 │      90.992 │
+│ 77.6632 │     84.1465 │      90.628 │
+│ 77.3532 │     83.8099 │     90.2652 │
+│ 77.0444 │     83.4747 │     89.9038 │
+│ 76.7369 │     83.1408 │     89.5437 │
+│ 76.4306 │     82.8082 │      89.185 │
+│ 76.1255 │      82.477 │     88.8276 │
+│ 75.8216 │     82.1471 │     88.4717 │
+│  75.519 │     81.8185 │     88.1172 │
+│ 75.2175 │     81.4912 │     87.7642 │
+│ 74.9173 │     81.1653 │     87.4125 │
+│ 74.6183 │     80.8406 │     87.0622 │
+│ 74.3204 │     80.5172 │     86.7134 │
+│ 74.0237 │     80.1952 │     86.3659 │
+│ 73.7283 │     79.8744 │     86.0198 │
+│  73.434 │     79.5549 │     85.6751 │
+│ 73.1408 │     79.2367 │     85.3318 │
+│ 72.8489 │     78.9197 │     84.9899 │
+│ 72.5581 │      78.604 │     84.6493 │
+│ 72.2685 │     78.2896 │     84.3101 │
+│   71.98 │     77.9765 │     83.9723 │
+│ 71.6927 │     77.6646 │     83.6358 │
+│ 71.4065 │     77.3539 │     83.3006 │
+└─────────┴─────────────┴─────────────┘</code></pre><p>Next, we will solve the continuous system and plot the results. Over time the infected populations increase and the susceptible populations decrease. The delays in the plots illustrate how the disease spreads from city 1 to city 2 and then from city 2 to city 3.</p><pre><code class="language-julia hljs"># Solve and plot
+prob = ODEProblem(threecity, u0, tspan)
+sol = solve(prob, Tsit5(); dtmax = 0.01)
+
+plot(sol, lw=2, title = &quot;SIR Epidemiology Model&quot;, bottom_margin=10mm, left_margin=10mm,
+    label=[&quot;S&quot; &quot;I&quot; &quot;R&quot;])</code></pre><img src="8d845e1e.svg" alt="Example block output"/><h2 id="Cellular-automata"><a class="docs-heading-anchor" href="#Cellular-automata">Cellular automata</a><a id="Cellular-automata-1"></a><a class="docs-heading-anchor-permalink" href="#Cellular-automata" title="Permalink"></a></h2><p>Circular port graphs are particularly useful for modeling systems where the composition pattern is given by a grid and where the dynamics are repetative. In the case of cellular automata the composition pattern is a row of <span>$n$</span> cells each of which is connected to its two neighbors. The primitive systems are identical machines whose discrete dynamics are a specified rule. See <a href="https://mathworld.wolfram.com/ElementaryCellularAutomaton.html">here</a> for a complete set of rules and the patterns they generate.</p><pre><code class="language-julia hljs">function Rule(k::Int)
+    (left_neighbor, x, right_neighbor) -&gt;
+    Bool(digits(k, base=2, pad=8)[1 + right_neighbor + 2*x + 4*left_neighbor])
+end
+
+# Define the composition pattern
+n = 100
+row = apex(gridpath(n, 1))
+
+# Define the primitive system which will be repeated for each cell
+rule = DiscreteMachine{Bool}(2, 1, 2,
+            (u, x, p, t)-&gt;Rule(p)(x[2], u[1], x[1]),
+            (u,p,t)-&gt;[u[1], u[1]])
+
+# Compose
+automaton = oapply(row, rule)
+
+# Solve and plot
+u0 = zeros(Int, n); u0[Int(n/2)] = 1
+
+rule_number = 126
+tspan = (0.0, 100.0)
+prob = DiscreteProblem(automaton, u0, [0,0], tspan, rule_number)
+sol = solve(prob, FunctionMap())
+spy(transpose(reduce(hcat, sol.u)))</code></pre><img src="071e3ccb.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Ecosystem/">« Ecosystem Models</a><a class="docs-footer-nextpage" href="../Cyber-Physical/">Cyber Physical Systems Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 31 October 2023 15:34">Tuesday 31 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

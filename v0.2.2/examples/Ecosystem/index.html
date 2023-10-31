@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Ecosystem Models · AlgebraicDynamics.jl</title><meta name="title" content="Ecosystem Models · AlgebraicDynamics.jl"/><meta property="og:title" content="Ecosystem Models · AlgebraicDynamics.jl"/><meta property="twitter:title" content="Ecosystem Models · AlgebraicDynamics.jl"/><meta name="description" content="Documentation for AlgebraicDynamics.jl."/><meta property="og:description" content="Documentation for AlgebraicDynamics.jl."/><meta property="twitter:description" content="Documentation for AlgebraicDynamics.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="../../assets/analytics.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">AlgebraicDynamics.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">AlgebraicDynamics.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../Lotka-Volterra/">Lotka-Volterra Three Ways</a></li><li class="is-active"><a class="tocitem" href>Ecosystem Models</a><ul class="internal"><li><a class="tocitem" href="#Land-Ecosystem"><span>Land Ecosystem</span></a></li><li><a class="tocitem" href="#Ocean-Ecosystem"><span>Ocean Ecosystem</span></a></li><li><a class="tocitem" href="#Total-ecosystem"><span>Total ecosystem</span></a></li></ul></li><li><a class="tocitem" href="../CPG_examples/">Open Circular Port Graph Examples</a></li><li><a class="tocitem" href="../Cyber-Physical/">Cyber Physical Systems Example</a></li><li><a class="tocitem" href="../Ross-Macdonald/">Ross-Macdonald Malaria Modeling</a></li></ul></li><li><a class="tocitem" href="../../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Ecosystem Models</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Ecosystem Models</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/blob/main/examples/Ecosystem.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="ecosystem_example"><a class="docs-heading-anchor" href="#ecosystem_example">Ecosystem Models</a><a id="ecosystem_example-1"></a><a class="docs-heading-anchor-permalink" href="#ecosystem_example" title="Permalink"></a></h1><p><a href="https://nbviewer.jupyter.org/github/AlgebraicJulia/AlgebraicDynamics.jl/blob/gh-pages/v0.2.2/examples/Ecosystem.ipynb"><img src="https://img.shields.io/badge/show-nbviewer-579ACA.svg" alt/></a></p><pre><code class="language-julia hljs">using AlgebraicDynamics
+using Catlab
+
+using LabelledArrays
+using OrdinaryDiffEq
+using Plots, Plots.PlotMeasures</code></pre><p>There will be 16 parameters in to the total ecosystem. With four distinct types:</p><ul><li>parameters <span>$\alpha$</span> represent the rate at which a species population grows</li><li>parameters <span>$\beta$</span> represent the rate at which a population of prey declines in a predation interaction</li><li>parameters <span>$\gamma$</span> represent the rate at which a population of predators grows in a predation interaction</li><li>parameters <span>$\delta$</span> represent the rate at with a species population declines</li></ul><pre><code class="language-julia hljs">params = LVector(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,
+                 βrh=0.01, γrh=0.01, δh=0.5,
+                 γfishh=0.001, βfishh=0.003,
+                 αfish=0.35, βfishF=0.015, γfishF=0.015,
+                 δF=0.7, βFs=0.017, γFs=0.017, δs=0.35)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">16-element LabelledArrays.LArray{Float64, 1, Vector{Float64}, (:αr, :βrf, :γrf, :δf, :βrh, :γrh, :δh, :γfishh, :βfishh, :αfish, :βfishF, :γfishF, :δF, :βFs, :γFs, :δs)}:
+     :αr =&gt; 0.3
+    :βrf =&gt; 0.015
+    :γrf =&gt; 0.015
+     :δf =&gt; 0.7
+    :βrh =&gt; 0.01
+    :γrh =&gt; 0.01
+         ⋮
+ :γfishF =&gt; 0.015
+     :δF =&gt; 0.7
+    :βFs =&gt; 0.017
+    :γFs =&gt; 0.017
+     :δs =&gt; 0.35</code></pre><h2 id="Land-Ecosystem"><a class="docs-heading-anchor" href="#Land-Ecosystem">Land Ecosystem</a><a id="Land-Ecosystem-1"></a><a class="docs-heading-anchor-permalink" href="#Land-Ecosystem" title="Permalink"></a></h2><h3 id="Rabbits-and-foxes"><a class="docs-heading-anchor" href="#Rabbits-and-foxes">Rabbits and foxes</a><a id="Rabbits-and-foxes-1"></a><a class="docs-heading-anchor-permalink" href="#Rabbits-and-foxes" title="Permalink"></a></h3><p>A standard Lotka Volterra predator-prey model is the composition of three primitive resource sharers:</p><ol><li>a model of rabbit growth: this resource sharer has dynamics <span>$\dot r(t) = \alpha r(t)$</span> and one port which exposes the rabbit population.</li><li>a model of rabbit/fox predation: this resource sharer has dynamics <span>$\dot r(t) = -\beta r(t) f(t), \dot f(t) = \gamma r(t)f(t)$</span> and two ports which expose the rabbit and fox populations respectively.</li><li>a model of fox population decline: this resource sharer has dynamics <span>$\dot f(t) = -\delta f(t)$</span> and one port which exposes the fox population.</li></ol><p>However, there are not two independent rabbit populations – one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations – one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. The syntax for this undirected composition is defined by an undirected wiring diagram.</p><pre><code class="language-julia hljs"># Define the primitive systems
+dotr(u,p,t) = p.αr*u
+dotrf(u,p,t) = [-p.βrf*u[1]*u[2], p.γrf*u[1]*u[2]]
+dotf(u,p,t) = -p.δf*u
+
+rabbit_growth = ContinuousResourceSharer{Float64}(1, dotr)
+rabbitfox_predation = ContinuousResourceSharer{Float64}(2, dotrf)
+fox_decline = ContinuousResourceSharer{Float64}(1, dotf)
+
+# Define the composition pattern
+rabbitfox_pattern = @relation (rabbits, foxes) begin
+    rabbit_growth(rabbits)
+    rabbitfox_predation(rabbits,foxes)
+    fox_decline(foxes)
+end
+
+# Compose
+submodels = Dict(
+    :rabbit_growth =&gt; rabbit_growth,
+    :rabbitfox_predation =&gt; rabbitfox_predation,
+    :fox_decline =&gt; fox_decline
+)
+rabbitfox_system = oapply(rabbitfox_pattern, submodels)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><p>Previously, when we derived the Lotka-Volterra model via <a href="https://algebraicjulia.github.io/AlgebraicDynamics.jl/dev/examples/Lotka-Volterra/#Undirected-composition">undirected composition</a>, we by-hand defined the undirected wiring diagram that implements the composition pattern. In contrast, here we implement the same composition pattern as before but this time using the <a href="https://algebraicjulia.github.io/Catlab.jl/stable/apis/programs/#Catlab.Programs.RelationalPrograms.@relation-Tuple"><code>@relation</code> macro</a>. This strategy simplifies the definition and explicitly names the boxes and variables. We  visualize the composition pattern below.</p><pre><code class="language-julia hljs">to_graphviz(rabbitfox_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len =&gt; &quot;.75&quot;))</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="261pt" height="233pt"
+ viewBox="0.00 0.00 261.27 233.33" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 229.33)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-229.33 257.27,-229.33 257.27,4 -4,4"/>
+<!-- n1 -->
+<g id="box1" class="node">
+<title>n1</title>
+<ellipse fill="none" stroke="black" cx="64.75" cy="-167.5" rx="64.51" ry="18"/>
+<text text-anchor="middle" x="64.75" y="-163.8" font-family="Serif" font-size="14.00">rabbit_growth</text>
+</g>
+<!-- n6 -->
+<!-- junction -->
+<g id="junction1" class="node">
+<title>n6</title>
+<ellipse fill="black" stroke="black" cx="123.79" cy="-167.99" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="152.29" y="-174.29" font-family="Serif" font-size="14.00">rabbits</text>
+</g>
+<!-- n1&%2345;&%2345;n6 -->
+<g id="edge1" class="edge">
+<title>n1&%2345;&%2345;n6</title>
+<path fill="none" stroke="black" d="M123.62,-167.99C123.68,-167.99 123.72,-167.99 123.75,-167.99"/>
+</g>
+<!-- n2 -->
+<g id="box2" class="node">
+<title>n2</title>
+<ellipse fill="none" stroke="black" cx="159.48" cy="-121.77" rx="88.1" ry="18"/>
+<text text-anchor="middle" x="159.48" y="-118.07" font-family="Serif" font-size="14.00">rabbitfox_predation</text>
+</g>
+<!-- n2&%2345;&%2345;n6 -->
+<g id="edge2" class="edge">
+<title>n2&%2345;&%2345;n6</title>
+<path fill="none" stroke="black" d="M145.58,-139.77C137.75,-149.91 128.86,-161.43 125.34,-165.99"/>
+</g>
+<!-- n7 -->
+<!-- junction -->
+<g id="junction2" class="node">
+<title>n7</title>
+<ellipse fill="black" stroke="black" cx="193.78" cy="-74.51" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="172.28" y="-80.81" font-family="Serif" font-size="14.00">foxes</text>
+</g>
+<!-- n2&%2345;&%2345;n7 -->
+<g id="edge4" class="edge">
+<title>n2&%2345;&%2345;n7</title>
+<path fill="none" stroke="black" d="M172.45,-103.91C180.04,-93.45 188.79,-81.39 192.25,-76.62"/>
+</g>
+<!-- n3 -->
+<g id="box3" class="node">
+<title>n3</title>
+<ellipse fill="none" stroke="black" cx="176.69" cy="-18" rx="51.61" ry="18"/>
+<text text-anchor="middle" x="176.69" y="-14.3" font-family="Serif" font-size="14.00">fox_decline</text>
+</g>
+<!-- n3&%2345;&%2345;n7 -->
+<g id="edge5" class="edge">
+<title>n3&%2345;&%2345;n7</title>
+<path fill="none" stroke="black" d="M182.19,-36.19C186.17,-49.36 191.17,-65.87 193.03,-72.04"/>
+</g>
+<!-- n4 -->
+<!-- n4&%2345;&%2345;n6 -->
+<g id="edge3" class="edge">
+<title>n4&%2345;&%2345;n6</title>
+<path fill="none" stroke="black" d="M139.39,-224.2C137.89,-218.78 127.26,-180.49 124.46,-170.41"/>
+</g>
+<!-- n5 -->
+<!-- n5&%2345;&%2345;n7 -->
+<g id="edge6" class="edge">
+<title>n5&%2345;&%2345;n7</title>
+<path fill="none" stroke="black" d="M252.1,-73.7C246.48,-73.78 206.75,-74.33 196.29,-74.48"/>
+</g>
+</g>
+</svg>
+'/><p>We can now construct an <code>ODEProblem</code> from the resource sharer <code>rabbitfox_system</code> and plot the solution.</p><pre><code class="language-julia hljs">u0 = [10.0, 100.0]
+tspan = (0.0, 100.0)
+
+prob = ODEProblem(rabbitfox_system, u0, tspan, params)
+sol = solve(prob, Tsit5())
+
+plot(sol, rabbitfox_system,
+    lw=2,
+    title = &quot;Lotka-Volterra Predator-Prey Model&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;)</code></pre><img src="42e26946.svg" alt="Example block output"/><h3 id="Rabbits,-foxes,-and-hawks"><a class="docs-heading-anchor" href="#Rabbits,-foxes,-and-hawks">Rabbits, foxes, and hawks</a><a id="Rabbits,-foxes,-and-hawks-1"></a><a class="docs-heading-anchor-permalink" href="#Rabbits,-foxes,-and-hawks" title="Permalink"></a></h3><p>Suppose we now have a three species ecosystem containing rabbits, foxes, and hawks. Foxes and hawks both prey upon rabbits but do not interact with each other. This ecosystem consists of five primitive systems which share variables.</p><ol><li>rabbit growth:  <span>$\dot r(t) = \alpha r(t)$</span></li><li>rabbit/fox predation:  <span>$\dot r(t) = -\beta r(t) f(t), \dot f(t) = \delta r(t)f(t)$</span></li><li>fox decline:  <span>$\dot f(t) = -\gamma f(t)$</span></li><li>rabbit/hawk predation: <span>$\dot r(t) = -\beta&#39; r(t)h(t), \dot h(t) = \delta&#39; r(t)h(t)$</span></li><li>hawk decline:  <span>$\dot h(t) = -\gamma&#39; h(t)$</span></li></ol><p>This means the desired composition pattern has five boxes and many ports and wires to keep track of. Instead of implementing this composition pattern by hand, we construct it as a pushout.</p><pre><code class="language-julia hljs"># Define the composition pattern for rabbit growth
+rabbit_pattern = @relation (rabbits,) -&gt; rabbit_growth(rabbits)
+
+# Define the composition pattern for the rabbit/hawk Lotka Volterra model
+rabbithawk_pattern = @relation (rabbits, hawks) begin
+    rabbit_growth(rabbits)
+    rabbithawk_predation(rabbits,hawks)
+    hawk_decline(hawks)
+end
+
+# Define transformations between the composition patterns
+rabbitfox_transform  = ACSetTransformation((Box=[1], Junction=[1], Port=[1], OuterPort=[1]), rabbit_pattern, rabbitfox_pattern)
+rabbithawk_transform = ACSetTransformation((Box=[1], Junction=[1], Port=[1], OuterPort=[1]), rabbit_pattern, rabbithawk_pattern)
+
+# Take the pushout to define the composition pattern for the rabbit, fox, hawk system
+rabbitfoxhawk_pattern = ob(pushout(rabbitfox_transform, rabbithawk_transform))
+
+# Visualize the compsition pattern
+to_graphviz(rabbitfoxhawk_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len =&gt; &quot;.9&quot;))</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="347pt" height="388pt"
+ viewBox="0.00 0.00 346.71 387.60" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 383.6)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-383.6 342.71,-383.6 342.71,4 -4,4"/>
+<!-- n1 -->
+<g id="box1" class="node">
+<title>n1</title>
+<ellipse fill="none" stroke="black" cx="64.75" cy="-229.59" rx="64.51" ry="18"/>
+<text text-anchor="middle" x="64.75" y="-225.89" font-family="Serif" font-size="14.00">rabbit_growth</text>
+</g>
+<!-- n9 -->
+<!-- junction -->
+<g id="junction1" class="node">
+<title>n9</title>
+<ellipse fill="black" stroke="black" cx="137.65" cy="-221.06" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="161.15" y="-207.36" font-family="Serif" font-size="14.00">rabbits</text>
+</g>
+<!-- n1&%2345;&%2345;n9 -->
+<g id="edge1" class="edge">
+<title>n1&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M124.62,-222.59C128.97,-222.08 132.55,-221.66 134.85,-221.39"/>
+</g>
+<!-- n2 -->
+<g id="box2" class="node">
+<title>n2</title>
+<ellipse fill="none" stroke="black" cx="134.57" cy="-146.53" rx="88.1" ry="18"/>
+<text text-anchor="middle" x="134.57" y="-142.83" font-family="Serif" font-size="14.00">rabbitfox_predation</text>
+</g>
+<!-- n2&%2345;&%2345;n9 -->
+<g id="edge2" class="edge">
+<title>n2&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M135.32,-164.57C136.07,-182.84 137.18,-209.59 137.53,-218.25"/>
+</g>
+<!-- n10 -->
+<!-- junction -->
+<g id="junction2" class="node">
+<title>n10</title>
+<ellipse fill="black" stroke="black" cx="119.35" cy="-76.21" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="97.85" y="-82.51" font-family="Serif" font-size="14.00">foxes</text>
+</g>
+<!-- n2&%2345;&%2345;n10 -->
+<g id="edge5" class="edge">
+<title>n2&%2345;&%2345;n10</title>
+<path fill="none" stroke="black" d="M130.65,-128.42C126.92,-111.17 121.62,-86.69 119.91,-78.78"/>
+</g>
+<!-- n3 -->
+<g id="box3" class="node">
+<title>n3</title>
+<ellipse fill="none" stroke="black" cx="160.72" cy="-18" rx="51.61" ry="18"/>
+<text text-anchor="middle" x="160.72" y="-14.3" font-family="Serif" font-size="14.00">fox_decline</text>
+</g>
+<!-- n3&%2345;&%2345;n10 -->
+<g id="edge6" class="edge">
+<title>n3&%2345;&%2345;n10</title>
+<path fill="none" stroke="black" d="M148.08,-35.78C138.2,-49.69 125.41,-67.69 120.96,-73.95"/>
+</g>
+<!-- n4 -->
+<g id="box4" class="node">
+<title>n4</title>
+<ellipse fill="none" stroke="black" cx="205.27" cy="-252.25" rx="97.26" ry="18"/>
+<text text-anchor="middle" x="205.27" y="-248.55" font-family="Serif" font-size="14.00">rabbithawk_predation</text>
+</g>
+<!-- n4&%2345;&%2345;n9 -->
+<g id="edge3" class="edge">
+<title>n4&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M168.69,-235.38C156.49,-229.75 144.78,-224.35 139.96,-222.13"/>
+</g>
+<!-- n11 -->
+<!-- junction -->
+<g id="junction3" class="node">
+<title>n11</title>
+<ellipse fill="black" stroke="black" cx="265.94" cy="-290.77" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="240.44" y="-297.07" font-family="Serif" font-size="14.00">hawks</text>
+</g>
+<!-- n4&%2345;&%2345;n11 -->
+<g id="edge8" class="edge">
+<title>n4&%2345;&%2345;n11</title>
+<path fill="none" stroke="black" d="M232.77,-269.71C245.31,-277.67 258.5,-286.05 263.68,-289.33"/>
+</g>
+<!-- n5 -->
+<g id="box5" class="node">
+<title>n5</title>
+<ellipse fill="none" stroke="black" cx="277.49" cy="-361.6" rx="61.44" ry="18"/>
+<text text-anchor="middle" x="277.49" y="-357.9" font-family="Serif" font-size="14.00">hawk_decline</text>
+</g>
+<!-- n5&%2345;&%2345;n11 -->
+<g id="edge9" class="edge">
+<title>n5&%2345;&%2345;n11</title>
+<path fill="none" stroke="black" d="M274.51,-343.36C271.68,-325.98 267.66,-301.32 266.37,-293.36"/>
+</g>
+<!-- n6 -->
+<!-- n6&%2345;&%2345;n9 -->
+<g id="edge4" class="edge">
+<title>n6&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M102.46,-284.75C105.88,-278.56 130.26,-234.44 136.3,-223.51"/>
+</g>
+<!-- n7 -->
+<!-- n7&%2345;&%2345;n10 -->
+<g id="edge7" class="edge">
+<title>n7&%2345;&%2345;n10</title>
+<path fill="none" stroke="black" d="M57.66,-41C63.66,-44.43 106.39,-68.82 116.98,-74.86"/>
+</g>
+<!-- n8 -->
+<!-- n8&%2345;&%2345;n11 -->
+<g id="edge10" class="edge">
+<title>n8&%2345;&%2345;n11</title>
+<path fill="none" stroke="black" d="M334.18,-272.45C327.55,-274.23 280.28,-286.92 268.56,-290.07"/>
+</g>
+</g>
+</svg>
+'/><pre><code class="language-julia hljs"># Define the additional primitive systems
+dotrh(u, p, t) = [-p.βrh*u[1]*u[2], p.γrh*u[1]*u[2]]
+doth(u, p, t)  = -p.δh*u
+
+rabbithawk_predation = ContinuousResourceSharer{Float64}(2, dotrh)
+hawk_decline         = ContinuousResourceSharer{Float64}(1, doth)
+
+# Compose
+merge!(submodels, Dict(
+    :rabbithawk_predation =&gt; rabbithawk_predation,
+    :hawk_decline =&gt; hawk_decline
+))
+
+land_system = oapply(rabbitfoxhawk_pattern, submodels)
+
+# Solve and plot
+u0 = [10.0, 100.0, 50.0]
+tspan = (0.0, 100.0)
+
+prob = ODEProblem(land_system, u0, tspan, params)
+sol = solve(prob, Tsit5())
+
+plot(sol, land_system,
+    lw=2,
+    title = &quot;Land Ecosystem&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;)</code></pre><img src="8198ed28.svg" alt="Example block output"/><p>Unfortunately, the hawks are going extinct in this model. We&#39;ll have to give hawks something else to eat!</p><h2 id="Ocean-Ecosystem"><a class="docs-heading-anchor" href="#Ocean-Ecosystem">Ocean Ecosystem</a><a id="Ocean-Ecosystem-1"></a><a class="docs-heading-anchor-permalink" href="#Ocean-Ecosystem" title="Permalink"></a></h2><p>Consider a ocean ecosystem containing three species —- little fish, big fish, and sharks -— with two predation interactions —- sharks eat big fish and big fish eat little fish.</p><p>This ecosystem can be modeled as the composition of 3 machines:</p><ol><li>Evolution of the little fish population:  this machine has one exogenous variable which represents a population of predators <span>$h(t)$</span> that hunt little fish. This machine has one output which emits the little fish population. The dynamics of this machine is the driven ODE <span>$\dot f(t) = \alpha f(t) - \beta f(t)h(t)$</span></li><li>Evolution of the big fish population:  this machine has two exogenous variables which represent a population of prey <span>$e(t)$</span> that are eaten by big fish and a population of predators <span>$h(t)$</span> which hunt big fish. This machine has one output which emits the big fish population. The dynamics of this machine is the drive ODE <span>$\dot F(t) = \gamma F(t)e(t) - \delta F(t) - \beta&#39;F(t)h(t)$</span></li><li>Evolution of the shark population:  this machine has one exogenous variable which represents a population of prey <span>$e(t)$</span> that are eaten by sharks. This machine has one output which emits the shark population. The dynamics of this machine is the driven ODE <span>$\dot s(t) = \gamma&#39;s(t)e(t) - \delta&#39;s(t)$</span></li></ol><pre><code class="language-julia hljs"># Define the primitive systems
+dotfish(f, x, p, t) = [p.αfish*f[1] - p.βfishF*x[1]*f[1]]
+dotFISH(F, x, p, t) = [p.γfishF*x[1]*F[1] - p.δF*F[1] - p.βFs*x[2]*F[1]]
+dotsharks(s, x, p, t) = [p.γFs*s[1]*x[1]-p.δs*s[1]]
+
+fish   = ContinuousMachine{Float64}(1,1,1, dotfish,   (f,p,t)-&gt;f)
+FISH   = ContinuousMachine{Float64}(2,1,1, dotFISH,   (F,p,t)-&gt;F)
+sharks = ContinuousMachine{Float64}(1,1,1, dotsharks, (s,p,t)-&gt;s)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><p>We compose these machines by (1) sending the output of the big fish machine as the input to both the little fish and shark machines and (2) sending the output of the little fish and shark machines as the inputs to the big fish machine. The syntax for this directed composition is given by a directed wiring diagram.</p><pre><code class="language-julia hljs"># Define the composition pattern
+ocean_pattern = WiringDiagram([], [:fish, :Fish, :shark])
+fish_box = add_box!(ocean_pattern, Box(:fish, [:pop], [:pop]))
+Fish_box = add_box!(ocean_pattern, Box(:Fish, [:pop, :pop], [:pop]))
+shark_box = add_box!(ocean_pattern, Box(:shark, [:pop], [:pop]))
+
+output_box = output_id(ocean_pattern)
+add_wires!(ocean_pattern, Pair[
+    (fish_box, 1)  =&gt; (Fish_box, 1),
+    (shark_box, 1) =&gt; (Fish_box, 2),
+    (Fish_box, 1)  =&gt; (fish_box, 1),
+    (Fish_box, 1)  =&gt; (shark_box, 1),
+    (fish_box, 1)  =&gt; (output_box, 1),
+    (Fish_box, 1)  =&gt; (output_box, 2),
+    (shark_box, 1) =&gt; (output_box, 3)
+])
+
+# Visualize the composition pattern
+to_graphviz(ocean_pattern, orientation=TopToBottom)</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="140pt" height="197pt"
+ viewBox="0.00 0.00 140.20 197.36" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 193.36)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-193.36 136.2,-193.36 136.2,4 -4,4"/>
+<!-- n0out1 -->
+<!-- n0out2 -->
+<!-- n0out1&%2345;&gt;n0out2 -->
+<!-- n0out3 -->
+<!-- n0out2&%2345;&gt;n0out3 -->
+<!-- n1 -->
+<!-- fish -->
+<g id="n1" class="node">
+<title>n1</title>
+<polygon fill="none" stroke="black" points="47,-158.5 47,-183.5 83,-183.5 83,-158.5 47,-158.5"/>
+<text text-anchor="start" x="52" y="-167.3" font-family="Serif" font-size="14.00">fish</text>
+</g>
+<!-- n1&%2345;&gt;n0out1 -->
+<!-- pop -->
+<g id="e5" class="edge">
+<title>n1:s&%2345;&gt;n0out1:n</title>
+<path fill="none" stroke="black" d="M65,-159C65,-140.48 51.08,-140.12 44,-123 23.24,-72.82 12.67,-57.98 12.03,-6.13"/>
+<polygon fill="black" stroke="black" points="13.78,-5.99 12,-1 10.28,-6.01 13.78,-5.99"/>
+</g>
+<!-- n2 -->
+<!-- Fish -->
+<g id="n2" class="node">
+<title>n2</title>
+<polygon fill="none" stroke="black" points="53,-97.5 53,-122.5 101,-122.5 101,-97.5 53,-97.5"/>
+<text text-anchor="start" x="61.5" y="-106.3" font-family="Serif" font-size="14.00">Fish</text>
+</g>
+<!-- n1&%2345;&gt;n2 -->
+<!-- pop -->
+<g id="e1" class="edge">
+<title>n1:s&%2345;&gt;n2:n</title>
+<path fill="none" stroke="black" d="M65,-159C65,-144.88 65,-140.1 65,-128.17"/>
+<polygon fill="black" stroke="black" points="66.75,-128 65,-123 63.25,-128 66.75,-128"/>
+</g>
+<!-- n2&%2345;&gt;n0out2 -->
+<!-- pop -->
+<g id="e6" class="edge">
+<title>n2:s&%2345;&gt;n0out2:n</title>
+<path fill="none" stroke="black" d="M77,-98C77,-88.05 58.43,-26.62 54.66,-6.21"/>
+<polygon fill="black" stroke="black" points="56.37,-5.74 54,-1 52.9,-6.18 56.37,-5.74"/>
+</g>
+<!-- n2&%2345;&gt;n1 -->
+<!-- pop -->
+<g id="e3" class="edge">
+<title>n2:s&%2345;&gt;n1:n</title>
+<path fill="none" stroke="black" d="M77,-96.5C77,-85.82 93.61,-89.8 101,-97.5 108.85,-105.68 102.63,-111.78 101,-123 96.96,-150.76 105.01,-166.11 83,-183.5 78.68,-186.91 71.79,-189.89 67.91,-188.82"/>
+<polygon fill="black" stroke="black" points="69.24,-187.67 65,-184.5 66.34,-189.62 69.24,-187.67"/>
+</g>
+<!-- n3 -->
+<!-- shark -->
+<g id="n3" class="node">
+<title>n3</title>
+<polygon fill="none" stroke="black" points="78,-36.5 78,-61.5 128,-61.5 128,-36.5 78,-36.5"/>
+<text text-anchor="start" x="83" y="-45.3" font-family="Serif" font-size="14.00">shark</text>
+</g>
+<!-- n2&%2345;&gt;n3 -->
+<!-- pop -->
+<g id="e4" class="edge">
+<title>n2:s&%2345;&gt;n3:n</title>
+<path fill="none" stroke="black" d="M77,-98C77,-80.11 98.35,-81.29 102.36,-66.98"/>
+<polygon fill="black" stroke="black" points="104.1,-67.18 103,-62 100.62,-66.73 104.1,-67.18"/>
+</g>
+<!-- n3&%2345;&gt;n0out3 -->
+<!-- pop -->
+<g id="e7" class="edge">
+<title>n3:s&%2345;&gt;n0out3:n</title>
+<path fill="none" stroke="black" d="M103,-37C103,-22.79 99.88,-18.16 99.15,-6.19"/>
+<polygon fill="black" stroke="black" points="100.9,-5.95 99,-1 97.4,-6.05 100.9,-5.95"/>
+</g>
+<!-- n3&%2345;&gt;n2 -->
+<!-- pop -->
+<g id="e2" class="edge">
+<title>n3:s&%2345;&gt;n2:n</title>
+<path fill="none" stroke="black" d="M103,-35.5C103,-24.38 120.3,-28.48 128,-36.5 135.85,-44.67 130.36,-50.92 128,-62 117.48,-111.4 98.96,-128.75 91.87,-127.68"/>
+<polygon fill="black" stroke="black" points="93.27,-126.63 89,-123.5 90.39,-128.61 93.27,-126.63"/>
+</g>
+</g>
+</svg>
+'/><pre><code class="language-julia hljs"># Compose
+ocean_system = oapply(ocean_pattern, [fish, FISH, sharks])
+
+# Solve and plot
+u0 = [100.0, 10, 2.0]
+tspan = (0.0, 100.0)
+
+prob = ODEProblem(ocean_system, u0, tspan, params)
+sol = solve(prob, Tsit5())
+
+plot(sol, ocean_system,
+    lw=2, title = &quot;Ocean Ecosystem&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;
+)</code></pre><img src="4c5736c7.svg" alt="Example block output"/><h2 id="Total-ecosystem"><a class="docs-heading-anchor" href="#Total-ecosystem">Total ecosystem</a><a id="Total-ecosystem-1"></a><a class="docs-heading-anchor-permalink" href="#Total-ecosystem" title="Permalink"></a></h2><h3 id="Another-layer-of-composition"><a class="docs-heading-anchor" href="#Another-layer-of-composition">Another layer of composition</a><a id="Another-layer-of-composition-1"></a><a class="docs-heading-anchor-permalink" href="#Another-layer-of-composition" title="Permalink"></a></h3><p>We will introduce a final predation interaction – hawks eat little fish –  which will combine the land and ocean ecosystems. The composition will be as resource shareres so the first thing we will do is use the dynamics of the machine <code>ocean_system</code> to define the dynamics of a resource sharer. We will also define a resource sharer that models hawk/little fish predation.</p><pre><code class="language-julia hljs"># Define the additional primitive systems
+ocean_system_rs = ContinuousResourceSharer{Float64}(3, (u,p,t) -&gt; eval_dynamics(ocean_system, u, [], p))
+
+dothf(u,p,t) = [p.γfishh*u[1]*u[2], -p.βfishh*u[1]*u[2]]
+fishhawk_predation = ContinuousResourceSharer{Float64}(2, dothf)
+
+# Define the composition pattern
+eco_pattern = @relation (rabbits, foxes, hawks, littlefish, BigFish, sharks)  begin
+    turf(rabbits,foxes,hawks)
+    air(hawks, littlefish)
+    surf(littlefish, BigFish, sharks)
+end
+
+# Visualize the composition pattern
+to_graphviz(eco_pattern, box_labels = :name, junction_labels = :variable, edge_attrs=Dict(:len =&gt; &quot;.75&quot;))</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="427pt" height="195pt"
+ viewBox="0.00 0.00 426.50 195.01" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 191.01)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-191.01 422.5,-191.01 422.5,4 -4,4"/>
+<!-- n1 -->
+<g id="box1" class="node">
+<title>n1</title>
+<ellipse fill="none" stroke="black" cx="97.63" cy="-103.43" rx="21.39" ry="18"/>
+<text text-anchor="middle" x="97.63" y="-99.73" font-family="Serif" font-size="14.00">turf</text>
+</g>
+<!-- n10 -->
+<!-- junction -->
+<g id="junction1" class="node">
+<title>n10</title>
+<ellipse fill="black" stroke="black" cx="54.5" cy="-147.62" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="26" y="-153.92" font-family="Serif" font-size="14.00">rabbits</text>
+</g>
+<!-- n1&%2345;&%2345;n10 -->
+<g id="edge1" class="edge">
+<title>n1&%2345;&%2345;n10</title>
+<path fill="none" stroke="black" d="M83.98,-117.41C73.91,-127.73 61.17,-140.79 56.41,-145.67"/>
+</g>
+<!-- n11 -->
+<!-- junction -->
+<g id="junction2" class="node">
+<title>n11</title>
+<ellipse fill="black" stroke="black" cx="63.27" cy="-52.62" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="41.77" y="-58.92" font-family="Serif" font-size="14.00">foxes</text>
+</g>
+<!-- n1&%2345;&%2345;n11 -->
+<g id="edge3" class="edge">
+<title>n1&%2345;&%2345;n11</title>
+<path fill="none" stroke="black" d="M86.95,-87.63C78.91,-75.75 68.65,-60.57 64.81,-54.9"/>
+</g>
+<!-- n12 -->
+<!-- junction -->
+<g id="junction3" class="node">
+<title>n12</title>
+<ellipse fill="black" stroke="black" cx="159.23" cy="-117.62" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="179.73" y="-123.92" font-family="Serif" font-size="14.00">hawks</text>
+</g>
+<!-- n1&%2345;&%2345;n12 -->
+<g id="edge5" class="edge">
+<title>n1&%2345;&%2345;n12</title>
+<path fill="none" stroke="black" d="M118.14,-108.15C132.42,-111.44 150.03,-115.5 156.6,-117.01"/>
+</g>
+<!-- n2 -->
+<g id="box2" class="node">
+<title>n2</title>
+<ellipse fill="none" stroke="black" cx="215.73" cy="-94.73" rx="18" ry="18"/>
+<text text-anchor="middle" x="215.73" y="-91.03" font-family="Serif" font-size="14.00">air</text>
+</g>
+<!-- n2&%2345;&%2345;n12 -->
+<g id="edge6" class="edge">
+<title>n2&%2345;&%2345;n12</title>
+<path fill="none" stroke="black" d="M198.78,-101.6C185.51,-106.97 168.27,-113.95 161.82,-116.57"/>
+</g>
+<!-- n13 -->
+<!-- junction -->
+<g id="junction4" class="node">
+<title>n13</title>
+<ellipse fill="black" stroke="black" cx="271.99" cy="-71.28" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="239.49" y="-57.58" font-family="Serif" font-size="14.00">littlefish</text>
+</g>
+<!-- n2&%2345;&%2345;n13 -->
+<g id="edge8" class="edge">
+<title>n2&%2345;&%2345;n13</title>
+<path fill="none" stroke="black" d="M232.61,-87.69C245.81,-82.19 262.98,-75.03 269.41,-72.36"/>
+</g>
+<!-- n3 -->
+<g id="box3" class="node">
+<title>n3</title>
+<ellipse fill="none" stroke="black" cx="333.73" cy="-84.62" rx="21.56" ry="18"/>
+<text text-anchor="middle" x="333.73" y="-80.92" font-family="Serif" font-size="14.00">surf</text>
+</g>
+<!-- n3&%2345;&%2345;n13 -->
+<g id="edge9" class="edge">
+<title>n3&%2345;&%2345;n13</title>
+<path fill="none" stroke="black" d="M312.48,-80.03C298.25,-76.95 280.99,-73.22 274.56,-71.84"/>
+</g>
+<!-- n14 -->
+<!-- junction -->
+<g id="junction5" class="node">
+<title>n14</title>
+<ellipse fill="black" stroke="black" cx="376.13" cy="-39.66" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="346.13" y="-45.96" font-family="Serif" font-size="14.00">BigFish</text>
+</g>
+<!-- n3&%2345;&%2345;n14 -->
+<g id="edge11" class="edge">
+<title>n3&%2345;&%2345;n14</title>
+<path fill="none" stroke="black" d="M347.14,-70.39C357.04,-59.9 369.57,-46.61 374.26,-41.65"/>
+</g>
+<!-- n15 -->
+<!-- junction -->
+<g id="junction6" class="node">
+<title>n15</title>
+<ellipse fill="black" stroke="black" cx="368.2" cy="-135.35" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="341.7" y="-141.65" font-family="Serif" font-size="14.00">sharks</text>
+</g>
+<!-- n3&%2345;&%2345;n15 -->
+<g id="edge13" class="edge">
+<title>n3&%2345;&%2345;n15</title>
+<path fill="none" stroke="black" d="M344.44,-100.39C352.51,-112.26 362.81,-127.41 366.66,-133.08"/>
+</g>
+<!-- n4 -->
+<!-- n4&%2345;&%2345;n10 -->
+<g id="edge2" class="edge">
+<title>n4&%2345;&%2345;n10</title>
+<path fill="none" stroke="black" d="M13.14,-185.83C17.94,-181.4 45.04,-156.36 52.56,-149.41"/>
+</g>
+<!-- n5 -->
+<!-- n5&%2345;&%2345;n11 -->
+<g id="edge4" class="edge">
+<title>n5&%2345;&%2345;n11</title>
+<path fill="none" stroke="black" d="M24.94,-11.11C29.39,-15.93 54.5,-43.12 61.48,-50.67"/>
+</g>
+<!-- n6 -->
+<!-- n6&%2345;&%2345;n12 -->
+<g id="edge7" class="edge">
+<title>n6&%2345;&%2345;n12</title>
+<path fill="none" stroke="black" d="M164.64,-178.63C164.12,-172.75 160.43,-131.18 159.46,-120.25"/>
+</g>
+<!-- n7 -->
+<!-- n7&%2345;&%2345;n13 -->
+<g id="edge10" class="edge">
+<title>n7&%2345;&%2345;n13</title>
+<path fill="none" stroke="black" d="M266.16,-10.33C266.72,-16.21 270.69,-57.73 271.74,-68.65"/>
+</g>
+<!-- n8 -->
+<!-- n8&%2345;&%2345;n14 -->
+<g id="edge12" class="edge">
+<title>n8&%2345;&%2345;n14</title>
+<path fill="none" stroke="black" d="M417.28,-1.18C412.5,-5.65 385.55,-30.85 378.06,-37.86"/>
+</g>
+<!-- n9 -->
+<!-- n9&%2345;&%2345;n15 -->
+<g id="edge14" class="edge">
+<title>n9&%2345;&%2345;n15</title>
+<path fill="none" stroke="black" d="M409.03,-174.38C404.29,-169.85 377.54,-144.28 370.12,-137.18"/>
+</g>
+</g>
+</svg>
+'/><pre><code class="language-julia hljs"># Compose
+
+ecosystem = oapply(eco_pattern, Dict(
+    :turf =&gt; land_system,
+    :air =&gt; fishhawk_predation,
+    :surf =&gt; ocean_system_rs)
+)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><p>We can now plot the evolution of the total ecosystem.</p><pre><code class="language-julia hljs"># Solve and plot
+u0 = [100.0, 50.0, 20.0, 100, 10, 2.0]
+tspan = (0.0, 100.0)
+
+prob = ODEProblem(ecosystem, u0, tspan, params)
+sol = solve(prob, Tsit5())
+plot(sol, ecosystem,
+    lw=2, title = &quot;Total Ecosystem&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;
+)</code></pre><img src="35b2eaa6.svg" alt="Example block output"/><p>Let&#39;s zoom in on a narrower time-window.</p><pre><code class="language-julia hljs">tspan = (0.0, 30.0)
+
+prob = ODEProblem(ecosystem, u0, tspan, params)
+sol = solve(prob, Tsit5())
+plot(sol, ecosystem,
+    lw=2, title = &quot;Total Ecosystem&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;
+)</code></pre><img src="ddb1f3c4.svg" alt="Example block output"/><p>As a sanity check we can define the rates for the hawk/little fish predation to be 0. This decouples the land and ocean ecosystems. As expected, the plot shows the original evolution of the land ecosystem overlayed with the original evolution of the ocean ecosystem. This shows that they two ecosystems now evolve independently.</p><pre><code class="language-julia hljs">tspan = (0.0, 100.0)
+params.βfishh = 0; params.γfishh = 0
+
+prob = ODEProblem(ecosystem, u0, tspan, params)
+sol = solve(prob, Tsit5())
+plot(sol, ecosystem,
+    lw=2, title = &quot;Decoupled Ecosystem&quot;,
+    xlabel = &quot;time&quot;, ylabel = &quot;population size&quot;
+)</code></pre><img src="035ff259.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Lotka-Volterra/">« Lotka-Volterra Three Ways</a><a class="docs-footer-nextpage" href="../CPG_examples/">Open Circular Port Graph Examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Tuesday 31 October 2023 15:34">Tuesday 31 October 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

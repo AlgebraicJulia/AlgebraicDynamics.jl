@@ -201,6 +201,25 @@ euler_approx(f::ContinuousResourceSharer{T}) where T = DiscreteResourceSharer{T}
     portmap(f)
 )
 
+"""    euler_approx(r::ContinuousResourceSharer, h::Real, n::Int)
+
+Transforms a continuous resource sharer `r` into a discrete resource sharer via Euler's method.
+Uses `n` steps of size `h` to enable less communication between subprocesses.
+"""
+euler_approx(f::ContinuousResourceSharer{T}, h::Real, n::Int) where T <: Number = begin
+  DiscreteResourceSharer{T}(
+    nports(f), nstates(f),
+    (u,p,t) -> begin
+      ui = copy(u)
+      dt = h/n
+      for i in 1:n
+        ui .+= dt * eval_dynamics(f, ui, p, t)
+      end
+      return ui
+    end,
+    portmap(f))
+end
+
 """    euler_approx(rs::Vector{R}, args...) where {T,R<:ContinuousResourceSharer{T}}
     euler_approx(rs::AbstractDict{S, R}, args...) where {S,T,R<:ContinuousResourceSharer{T}}
 

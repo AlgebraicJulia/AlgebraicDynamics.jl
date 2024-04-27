@@ -1,3 +1,7 @@
+# # Creating Hybrid Systems
+# This examples explores the idea of creating hybrid dynamical systems with diagrams.
+# The first step is to do the imports.
+
 using Catlab
 using Catlab.Theories
 using Catlab.Present
@@ -360,6 +364,15 @@ end
 
 adjacency_matrix(hds)
 
+# We can also draw the adjacency matrix of any system as a graph. To see the behavior visually.
+
+Catlab.Graphs.Graph(hds::HybridSystem) = Graph(adjacency_matrix(hds))
+
+Catlab.Graphics.to_graphviz(hds::HybridSystem, args...; kwargs...) = to_graphviz(Graph(hds), args...;kwargs...)
+
+to_graphviz(hds, node_labels=true)
+
+
 # The reachability relation can be compute using the power method.
 
 """    reachability_matrix(hds::HybridSystem, maxiter::Int)
@@ -423,8 +436,11 @@ diagram = FreeDiagram([S₄, S₂, S₄, S₂, S₄],
     [(f,2,1),(f,2,3),(f,4,3), (f,4,5)])
 
 hds = HybridSystem(diagram, [C₄, D₂, C₄, D₂, C₄])
+to_graphviz(hds, node_labels=true)
+
+# And we can run the simulation
+
 states, steps = simulate(hds, HybridState(1, 1), 10, JumpRandom());
-steps
 
 # This system has the following reachability matrix.
 
@@ -456,15 +472,16 @@ F₄ = @acset DDS begin
 end
 
 hds = HybridSystem(diagram, [F₄, D₂, P₄, D₂, F₄])
+to_graphviz(hds, node_labels=true)
+
+# And we can run the simulation
+
 states, steps = simulate(hds, HybridState(1, 1), 10, JumpRandom());
 steps
 
 R, k = reachability_matrix(hds, 100);
 R'
 
-# We can also draw the adjacency matrix of any system as a graph. To see the behavior visually.
-
-to_graphviz(Graph(adjacency_matrix(hds)), node_labels=true)
 
 # Notice that a diagram of deterministic dynamical systems becomes 
 # a nondeterministic dynamical system when we add the jumps.

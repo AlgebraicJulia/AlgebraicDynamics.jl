@@ -4,11 +4,11 @@
 
 # Authors: Sean L. Wu and Sophie Libkind
 
-using AlgebraicDynamics.DWDDynam
-using Catlab.WiringDiagrams
+using AlgebraicDynamics
+using Catlab.WiringDiagrams, Catlab.Graphics
+
 using LabelledArrays
 
-using Catlab.Graphics
 using DelayDiffEq, DifferentialEquations
 using Plots
 

@@ -1,7 +1,7 @@
 name = "AlgebraicDynamics"
 uuid = "5fd6ff03-a254-427e-8840-ba658f502e32"
 authors = ["James Fairbanks", "Sophie Libkind"]
-version = "0.2.0"
+version = "0.2.2"
 
 [deps]
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
@@ -12,6 +12,7 @@ LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
@@ -26,14 +27,16 @@ AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
 
 [compat]
 AlgebraicPetri = "0.9"
-Catlab = "0.15"
+Catlab = "0.15, 0.16"
 Compose = "^0.9.1"
 DelayDiffEq = "5"
 LabelledArrays = "1"
+LinearAlgebra = "1.9"
 LinearMaps = "^3.1.0"
 OrdinaryDiffEq = "^5.49.0, 6"
 Plots = "^1.10.0"
 RecipesBase = "1"
 RecursiveArrayTools = "^2.10.0"
+Reexport = "1"
 StaticArrays = "0.12, 1.0"
 julia = "1.9"

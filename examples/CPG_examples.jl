@@ -2,19 +2,12 @@
 #
 #md # [![](https://img.shields.io/badge/show-nbviewer-579ACA.svg)](@__NBVIEWER_ROOT_URL__/examples/CPG_examples.ipynb)
 
-using AlgebraicDynamics.DWDDynam
-using AlgebraicDynamics.CPortGraphDynam
+using AlgebraicDynamics
 using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath
-
 using Catlab
-using Catlab.WiringDiagrams
-using Catlab.WiringDiagrams.CPortGraphs
-using Catlab.Theories
-using Catlab.CategoricalAlgebra
 
 using OrdinaryDiffEq
 using Plots, Plots.PlotMeasures
-
 using PrettyTables
 
 # ## SIR Epidemiology Model

@@ -22,8 +22,8 @@
 # However, there are not two independent rabbit populations --- one that grows and one that gets eaten by foxes. Likewise, there are not two independent fox populations --- one that declines and one that feasts on rabbits. To capture these interactions between the trio of resource sharers, we compose them by identifying the exposed rabbit populations and identifying the exposed fox populations. 
 
 using AlgebraicDynamics
-using AlgebraicDynamics.UWDDynam
 using Catlab.WiringDiagrams, Catlab.Programs
+
 using LabelledArrays
 using OrdinaryDiffEq, Plots, Plots.PlotMeasures
 

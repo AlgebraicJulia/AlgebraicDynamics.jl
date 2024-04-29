@@ -57,6 +57,7 @@ makedocs(
   pages     = Any[
     "AlgebraicDynamics.jl" => "index.md",
     "Examples" => Any[
+      "examples/CTLN.md",
       "examples/Lotka-Volterra.md",
       "examples/Ecosystem.md",
       "examples/CPG_examples.md",

@@ -1,8 +1,10 @@
 # Induced Subgraphs as a Sheaf
+#
+# This code should eventually find a home upstream
+
 using Catlab
 using Catlab.Graphs
 using Catlab.Graphics
-# using Catlab.Sheaves
 
 
 draw_subobject = to_graphviz ∘ dom ∘ hom
@@ -98,16 +100,6 @@ end
                 FinFunction([2,1], 3),
                   FinFunction([2,3], 3)]))
 
-# @test collect(cov[1]) == [1]
-# @test collect(cov[2]) == [2,1]
-# @test collect(cov[3]) == [2,3]
-# restrict(g, cov[2])
-# restrict(g, legs(cov.opens)[3])
-# draw(restrict(g, cov[2]))
-# draw(restrict(g, cov[3]))
-# draw(join(restrict(g, cov[2]), restrict(g, cov[3])))
-# draw(join(join(restrict(g, cov[1]), restrict(g, cov[2])), restrict(g, cov[3])))
-# @test is_cover(cov) == false
 
 cov2 = ModuleCover(g,
        Multicospan(FinSet(3),
@@ -117,7 +109,13 @@ cov2 = ModuleCover(g,
 
 @test is_cover(FinSet(3), cov2.opens)
 
-# draw(restrict(cov2.G, cov2[1]))
-# draw(restrict(cov2.G, cov2[2]))
-# draw(restrict(cov2.G, cov2[3]))
+# You can draw the restrictions the graph along the opens in the cover
 
+draw(restrict(cov2.G, cov2[1]))
+
+# The second edge connects vertices 2 and 3.
+
+draw(restrict(cov2.G, cov2[2]))
+
+# Together, these three restrictions cover the graph, which is evidence that it is a valid cover.
+draw(restrict(cov2.G, cov2[3]))

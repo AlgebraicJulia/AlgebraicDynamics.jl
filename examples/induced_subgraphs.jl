@@ -1,6 +1,6 @@
-# Induced Subgraphs as a Sheaf
+# # Induced Subgraphs as a Site
 #
-# This code should eventually find a home upstream
+# This code should eventually find a home upstream in Catlab.
 
 using Catlab
 using Catlab.Graphs

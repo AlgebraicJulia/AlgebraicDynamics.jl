@@ -1,4 +1,4 @@
-# Combinatorial Threshold Linear Networks
+# # Combinatorial Threshold Linear Networks
 
 using LinearAlgebra
 using SparseArrays

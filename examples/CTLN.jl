@@ -1,3 +1,5 @@
+# Combinatorial Threshold Linear Networks
+
 using LinearAlgebra
 using SparseArrays
 using Catlab

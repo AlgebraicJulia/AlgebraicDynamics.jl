@@ -54,17 +54,20 @@ makedocs(
   sitename  = "AlgebraicDynamics.jl",
   doctest   = false,
   checkdocs = :none,
+  pagesonly = true,
+  draft = false,
   pages     = Any[
     "AlgebraicDynamics.jl" => "index.md",
     "Examples" => Any[
-      "examples/CTLN.md",
-      "examples/induced_subgraphs.md",
-      "examples/Lotka-Volterra.md",
-      "examples/Ecosystem.md",
-      "examples/CPG_examples.md",
-      "examples/Cyber-Physical.md",
-      "examples/Ross-Macdonald.md"
+      # "examples/CTLN.md",
+      # "examples/induced_subgraphs.md",
+      # "examples/Lotka-Volterra.md",
+      # "examples/Ecosystem.md",
+      # "examples/CPG_examples.md",
+      # "examples/Cyber-Physical.md",
+      # "examples/Ross-Macdonald.md"
     ],
+    "Threshold Linear Networks" => "TLN.md",
     "Library Reference" => "api.md"
   ]
 )

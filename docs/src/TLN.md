@@ -4,6 +4,9 @@ EditURL = "TLN.md"
 
 # Threshold Linear Networks
 
+These examples are based on the paper [Graph Rules for Recurrent
+Neural Network Dynamics](https://www.ams.org/notices/202304/rnoti-p536.pdf) by Carina Curto and Katherine Morrison. 
+
 ````@example TLN
 using LinearAlgebra
 using SparseArrays

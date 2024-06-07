@@ -52,9 +52,10 @@ plot(soln)
 support(soln)
 ````
 
-Test cases for nonfull support
 
-Symmetric Edge Graph
+## Symmetric Edge Graph
+
+We want to build a test case for non-full support. We look to the symmetric edge graph.
 
 ````@example TLN
 barbell = CTLNetwork(@acset Graph begin
@@ -65,16 +66,16 @@ barbell = CTLNetwork(@acset Graph begin
 end)
 ````
 
-Adding an isolated vertex shouldn't affect the fixed points
+From the theory, we know that adding an isolated vertex shouldn't affect the 
+fixed points. The isolated vertex has no activators, so it will decay to zero,
+and it activates nothing, so it can't change those fixed points.
 
 ````@example TLN
 bb3 = CTLNetwork(apex(coproduct([barbell.G, Graph(1)])))
-
-TLNetwork(bb3).W
 prob = ODEProblem(bb3, [1/2, 1/4, 1/8], (0.0,100))
 soln = solve(prob, Tsit5())
-plot(soln)
 @test support(soln, 1e-14) == [1,2]
+plot(soln)
 ````
 
 Embedded subgraphs should have their fixed points persist.
@@ -87,14 +88,19 @@ barbell_plus = CTLNetwork(@acset Graph begin
   src = [1,2,3,3]
   tgt = [2,1,1,2]
 end)
-
 TLNetwork(barbell_plus).W
+````
+
+Notice how symmetric this W matrix is.
+
+````@example TLN
 prob = ODEProblem(barbell_plus, [1/2, 1/4, 1/8], (0.0,100))
 soln = solve(prob, Tsit5())
 @test support(soln, 1e-14) == [1,2]
 plot(soln)
 ````
 
+The categorical coproduct of graphs gives you the direct sum of their adjacency matrices.
 When you direct sum graphs, you should cartesian product their fixed points.
 Two disjoint symmetric edges have fixed points on each.
 
@@ -121,7 +127,8 @@ soln = solve(prob, Tsit5())
 plot(soln)
 ````
 
-The graphs that have interesting structure have a lot of symetry so we try to make one with a product.
+The graphs that have interesting structure have a lot of symmetry so we try to make one with a product.
+Categorical products have symmetry because they work like the cartesian product of sets.
 
 ````@example TLN
 bt = apex(product(add_reflexives(barbell.G), trig))
@@ -155,7 +162,7 @@ soln = solve(prob, Tsit5())
 plot(soln)
 ````
 
-Because of symetry in the model, we can pick out a different attractor.
+Because of symmetry in the model, we can pick out a different attractor.
 
 ````@example TLN
 prob = ODEProblem(tln, [0, 2/3, 0, 0, 0, 0], (0,150))
@@ -166,8 +173,8 @@ plot(soln)
 
 ## Using Nonlinear Solvers to find fixed points
 NonlinearSolvers.jl lets us define the steady state of our system as our fixed point.
-We want unstable fixed points, so we can't use the DynamicSS problem type.
-We have to use traditional rootfinders rather than an evolve to equilibirum approach.
+We want unstable fixed points, so we can't use the `DynamicSS` problem type provided by SciML.
+We have to use traditional root finders rather than an evolve to equilibrium approach.
 
 ````@example TLN
 prob = NonlinearProblem(tln, [0, 2/3, 0, 0, 0, 0])
@@ -176,8 +183,8 @@ fp.u
 ````
 
 Once we compute the fixed point, we can plug it in to the dynamics and simulate.
-This finds the corresponding ocscilatory attractor due to the numerical perturbations.
-We could converge to this attractor faster by adding our our perturbation to `fp.u`.
+This finds the corresponding oscillatory attractor due to the numerical perturbations.
+We could converge to this attractor faster by adding a perturbation to `fp.u`.
 
 ````@example TLN
 prob = ODEProblem(tln, fp.u, (0,150))
@@ -185,7 +192,7 @@ soln = solve(prob, Tsit5())
 plot(soln)
 ````
 
-Because rootfinders are only guaranteed to find local minima of the objective,
+Because root finders are only guaranteed to find local minima of the residual,
 we start at a different initial guess and find a different attractor.
 
 ````@example TLN
@@ -202,7 +209,8 @@ plot(soln)
 ````
 
 ## Induced Subgraphs Preserve Attractors
-When you take an induced subraph. You can restrict the dynamics onto that subgraph.
+
+When you take an induced subgraph. You can restrict the dynamics onto that subgraph.
 
 ````@example TLN
 g = induced_subgraph(bt, [1,2,3])
@@ -229,6 +237,8 @@ restriction_fixed_point
 function restriction_simulation(G, V, tspan=(0,150.0), parameters=DEFAULT_PARAMETERS)
   tln = CTLNetwork(G, parameters)
   σ, u₀ = restriction_fixed_point(G, V)
+  @show u₀
+  @show σ
   prob = ODEProblem(tln, u₀, tspan)
   soln = solve(prob, Tsit5())
   plt = plot(soln)
@@ -279,6 +289,8 @@ plt
 ````
 
 ## Library Reference
+
+You can access these functions from the module `AlgebraicDynamics.ThresholdLinear`.
 
 ```@autodocs
 Modules = [AlgebraicDynamics.ThresholdLinear]

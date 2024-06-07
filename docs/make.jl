@@ -37,7 +37,7 @@ for (root, dirs, files) in walkdir(literate_dir)
       Literate.markdown(joinpath(root, file), out_dir;
         config=config, documenter=true, credit=false)
       Literate.notebook(joinpath(root, file), out_dir;
-        execute=true, documenter=true, credit=false)
+        execute=false, documenter=true, credit=false)
     end
   end
 end
@@ -59,7 +59,6 @@ makedocs(
   pages     = Any[
     "AlgebraicDynamics.jl" => "index.md",
     "Examples" => Any[
-      # "examples/CTLN.md",
       # "examples/induced_subgraphs.md",
       # "examples/Lotka-Volterra.md",
       # "examples/Ecosystem.md",

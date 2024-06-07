@@ -18,12 +18,6 @@ using Plots
 using Catlab.Graphics
 ````
 
-````@example TLN
-@test support([1,2,3.0]) == [1,2,3]
-@test support([1,0,3.0]) == [1,3]
-@test support([1,1e-15,1e-11]) == [1,3]
-````
-
 ## Triangle Graph
 
 ````@example TLN
@@ -46,7 +40,7 @@ soln = solve(prob, alg=Tsit5())
 plot(soln)
 ````
 
-test case that u1 = 0 still converges to attractor with support 123
+Test case that u1 = 0 still converges to attractor with support 123
 
 ````@example TLN
 prob = ODEProblem(tri, [0,1/2,1/4], [0.0,40])
@@ -58,7 +52,7 @@ plot(soln)
 support(soln)
 ````
 
-test cases for nonfull support
+Test cases for nonfull support
 
 Symmetric Edge Graph
 
@@ -221,42 +215,19 @@ soln = solve(prob, Tsit5())
 plot(soln)
 ````
 
-Get the indicator function of a subset with respect to a graph.
-This should probably be a FinFunction.
-
-````@example TLN
-indicator(g::AbstractGraph, σ::Vector{Int}) = map(vertices(g)) do v
-  if v in σ
-    return 1
-  else
-    return 0
-  end
-end
-````
-
 The following two functions automate the analysis that we did above
 1. Restrict to a subgraph
 2. Solve for a fixed point in the subgraph
 3. Plug that solution in to the dynamics of the full system
 4. Solve those dynamics and plot
 
-````@example TLN
-function restriction_fixed_point(G::AbstractGraph, V::AbstractVector{Int})
-  g = induced_subgraph(G, V)
-  tln = TLNetwork(CTLNetwork(g))
-  prob = NonlinearProblem(tln, ones(nv(g)) ./ nv(g))
-  fp = solve(prob)
-  σg = support(fp)
-  σ  = V[σg]
-  u = zeros(nv(G))
-  map(σg) do v
-    u[V[v]] = fp.u[v]
-  end
-  return σ, u
-end
+```@docs; canonical=false
+restriction_fixed_point
+```
 
-function restriction_simulation(G, V, tspan=(0,150.0))
-  tln = CTLNetwork(G)
+````@example TLN
+function restriction_simulation(G, V, tspan=(0,150.0), parameters=DEFAULT_PARAMETERS)
+  tln = CTLNetwork(G, parameters)
   σ, u₀ = restriction_fixed_point(G, V)
   prob = ODEProblem(tln, u₀, tspan)
   soln = solve(prob, Tsit5())
@@ -307,3 +278,8 @@ Trying 1,2,3,5
 plt
 ````
 
+## Library Reference
+
+```@autodocs
+Modules = [AlgebraicDynamics.ThresholdLinear]
+```

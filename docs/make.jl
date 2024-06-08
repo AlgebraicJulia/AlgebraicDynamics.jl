@@ -67,6 +67,7 @@ makedocs(
       "examples/Ross-Macdonald.md"
     ],
     "Threshold Linear Networks" => "TLN.md",
+    "AlgebraicPetri Integration" => "AlgebraicPetri.md",
     "Library Reference" => "api.md"
   ]
 )

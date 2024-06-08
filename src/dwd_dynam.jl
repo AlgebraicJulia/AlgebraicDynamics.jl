@@ -300,11 +300,11 @@ InstantaneousDiscreteMachine(m::DiscreteMachine{T, I}) where {T, I<:DirectedInte
                          DiscreteDirectedSystem{T}(nstates(m), dynamics(m), (u,x,p,t) -> readout(m, u, p, t))
     )
 
-show(io::IO, vf::ContinuousMachine) = print(
+show(io::IO, vf::ContinuousMachine) = print(io,
     "ContinuousMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
-show(io::IO, vf::DelayMachine) = print(
+show(io::IO, vf::DelayMachine) = print(io,
     "DelayMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
-show(io::IO, vf::DiscreteMachine) = print(
+show(io::IO, vf::DiscreteMachine) = print(io,
     "DiscreteMachine(ℝ^$(nstates(vf)) × ℝ^$(ninputs(vf)) → ℝ^$(nstates(vf)))")
 
 eltype(::AbstractMachine{T}) where T = T

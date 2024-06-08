@@ -172,11 +172,11 @@ end
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector) = eval_dynamics(r, u, [], 0)
 eval_dynamics(r::AbstractResourceSharer, u::AbstractVector, p) = eval_dynamics(r, u, p, 0)
 
-show(io::IO, vf::ContinuousResourceSharer) = print(
+show(io::IO, vf::ContinuousResourceSharer) = print(io,
     "ContinuousResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
-show(io::IO, vf::DelayResourceSharer) = print(
+show(io::IO, vf::DelayResourceSharer) = print(io,
     "DelayResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
-show(io::IO, vf::DiscreteResourceSharer) = print(
+show(io::IO, vf::DiscreteResourceSharer) = print(io,
     "DiscreteResourceSharer(ℝ^$(nstates(vf)) → ℝ^$(nstates(vf))) with $(nports(vf)) exposed port$(nports(vf) > 1 ? "s" : "")")
 eltype(r::AbstractResourceSharer{T}) where T = T
 

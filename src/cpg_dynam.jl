@@ -15,7 +15,6 @@ ninputs, noutputs
 import Catlab.CategoricalAlgebra: migrate!
 
 using Base.Iterators
-import Base: show, eltype
 
 
 ContinuousMachine{T, I}(nports::Int, nstates::Int, d::Function, r::Function) where {T,I} =

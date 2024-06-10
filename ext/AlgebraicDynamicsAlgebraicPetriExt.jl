@@ -16,15 +16,24 @@ const OpenNet = Union{OpenPetriNet,OpenLabelledPetriNet,OpenLabelledReactionNet}
 
 # vecfields need to be initialized differently depending on type of net
 function dynamics(pn::OpenPetriNet,T::Type,ns::Int64)
-  vf(u, p, t) = vectorfield(apex(pn))(zeros(T,ns), u, p, t)
+  f! = vectorfield(apex(pn))
+  storage = zeros(T,ns)
+  vf(u, p, t) = begin f!(storage, u, p, t); return storage end
 end
 
 function dynamics(pn::OpenLabelledPetriNet,T::Type,ns::Int64)
-  vf(u, p, t) = vectorfield(apex(pn))(LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns))), u, p, t)
+  f! = vectorfield(apex(pn))
+  storage = LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
+  vf(u, p, t) = begin f!(storage, u, p, t); return storage end
+  return vf
 end
 
 function dynamics(pn::OpenLabelledReactionNet,T::Type,ns::Int64)
-  vf(u, p, t) = vectorfield(apex(pn))(LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns))), u, rates(apex(pn)), t)
+  f! = vectorfield(apex(pn))
+  storage = LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
+  rt = rates(apex(pn))
+  vf(u, p, t) = begin f!(storage, u, rt, t); return storage end
+  return vf
 end
 
 function ContinuousResourceSharer{T}(pn::OpenNet) where T

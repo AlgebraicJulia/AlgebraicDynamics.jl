@@ -1,175 +1,32 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>AlgebraicPetri Integration · AlgebraicDynamics.jl</title><meta name="title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta property="og:title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta property="twitter:title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta name="description" content="Documentation for AlgebraicDynamics.jl."/><meta property="og:description" content="Documentation for AlgebraicDynamics.jl."/><meta property="twitter:description" content="Documentation for AlgebraicDynamics.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><script src="../assets/analytics.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">AlgebraicDynamics.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">AlgebraicDynamics.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../examples/Lotka-Volterra/">Lotka-Volterra Three Ways</a></li><li><a class="tocitem" href="../examples/Ecosystem/">Ecosystem Models</a></li><li><a class="tocitem" href="../examples/CPG_examples/">Open Circular Port Graph Examples</a></li><li><a class="tocitem" href="../examples/Cyber-Physical/">Cyber Physical Systems Example</a></li><li><a class="tocitem" href="../examples/Ross-Macdonald/">Ross-Macdonald Malaria Modeling</a></li></ul></li><li><a class="tocitem" href="../TLN/">Threshold Linear Networks</a></li><li class="is-active"><a class="tocitem" href>AlgebraicPetri Integration</a></li><li><a class="tocitem" href="../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>AlgebraicPetri Integration</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>AlgebraicPetri Integration</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/blob/main/docs/src/AlgebraicPetri.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="AlgebraicPetri.jl-Integration"><a class="docs-heading-anchor" href="#AlgebraicPetri.jl-Integration">AlgebraicPetri.jl Integration</a><a id="AlgebraicPetri.jl-Integration-1"></a><a class="docs-heading-anchor-permalink" href="#AlgebraicPetri.jl-Integration" title="Permalink"></a></h1><p>You can construct a <a href="../api/#AlgebraicDynamics.UWDDynam.ContinuousResourceSharer"><code>ContinuousResourceSharer</code></a> from an Open Petri Net for any kind of network supported by AlgebraicPetri.jl including:</p><ol><li>OpenPetriNet</li><li>OpenLabelledPetriNet</li><li>OpenLabelledReactionNet</li></ol><pre><code class="language-julia hljs">using AlgebraicPetri
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>AlgebraicPetri Integration · AlgebraicDynamics.jl</title><meta name="title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta property="og:title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta property="twitter:title" content="AlgebraicPetri Integration · AlgebraicDynamics.jl"/><meta name="description" content="Documentation for AlgebraicDynamics.jl."/><meta property="og:description" content="Documentation for AlgebraicDynamics.jl."/><meta property="twitter:description" content="Documentation for AlgebraicDynamics.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><script src="../assets/analytics.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">AlgebraicDynamics.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">AlgebraicDynamics.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../examples/Lotka-Volterra/">Lotka-Volterra Three Ways</a></li><li><a class="tocitem" href="../examples/Ecosystem/">Ecosystem Models</a></li><li><a class="tocitem" href="../examples/CPG_examples/">Open Circular Port Graph Examples</a></li><li><a class="tocitem" href="../examples/Cyber-Physical/">Cyber Physical Systems Example</a></li><li><a class="tocitem" href="../examples/Ross-Macdonald/">Ross-Macdonald Malaria Modeling</a></li></ul></li><li><a class="tocitem" href="../TLN/">Threshold Linear Networks</a></li><li class="is-active"><a class="tocitem" href>AlgebraicPetri Integration</a></li><li><a class="tocitem" href="../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>AlgebraicPetri Integration</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>AlgebraicPetri Integration</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/blob/main/docs/src/AlgebraicPetri.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="AlgebraicPetri.jl-Integration"><a class="docs-heading-anchor" href="#AlgebraicPetri.jl-Integration">AlgebraicPetri.jl Integration</a><a id="AlgebraicPetri.jl-Integration-1"></a><a class="docs-heading-anchor-permalink" href="#AlgebraicPetri.jl-Integration" title="Permalink"></a></h1><p>You can construct a <a href="../api/#AlgebraicDynamics.UWDDynam.ContinuousResourceSharer"><code>ContinuousResourceSharer</code></a> from an Open Petri Net for any kind of network supported by <a href="https://algebraicjulia.github.io/AlgebraicPetri.jl/dev/">AlgebraicPetri.jl</a> including:</p><ol><li>OpenPetriNet</li><li>OpenLabelledPetriNet</li><li>OpenLabelledReactionNet</li></ol><pre><code class="language-julia hljs">using AlgebraicPetri
 using AlgebraicDynamics
-Brusselator = LabelledPetriNet([:A, :B, :D, :E, :X, :Y],
+using Catlab.Graphics
+Brusselator = PetriNet(6,
+  (1 =&gt; (5, 1)),
+  ((5, 5, 6) =&gt; (5, 5, 5)),
+  ((2, 5) =&gt; (6, 3, 2)),
+  (5 =&gt; 4)
+)
+to_graphviz(Brusselator)</code></pre><img src="5e1c95d6.svg" alt="Example block output"/><p>You just call the constructor for ContinuousResourceSharer on an Open Petri Net.  The constructor knows where to use labels or integers for the state variables. It also knows to get parameters from the ReactionNet and enclose them into the dynamics.</p><pre><code class="language-julia hljs">open_bruss = Open([1, 3], Brusselator, [1, 2])
+rs = ContinuousResourceSharer{Float64}(open_bruss)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ContinuousResourceSharer(ℝ^6 → ℝ^6) with 4 exposed ports</code></pre><p>For the PetriNet case, you supply the state and parameters with regular arrays.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+using Plots
+tspan = (0.0,100.0)
+params = [1.0, 1., 1., 1.0]
+u0 = [1,3.7,0.0,0.0,1,1]
+prob = ODEProblem(rs, u0, tspan, params)
+soln = solve(prob, Tsit5())
+plot(soln, idxs=[5,6])</code></pre><img src="ab09c03c.svg" alt="Example block output"/><p>For the LabelledPetriNet case, you supply the state and parameters with <code>LArray</code>.</p><pre><code class="language-julia hljs">Brusselator = LabelledPetriNet([:A, :B, :D, :E, :X, :Y],
   :t1 =&gt; (:A =&gt; (:X, :A)),
   :t2 =&gt; ((:X, :X, :Y) =&gt; (:X, :X, :X)),
   :t3 =&gt; ((:B, :X) =&gt; (:Y, :D, :B)),
   :t4 =&gt; (:X =&gt; :E)
-)</code></pre><div class="c-set">
-<span class="c-set-summary">LabelledPetriNet {T:4, S:6, I:7, O:9, Name:0}</span>
-<table>
-  <thead>
-    <tr class = "header headerLastRow">
-      <th class = "rowLabel" style = "font-weight: bold; text-align: right;">T</th>
-      <th style = "text-align: right;">tname</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">1</td>
-      <td style = "text-align: right;">t1</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">2</td>
-      <td style = "text-align: right;">t2</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">3</td>
-      <td style = "text-align: right;">t3</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">4</td>
-      <td style = "text-align: right;">t4</td>
-    </tr>
-  </tbody>
-</table>
-<table>
-  <thead>
-    <tr class = "header headerLastRow">
-      <th class = "rowLabel" style = "font-weight: bold; text-align: right;">S</th>
-      <th style = "text-align: right;">sname</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">1</td>
-      <td style = "text-align: right;">A</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">2</td>
-      <td style = "text-align: right;">B</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">3</td>
-      <td style = "text-align: right;">D</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">4</td>
-      <td style = "text-align: right;">E</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">5</td>
-      <td style = "text-align: right;">X</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">6</td>
-      <td style = "text-align: right;">Y</td>
-    </tr>
-  </tbody>
-</table>
-<table>
-  <thead>
-    <tr class = "header headerLastRow">
-      <th class = "rowLabel" style = "font-weight: bold; text-align: right;">I</th>
-      <th style = "text-align: right;">it</th>
-      <th style = "text-align: right;">is</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">1</td>
-      <td style = "text-align: right;">1</td>
-      <td style = "text-align: right;">1</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">2</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">3</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">4</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">6</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">5</td>
-      <td style = "text-align: right;">3</td>
-      <td style = "text-align: right;">2</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">6</td>
-      <td style = "text-align: right;">3</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">7</td>
-      <td style = "text-align: right;">4</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-  </tbody>
-</table>
-<table>
-  <thead>
-    <tr class = "header headerLastRow">
-      <th class = "rowLabel" style = "font-weight: bold; text-align: right;">O</th>
-      <th style = "text-align: right;">ot</th>
-      <th style = "text-align: right;">os</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">1</td>
-      <td style = "text-align: right;">1</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">2</td>
-      <td style = "text-align: right;">1</td>
-      <td style = "text-align: right;">1</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">3</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">4</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">5</td>
-      <td style = "text-align: right;">2</td>
-      <td style = "text-align: right;">5</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">6</td>
-      <td style = "text-align: right;">3</td>
-      <td style = "text-align: right;">6</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">7</td>
-      <td style = "text-align: right;">3</td>
-      <td style = "text-align: right;">3</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">8</td>
-      <td style = "text-align: right;">3</td>
-      <td style = "text-align: right;">2</td>
-    </tr>
-    <tr>
-      <td class = "rowLabel" style = "font-weight: bold; text-align: right;">9</td>
-      <td style = "text-align: right;">4</td>
-      <td style = "text-align: right;">4</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-<p>You just call the constructor for ContinuousResourceSharer on an Open Petri Net.  The constructor knows where to use labels or integers for the state variables. It also knows to get parameters from the ReactionNet and enclose them into the dynamics.</p><pre><code class="language-julia hljs">open_bruss = Open([:A, :D], Brusselator, [:A, :B])
-rs = ContinuousResourceSharer{Float64}(open_bruss)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ContinuousResourceSharer(ℝ^6 → ℝ^6) with 4 exposed ports</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../TLN/">« Threshold Linear Networks</a><a class="docs-footer-nextpage" href="../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Saturday 8 June 2024 15:12">Saturday 8 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)
+to_graphviz(Brusselator)</code></pre><img src="d93148f5.svg" alt="Example block output"/><pre><code class="language-julia hljs">open_bruss = Open([:A, :D], Brusselator, [:A, :B])
+rs = ContinuousResourceSharer{Float64}(open_bruss)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ContinuousResourceSharer(ℝ^6 → ℝ^6) with 4 exposed ports</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"></div></div><p>@example AlgPetri     SciML integration for LabelledArrays is broken due to this <a href="https://github.com/SciML/LabelledArrays.jl/issues/162">issue</a> on LabelledArrays.jl. Once that issue is closed, you should be able to solve LabelledPetriNets with SciML Solvers.</p><pre><code class="language-julia hljs">using LabelledArrays
+tspan = (0.0,100.0)
+params = LVector(t1=1.0, t2=1.2, t3=3.14, t4=0.1)
+u0 = LVector(A=1.0, B=3.17, D=0.0, E=0.0, X=1.0, Y=1.9)
+prob = ODEProblem((u,p,t) -&gt; eval_dynamics(rs, u, p, t), u0, tspan, params)
+sol = solve(prob, Tsit5())
+plot(sol, idxs=[:X, :Y])</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../TLN/">« Threshold Linear Networks</a><a class="docs-footer-nextpage" href="../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 1 July 2024 16:14">Monday 1 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

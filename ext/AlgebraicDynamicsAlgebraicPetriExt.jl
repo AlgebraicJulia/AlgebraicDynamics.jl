@@ -3,7 +3,7 @@ module AlgebraicDynamicsAlgebraicPetriExt
 using AlgebraicPetri
 using AlgebraicDynamics
 using Catlab
-using LabelledArrays
+using ComponentArrays
 import AlgebraicDynamics.UWDDynam: ContinuousResourceSharer
 
 export OpenNet
@@ -21,16 +21,17 @@ function dynamics(pn::OpenPetriNet,T::Type,ns::Int64)
   vf(u, p, t) = begin f!(storage, u, p, t); return storage end
 end
 
+
 function dynamics(pn::OpenLabelledPetriNet,T::Type,ns::Int64)
   f! = vectorfield(apex(pn))
-  storage = LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
+  storage = ComponentArray(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
   vf(u, p, t) = begin f!(storage, u, p, t); return storage end
   return vf
 end
 
 function dynamics(pn::OpenLabelledReactionNet,T::Type,ns::Int64)
   f! = vectorfield(apex(pn))
-  storage = LVector(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
+  storage = ComponentArray(NamedTuple{tuple(snames(apex(pn))...)}(zeros(T,ns)))
   rt = rates(apex(pn))
   vf(u, p, t) = begin f!(storage, u, rt, t); return storage end
   return vf

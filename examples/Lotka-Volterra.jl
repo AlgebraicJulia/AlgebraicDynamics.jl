@@ -24,7 +24,7 @@
 using AlgebraicDynamics
 using Catlab.WiringDiagrams, Catlab.Programs
 
-using LabelledArrays
+using ComponentArrays
 using OrdinaryDiffEq, Plots, Plots.PlotMeasures
 
 const UWD = UndirectedWiringDiagram
@@ -48,9 +48,14 @@ end
 ## Compose
 rabbitfox_system = oapply(rf, [rabbit_growth, rabbitfox_predation, fox_decline])
 
+# ## Solve and plot
+# u0 = [10.0, 100.0]                              
+# params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+# tspan = (0.0, 100.0)    
+
 ## Solve and plot
 u0 = [10.0, 100.0]                              
-params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+params = ComponentArray(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)    
 
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)
@@ -98,9 +103,14 @@ add_wires!(rabbitfox_pattern, Pair[
 ## Compose
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
+# ## Solve and plot
+# u0 = [10.0, 100.0]
+# params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+# tspan = (0.0, 100.0)
+
 ## Solve and plot
 u0 = [10.0, 100.0]
-params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+params = ComponentArray(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)
 
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)
@@ -124,8 +134,13 @@ rabbitfox_pattern = barbell(1)
 rabbitfox_system = oapply(rabbitfox_pattern, [rabbit, fox])
 
 ## Solve and plot
+# u0 = [10.0, 100.0]
+# params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+# tspan = (0.0, 100.0)
+
+# transitioning from package LabelledArrays to ComponentArrays
 u0 = [10.0, 100.0]
-params = LVector(α=.3, β=0.015, γ=0.015, δ=0.7)
+params = ComponentArray(α=.3, β=0.015, γ=0.015, δ=0.7)
 tspan = (0.0, 100.0)
 
 prob = ODEProblem(rabbitfox_system, u0, tspan, params)

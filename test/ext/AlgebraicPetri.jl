@@ -16,7 +16,6 @@ using ComponentArrays
   p = [2.0]
   @test eval_dynamics(rs, u, p, 0) == [2.0]
 
-
   labelled_birth_petri = Open(LabelledPetriNet([:foo], (:bar, (:foo => (:foo, :foo)))))
   rs = ContinuousResourceSharer{Float64}(labelled_birth_petri)
   @test nstates(rs) == 1

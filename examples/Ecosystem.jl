@@ -16,13 +16,7 @@ using Plots, Plots.PlotMeasures
 # - parameters $\gamma$ represent the rate at which a population of predators grows in a predation interaction
 # - parameters $\delta$ represent the rate at with a species population declines
 
-# params = LVector(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
-#                  βrh=0.01, γrh=0.01, δh=0.5, 
-#                  γfishh=0.001, βfishh=0.003, 
-#                  αfish=0.35, βfishF=0.015, γfishF=0.015, 
-#                  δF=0.7, βFs=0.017, γFs=0.017, δs=0.35)
 
-# Changing LVector for ComponentArrays
 params = ComponentArrays(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
                  βrh=0.01, γrh=0.01, δh=0.5, 
                  γfishh=0.001, βfishh=0.003, 

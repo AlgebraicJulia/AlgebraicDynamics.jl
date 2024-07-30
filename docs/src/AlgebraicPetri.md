@@ -58,9 +58,6 @@ open_bruss = Open([:A, :D], Brusselator, [:A, :B])
 rs = ContinuousResourceSharer{Float64}(open_bruss)
 ````
 
-!!! note
-@example AlgPetri
-    SciML integration for LabelledArrays is broken due to this [issue](https://github.com/SciML/LabelledArrays.jl/issues/162) on LabelledArrays.jl. Once that issue is closed, you should be able to solve LabelledPetriNets with SciML Solvers.
     
 ````julia
 using ComponentArrays

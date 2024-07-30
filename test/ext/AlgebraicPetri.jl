@@ -3,7 +3,7 @@ using AlgebraicPetri
 using Catlab
 using Test
 using AlgebraicDynamics.UWDDynam
-using LabelledArrays
+using ComponentArrays
 
 
 @testset "AlgebraicPetri" begin
@@ -21,18 +21,19 @@ using LabelledArrays
   @test nstates(rs) == 1
   @test nports(rs) == 1
   @test portmap(rs) == [1]
-  u = LVector(foo=1.0)
-  p = LVector(bar=2.0)
-  @test eval_dynamics(rs, u, p, 0) == [2.0]
+  u = ComponentArray(foo=1.0)
+  p = ComponentArray(bar=2.0)
+  @test eval_dynamics(rs, u, p, 0) == ComponentArray(foo=2.0)
+
 
   labelled_birth_react = Open(LabelledReactionNet{Float64}{Float64}([:foo => 1.0], ((:bar => 2.0), (:foo => (:foo, :foo)))))
   rs = ContinuousResourceSharer{Float64}(labelled_birth_react)
   @test nstates(rs) == 1
   @test nports(rs) == 1
   @test portmap(rs) == [1]
-  u = LVector(NamedTuple(zip(snames(apex(labelled_birth_react)), Vector(subpart(apex(labelled_birth_react), :concentration)))))
-  p = LVector(bar=2.0)
-  @test eval_dynamics(rs, u, p, 0) == [2.0]
+  u = ComponentArray(NamedTuple(zip(snames(apex(labelled_birth_react)), Vector(subpart(apex(labelled_birth_react), :concentration)))))
+  p = ComponentArray(bar=2.0)
+  @test eval_dynamics(rs, u, p, 0) == ComponentArray(foo=2.0)
 
   Brusselator = LabelledPetriNet([:A, :B, :D, :E, :X, :Y],
     :t1 => (:A => (:X, :A)),

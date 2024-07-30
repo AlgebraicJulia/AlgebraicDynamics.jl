@@ -10,8 +10,7 @@
 
 using AlgebraicDynamics
 using Catlab
-
-using LabelledArrays
+using ComponentArrays
 using DifferentialEquations
 using Plots
 
@@ -58,10 +57,11 @@ to_graphviz(UAV)
 
 
 # Then we assign behaviors to inhabit the boxes.
+
 function 𝗟(𝐖)
     𝐿(u, x, p, t) = [ -p.𝓐l * (u[1] - x[1] - x[2]) ] # sc
     𝐶(u, x, p, t) = [ -p.𝓐c * (u[1] + p.𝓑c*x[1] - x[2]) ] # sl
-    𝐷(u, x, p, t) = LVector(α = -0.313*u[1] +  56.7*u[2] +  0.232*x[1],
+    𝐷(u, x, p, t) = ComponentArray(α = -0.313*u[1] +  56.7*u[2] +  0.232*x[1],
                              q = -0.013*u[1] - 0.426*u[2] + 0.0203*x[1],
                              θ =  56.7*u[2]              )
 
@@ -81,17 +81,18 @@ end
 # Lastly, we compute and plot the solution.
 
 ## initial values
-xₒ = LVector( e = 0.01,  # [e, d] -> [θ offset, 𝛿 control input]
+
+x₀ = ComponentArray( e = 0.01,  # [e, d] -> [θ offset, 𝛿 control input]
               d = 0.05);
 
-uₒ = [0.0, 0, 0, 0, 0]
+u₀ = [0.0, 0, 0, 0, 0]
 tspan = (0, 20.0) 
 
 params = (𝓐l = 100,  # decay constant of sensor
           𝓐c = 100,  # decay constant of controller
           𝓑c = 0)    # ratio of velocity to reference velocity
 
-prob = ODEProblem(𝑢ᵤₐᵥ, uₒ, xₒ, tspan, params)
+prob = ODEProblem(𝑢ᵤₐᵥ, u₀, x₀, tspan, params)
 sol = solve(prob, alg_hints=[:stiff]);
 
 #- 

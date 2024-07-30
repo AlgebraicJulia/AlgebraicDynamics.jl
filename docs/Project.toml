@@ -2,6 +2,7 @@
 AlgebraicDynamics = "5fd6ff03-a254-427e-8840-ba658f502e32"
 AlgebraicPetri = "4f99eebe-17bf-4e98-b6a1-2c4f205a959b"
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
+ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"

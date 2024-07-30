@@ -17,7 +17,7 @@ using Plots, Plots.PlotMeasures
 # - parameters $\delta$ represent the rate at with a species population declines
 
 
-params = ComponentArrays(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
+params = ComponentArray(αr=0.3, βrf=0.015, γrf=0.015, δf=0.7,                     
                  βrh=0.01, γrh=0.01, δh=0.5, 
                  γfishh=0.001, βfishh=0.003, 
                  αfish=0.35, βfishF=0.015, γfishF=0.015, 

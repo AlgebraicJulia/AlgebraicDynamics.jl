@@ -30,6 +30,7 @@ AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
 [compat]
 AlgebraicPetri = "0.9"
 Catlab = "0.15, 0.16"
+ComponentArrays = "0.15"
 Compose = "^0.9.1"
 DelayDiffEq = "5"
 LinearAlgebra = "1.9"

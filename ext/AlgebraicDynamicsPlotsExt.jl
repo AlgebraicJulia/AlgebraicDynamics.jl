@@ -1,3 +1,5 @@
+module AlgebraicDynamicsPlotsExt
+
 using AlgebraicDynamics
 
 using Plots
@@ -18,4 +20,6 @@ end
     label --> reshape(labels, 1, length(labels))
     vars --> portmap(r)
     sol
-  end
+end
+
+end

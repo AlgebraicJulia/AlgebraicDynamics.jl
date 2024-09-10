@@ -5,8 +5,6 @@ using Catlab
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports
 
-using Plots
-
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
 euler_approx, nstates, nports, portmap, portfunction, trajectory,
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
@@ -217,13 +215,6 @@ euler_approx(fs::AbstractDict{S, R}, args...) where {S, T, R<:ContinuousResource
 # Trajectories
 function trajectory() end
 
-### Plotting backend
-@recipe function f(sol, r::ResourceSharer)
-  labels = (String ∘ Symbol).(collect(view(ports(r), portmap(r))))
-  label --> reshape(labels, 1, length(labels))
-  vars --> portmap(r)
-  sol
-end
 
 """    fills(r::AbstractResourceSharer, d::AbstractUWD, b::Int)
 

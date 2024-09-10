@@ -6,7 +6,6 @@ import Catlab.WiringDiagrams: oapply, input_ports, output_ports
 
 import ..UWDDynam: AbstractInterface, nstates, eval_dynamics, euler_approx, trajectory
 
-using Plots
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine, 
 InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine,
@@ -378,15 +377,7 @@ euler_approx(fs::AbstractDict{S, M}, args...) where {S, M<:ContinuousMachine} =
 
 
 
-### Plotting backend
-@recipe function f(sol, m::AbstractMachine, p=nothing)
-    labels = (String ∘ Symbol).(output_ports(m))
-    label --> reshape(labels, 1, length(labels))
-    vars --> map(1:noutputs(m)) do i
-        ((t, args...) -> (t, readout(m)(collect(args), p, t)[i]), 0:nstates(m)...)
-    end
-    sol
-end
+
 
 
 """    oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}

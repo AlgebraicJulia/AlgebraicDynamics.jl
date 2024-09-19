@@ -15,7 +15,7 @@ using Plots
 end
 
 ### Plotting backend
-@recipe function f(sol, r::ResourceSharer)
+@recipe function f(sol, r::AbstractResourceSharer)
     labels = (String ∘ Symbol).(collect(view(ports(r), portmap(r))))
     label --> reshape(labels, 1, length(labels))
     vars --> portmap(r)

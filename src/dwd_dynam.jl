@@ -8,9 +8,8 @@ import ..UWDDynam: AbstractInterface, nstates, eval_dynamics, euler_approx, traj
 
 
 export AbstractMachine, ContinuousMachine, DiscreteMachine, DelayMachine, 
-InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine,
-nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx, 
-dependency_pairs
+InstantaneousContinuousMachine, InstantaneousDiscreteMachine, InstantaneousDelayMachine, nstates, ninputs, noutputs, eval_dynamics, readout, euler_approx, 
+dependency_pairs, output_ports
 
 using Base.Iterators
 import Base: show, eltype, zero

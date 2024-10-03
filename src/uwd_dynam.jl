@@ -1,12 +1,11 @@
 module UWDDynam
 using Catlab
 
-
 using Catlab.WiringDiagrams.UndirectedWiringDiagrams: AbstractUWD
 import Catlab.WiringDiagrams: oapply, ports
 
 export AbstractResourceSharer, ContinuousResourceSharer, DelayResourceSharer, DiscreteResourceSharer,
-euler_approx, nstates, nports, portmap, portfunction, trajectory,
+euler_approx, nstates, nports, ports, portmap, portfunction, trajectory,
 eval_dynamics, eval_dynamics!, exposed_states, fills, induced_states
 
 using Base.Iterators

@@ -58,15 +58,13 @@ open_bruss = Open([:A, :D], Brusselator, [:A, :B])
 rs = ContinuousResourceSharer{Float64}(open_bruss)
 ````
 
-!!! note
-@example AlgPetri
-    SciML integration for LabelledArrays is broken due to this [issue](https://github.com/SciML/LabelledArrays.jl/issues/162) on LabelledArrays.jl. Once that issue is closed, you should be able to solve LabelledPetriNets with SciML Solvers.
     
 ````julia
-using LabelledArrays
+using ComponentArrays
 tspan = (0.0,100.0)
-params = LVector(t1=1.0, t2=1.2, t3=3.14, t4=0.1)
-u0 = LVector(A=1.0, B=3.17, D=0.0, E=0.0, X=1.0, Y=1.9)
+params = ComponentArray(t1=1.0, t2=1.2, t3=3.14, t4=0.1)
+u0 = ComponentArray(A=1.0, B=3.17, D=0.0, E=0.0, X=1.0, Y=1.9)
+eval_dynamics(rs, u0, params, 0.0)
 prob = ODEProblem((u,p,t) -> eval_dynamics(rs, u, p, t), u0, tspan, params)
 sol = solve(prob, Tsit5())
 plot(sol, idxs=[:X, :Y])

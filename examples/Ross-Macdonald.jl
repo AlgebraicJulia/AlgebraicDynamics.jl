@@ -7,8 +7,7 @@
 using AlgebraicDynamics
 using Catlab.WiringDiagrams, Catlab.Graphics
 
-using LabelledArrays
-
+using ComponentArrays
 using DelayDiffEq, DifferentialEquations
 using Plots
 
@@ -106,8 +105,9 @@ malaria_model = oapply(rm,
 )
 
 #- 
-params = LVector(a = 0.3, b = 0.55, c = 0.15, 
+params = ComponentArray(a = 0.3, b = 0.55, c = 0.15, 
     g = 0.1, n = 10, r = 1.0/200, m = 0.5)
+
 
 u0 = [0.1, 0.3]
 tspan = (0.0, 365.0*2)
@@ -254,7 +254,7 @@ malaria_delay_model = oapply(rm,
     Dict(:humans => human_delay_model, :mosquitos => mosquito_delay_model)
 )
 #- 
-params = LVector(a = 0.3, b = 0.55, c = 0.15, 
+params = ComponentArray(a = 0.3, b = 0.55, c = 0.15, 
     g = 0.1, n = 10, r = 1.0/200, m = 0.5)
 
 u0_delay = [0.09, .01, 0.3]

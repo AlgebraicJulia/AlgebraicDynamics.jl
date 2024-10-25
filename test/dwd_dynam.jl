@@ -1,7 +1,7 @@
 using AlgebraicDynamics.DWDDynam
 using Catlab
 
-using LabelledArrays
+using ComponentArrays
 using DelayDiffEq
 using Test
 

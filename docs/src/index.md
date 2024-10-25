@@ -32,6 +32,15 @@ The general process for composing  dynamical systems is as follows:
 
 4. __Compose.__ The `oapply` method takes a composition pattern and  primitive systems, and it returns the composite system. Each `oapply` method implements an operad algebra which specifies a regime for composing dynamical systems. See [[Schultz et al. 2019](https://arxiv.org/abs/1609.08086)] and [[Vagner et al. 2015](https://arxiv.org/abs/1408.1598)] for definitions of the operad algebras ``\mathsf{CDS}`` and ``\mathsf{DDS}`` for directed composition. See [[Baez and Pollard 2017](https://arxiv.org/abs/1704.02051)] for definitions of the operad algebra ``\mathsf{Dynam}`` for undirected composition. See [[Libkind 2020](https://arxiv.org/abs/2007.14442)] for a general overview of these operad algebras.
 
+## Algebraic Approaches to Defining Primitives
+
+While the operadic approach to composing hierarchical dynamical systems is the primary feature set of this package, many families of dynamical systems have algebraic or combinatorial specifications.
+
+Some examples include:
+
+1. The mass action kinetics of a Petri Net defined in [AlgebraicPetri.jl](https://github.com/AlgebraicJulia/AlgebraicPetri.jl) [#126](https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/pull/126)
+2. The Lotka-Volterra dynamics of a [Regulatory Network](https://github.com/AlgebraicJulia/RegNets.jl) [#103](@ref)
+3. [Threshold Linear Networks](@ref), which are a model of biological neurons in the brain [#136](https://github.com/AlgebraicJulia/AlgebraicDynamics.jl/pull/103)
 
 ## Solving Dynamical Systems
 
@@ -48,6 +57,6 @@ In either case, be sure to import [OrdinaryDiffEq.jl](https://diffeq.sciml.ai/la
 
 
 ## Future Work
-- Add more integrators beyond the simple Euler's method
+- Discover more functorial integrators beyond the simple Euler's method
 - Include higher order polynomial methods and symplectic and implicit methods for physical problems
 - Integrate with [AlgebraicPetri.jl](https://algebraicjulia.github.io/AlgebraicPetri.jl/dev/)

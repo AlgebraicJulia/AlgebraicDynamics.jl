@@ -2,7 +2,7 @@ using AlgebraicDynamics
 using Catlab
 using DelayDiffEq
 using Test
-
+using ComponentArrays
 # DWDDynam Integration
 ######################
 
@@ -56,8 +56,8 @@ add_wires!(d_big, Pair[
       u0 = [2.7]
       x0 = [10.0]
       τ = 10.0
-      p = LVector(τ = τ)
-  
+      p = ComponentArray(τ = τ)
+    
       @test eval_dynamics(delay, u0, x0, hist, p) == [0.0]
       @test eval_dynamics(delay_copy, u0, x0, hist, p) == [0.0]
   
@@ -109,14 +109,14 @@ add_wires!(d_big, Pair[
         mult_delay = DelayMachine{Float64}(1,1,1, df, delay ? delay_rf : rf)
         add_delay = DelayMachine{Float64}(1,1,1, ef, delay ? delay_rf : rf)
   
-        prob = DDEProblem(oapply(d, [mult_delay, add_delay]), u0, x0, hist, (0, 4.0), LVector(τ = 2.0))
+        prob = DDEProblem(oapply(d, [mult_delay, add_delay]), u0, x0, hist, (0, 4.0), ComponentArray(τ = 2.0)) 
         sol1 = solve(prob, alg; dtmax = 0.1)
         if delay
           f = (u,h,p,t) -> [ (h(p,t - p.τ)[2] + x0[1]) * h(p,t - p.τ)[1], h(p, t - p.τ)[1] + h(p,t - p.τ)[2] ]
         else
           f = (u,h,p,t) -> [ (u[2] + x0[1]) * h(p,t - p.τ)[1], u[1] + h(p,t - p.τ)[2] ]
         end
-        prob = DDEProblem(f, u0, hist, (0, 4.0), LVector(τ = 2.0))
+        prob = DDEProblem(f, u0, hist, (0, 4.0), ComponentArray(τ = 2.0))
         sol2 = solve(prob, alg; dtmax = 0.1)
         @test last(sol1) == last(sol2)
       end
@@ -324,8 +324,8 @@ const UWD = UndirectedWiringDiagram
         1, 1, 1, dxdt_delay, (u,h,p,t) -> [[u[1], h(p, t - p.n)[1]]])
     rm_model = oapply(c, [mosquito_delay_model, human_delay_model])
 
-    params = LVector(a = 0.3, b = 0.55, c = 0.15,
-        g = 0.1, n = 10, r = 1.0/200, m = 0.5)
+    params = ComponentArray(a = 0.3, b = 0.55, c = 0.15,
+    g = 0.1, n = 10, r = 1.0/200, m = 0.5)
 
     u0_delay = [0.09, .01, 0.3]
     tspan = (0.0, 365.0*5)

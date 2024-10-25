@@ -12,6 +12,10 @@ end
   include("cpg_dynam.jl")
 end
 
+@testset "ThresholdLinear" begin
+  include("ThresholdLinear/ThresholdLinear.jl")
+end
+
 @testset "Extensions" begin
   include("ext/extensions.jl")
 end

@@ -3,7 +3,7 @@ using AlgebraicDynamics.DWDDynam
 using AlgebraicDynamics.CPortGraphDynam: draw, barbell, gridpath, grid, meshpath
 using Catlab
 
-using LabelledArrays
+using ComponentArrays
 
 using Test
 using PrettyTables

@@ -7,17 +7,17 @@ import SciMLBase: ODEProblem, NonlinearProblem, ODESolution, solve
 
 export draw, support, add_reflexives!, add_reflexives, adjacency_matrix,
   LegalParameters, DEFAULT_PARAMETERS, CTLNetwork, TLNetwork, dynamics, nldynamics,
-  indicator, restriction_fixed_point
+  indicator, restriction_fixed_point, check_support
 
 draw(g) = to_graphviz(g, node_labels=true)
 
 # support(x::AbstractVector) = [i for i in 1:length(x) if x[i] != 0.0] 
-support(x::AbstractVector, eps::Real=1e-12) = [i for i in 1:length(x) if abs(x[i]) > eps] 
+support(x::AbstractVector, eps::Real=1e-12) = [i for i in 1:length(x) if abs(x[i]) > eps]
 support(soln::ODESolution, eps::Real=1e-12) = support(soln.u[end], eps)
 
 function add_reflexives!(g::AbstractGraph)
   for v in vertices(g)
-    add_edge!(g, v,v)
+    add_edge!(g, v, v)
   end
   return g
 end
@@ -28,7 +28,7 @@ function adjacency_matrix(g::AbstractGraph)
   J = g[:, :src]
   I = g[:, :tgt]
   V = ones(nparts(g, :E))
-  sparse(I,J,V, n, n)
+  sparse(I, J, V, n, n)
 end
 
 """    LegalParameters{F}
@@ -49,7 +49,7 @@ struct LegalParameters{F}
     @assert ϵ > 0
     @assert δ > 0
     @assert θ > 0
-    @assert ϵ < δ/(δ+1)
+    @assert ϵ < δ / (δ + 1)
     new(ϵ, δ, θ)
   end
 end
@@ -93,13 +93,13 @@ Convert a CTLN to a TLN by realizing the weights an biases for that Graph.
 function TLNetwork(g::CTLNetwork)
   n = nv(g.G)
   p = g.parameters
-  W = (I - ones(n,n)) .* (1+p.delta)
+  W = (I - ones(n, n)) .* (1 + p.delta)
   W += adjacency_matrix(g.G) * (p.epsilon + p.delta)
   b = ones(n) .* p.theta
-  TLNetwork(W,b)
+  TLNetwork(W, b)
 end
 
-relu(x) = x > 0 ? x : 0 
+relu(x) = x > 0 ? x : 0
 
 """    dynamics(tln::TLNetwork)
 
@@ -107,7 +107,7 @@ Construct the vector field for the TLN. You can pass this to an ODEProblem, or a
 """
 function dynamics(tln::TLNetwork)
   f(u) = begin
-    relu.(tln.W*u .+ tln.b) .- u
+    relu.(tln.W * u .+ tln.b) .- u
   end
   return f
 end
@@ -117,13 +117,13 @@ end
 Construct the root finding problem for the TLN. You can pass this to an NonlinearProblem to find the steady states of the network.
 """
 function nldynamics(tln::TLNetwork)
-  f(u,p) = relu.(tln.W*u .+ tln.b) .- u
+  f(u, p) = relu.(tln.W * u .+ tln.b) .- u
   return f
 end
 
-dynamics(du, u, p::TLNetwork,t) = begin
-    mul!(du, p.W, u)
-    du .= relu.(du .+ p.b) .- u
+dynamics(du, u, p::TLNetwork, t) = begin
+  mul!(du, p.W, u)
+  du .= relu.(du .+ p.b) .- u
 end
 
 ODEProblem(tln::TLNetwork, u₀, tspan) = ODEProblem(dynamics, u₀, tspan, tln)
@@ -141,13 +141,14 @@ NonlinearProblem(tln::CTLNetwork, u₀) = NonlinearProblem(TLNetwork(tln), u₀)
 Get the indicator function of a subset with respect to a graph.
 This should probably be a FinFunction.
 """
-indicator(g::AbstractGraph, σ::Vector{Int}) = map(vertices(g)) do v
-  if v in σ
-    return 1
-  else
-    return 0
+indicator(g::AbstractGraph, σ::Vector{Int}) =
+  map(vertices(g)) do v
+    if v in σ
+      return 1
+    else
+      return 0
+    end
   end
-end
 
 """    restriction_fixed_point(G::AbstractGraph, V::AbstractVector{Int}, parameters=DEFAULT_PARAMETERS)
 
@@ -161,12 +162,71 @@ function restriction_fixed_point(G::AbstractGraph, V::AbstractVector{Int}, param
   prob = NonlinearProblem(tln, ones(nv(g)) ./ nv(g))
   fp = solve(prob)
   σg = support(fp)
-  σ  = V[σg]
+  σ = V[σg]
   u = zeros(nv(G))
   map(σg) do v
     u[V[v]] = fp.u[v]
   end
   return σ, u
 end
+
+# Helper functions for the sheaf algorithm to compute fixed point supports of a CTLN.
+
+"""   check_support(net::CTLNetwork, nodes::Vector{Int}) -> Bool   
+
+Checks if the given subset of nodes constitutes a fixed point support of
+the given TLN (see Alg 1 in paper).
+"""
+function check_support(net::TLNetwork, nodes::Vector{Int})::Bool
+  W = net.W
+  b = net.b
+  n = size(W)[1]
+  W_r = W[nodes, nodes]
+  b_r = b[nodes]
+
+
+  x_star_r = (I(length(nodes)) - W_r) \ b_r
+  x_star = zeros(n)
+  x_star[nodes] = x_star_r
+
+  on_neuron_condition = true
+  off_neuron_condition = true
+  for i in 1:n
+    y_i = 0
+    for j in 1:n
+      y_i += W[i, j] * x_star[j]
+    end
+    y_i += b[i]
+    if i in nodes
+      on_neuron_condition = on_neuron_condition && y_i > 0
+    else
+      off_neuron_condition = off_neuron_condition && y_i <= 0
+    end
+  end
+  return on_neuron_condition && off_neuron_condition
+end
+
+"""   enumerate_supports(net::CTLNetworks) -> Vector{Vector{Int}}
+
+Uses a brute force search to enumerate the set of fixed point supports of a given CTLN.
+"""
+function enumerate_supports(net::CTLNetwork)::Vector{Vector{Int}}
+
+end
+
+"""   simply_embedded_cover(net::CTLNetwork)   
+
+computes a simply embedded cover (modular decomposition) of a given CTLN.
+"""
+function simply_embedded_cover(net::CTLNetwork)
+
+end
+
+function enumerate_supports(net::CTLNetwork, cover)::Vector{Vector{Int}}
+
+end
+
+
+
 
 end # module

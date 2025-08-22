@@ -3,11 +3,12 @@ using LinearAlgebra
 using SparseArrays
 using Catlab
 using Catlab.Graphs
+using Combinatorics
 import SciMLBase: ODEProblem, NonlinearProblem, ODESolution, solve
 
 export draw, support, add_reflexives!, add_reflexives, adjacency_matrix,
   LegalParameters, DEFAULT_PARAMETERS, CTLNetwork, TLNetwork, dynamics, nldynamics,
-  indicator, restriction_fixed_point, check_support
+  indicator, restriction_fixed_point, check_support, enumerate_supports_TLN
 
 draw(g) = to_graphviz(g, node_labels=true)
 
@@ -206,13 +207,27 @@ function check_support(net::TLNetwork, nodes::Vector{Int})::Bool
   return on_neuron_condition && off_neuron_condition
 end
 
-"""   enumerate_supports(net::CTLNetworks) -> Vector{Vector{Int}}
+"""   enumerate_supports(net::TLNetworks) -> Vector{Vector{Int}}
 
 Uses a brute force search to enumerate the set of fixed point supports of a given CTLN.
 """
-function enumerate_supports(net::CTLNetwork)::Vector{Vector{Int}}
 
+function enumerate_supports_TLN(net::TLNetwork)
+  W = net.W
+  n = size(W)[1]
+  #println(n)
+  supports = Vector{Vector{Int}}()
+  nodes = collect(1:n)
+  pset = collect(powerset(nodes))
+  for i in pset
+    svec = collect(i)
+    if check_support(net, svec)
+      push!(supports, svec)
+    end
+  end
+  return supports
 end
+
 
 """   simply_embedded_cover(net::CTLNetwork)   
 
@@ -225,8 +240,5 @@ end
 function enumerate_supports(net::CTLNetwork, cover)::Vector{Vector{Int}}
 
 end
-
-
-
 
 end # module

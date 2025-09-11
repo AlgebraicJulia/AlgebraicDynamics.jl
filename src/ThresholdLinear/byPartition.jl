@@ -54,7 +54,7 @@ function cover_partition(partition::Vector{Int})
     return cover 
 end
 
-# maps each local support to global indeices, τ is the number of the nodes in the block
+# maps each local support to global indices, τ is the number of the nodes in the block
 # e.g. τ = [1,2,3] for the first block, τ = [4,5,6] for the second block, etc.
 function local_sup(local_sup::Vector{Vector{Int}}, τ::Vector{Int})
     ls = [sort(τ[S]) for S in local_sup]
@@ -66,7 +66,11 @@ function global_from_locals(                       # Global supports from locals
     net::AlgebraicDynamics.ThresholdLinear.CTLNetwork,
     locals::Vector{Vector{Vector{Int}}}
     )
+    # locals is a vector of local supports for each block, so the first dimension is the block index
+    # and the second dimension is the list of local supports for that block
+    # and each local support is a vector of node indices in that block
 
+    # example with 3 blocks:
     # locals = [
     #   [[1,2,3]],                                 # piece 1 (C3), lifted by τ₁ = [1,2,3]
     #   [[4], [5], [6], [4,5], [4,6], [5,6], [4,5,6]],  # piece 2 (D3), lifted by τ₂ = [4,5,6]
@@ -74,29 +78,30 @@ function global_from_locals(                       # Global supports from locals
     # ]
 
     locals = deepcopy(locals)
-    # println("locals = $locals")
 
+    # adding σ_i = ∅ to the list for each block, so the cartesian product includes empty supports for some entries of the tuple.
     for i in eachindex(locals)
-        push!(locals[i], Int[])           # letting σ_i = ∅
+        push!(locals[i], Int[])           
     end
 
-    # TLN global network
+    # TLN global network, we need to check if the supports are valid by doing a linear solve for the whole network
     tlnG = TLNetwork(net)
 
     # set already computed so it's not repeated 
-    computed = Set{Tuple{Vararg{Int}}}()
+    # computed = Set{Tuple{Vararg{Int}}}()
+    computed = Set{Vector{Int}}()   # set of already computed supports, to avoid duplicates
 
     # valid global supports
     out = Vector{Vector{Int}}()
 
-    # println("locals = $locals")
     # cartesian product from local supports
-    # for n in product(locals)  
     for n in product(locals...)  
         σ = reduce(vcat, n; init=Int[])     # union of local supports   
         # println("σ (cartesian product from locals) = $σ") 
         unique!(σ)  # remove duplicates
 
+        # this should work instead
+        # σ = reduce(union, [[1,3,4], [2,3,4]], init=Int[])
         # skip empty support 
         if isempty(σ)
             continue
@@ -104,14 +109,14 @@ function global_from_locals(                       # Global supports from locals
 
         sort!(σ)     
 
-        σ_num = Tuple(σ)    
+        # σ_num = Tuple(σ)    
 
         # new possible support - check if it's a valid global support
-        if σ_num ∉ computed
+        if σ ∉ computed
             if check_support(tlnG, σ)
                 push!(out, σ)   
             end
-            push!(computed, σ_num)  # add local support to list of supports already processed
+            push!(computed, σ)  # add local support to list of supports already processed
         end
     end
     # println("out = $out")
@@ -178,33 +183,50 @@ cover  = cover_partition(partition)
 #   [[4], [5], [6], [4,5], [4,6], [5,6], [4,5,6]],  # piece 2 (D3), lifted by τ₂ = [4,5,6]
 #   [[7,8,9]]                                       # piece 3 (C3), lifted by τ₃ = [7,8,9]
 # ]
+#compute_all_local_supports(graph, cover)
 
-locals = [
-    local_sup(supp_C3, cover[1]),  # C3
-    local_sup(supp_D3, cover[2]),  # D3
-    local_sup(supp_C3, cover[3]),  # C3
-    local_sup(supp_C3, cover[4]),  # C3
-    local_sup(supp_C3, cover[5]),  # C3
-    local_sup(supp_C3, cover[6]),  # C3
-    local_sup(supp_D2, cover[7])   # D2
-]
+function benchmark_local(graph, cover)
+    supp_C3 = compute_local_supports(C3)    # ex supp_C3 = [[1,2,3]]
+    supp_D3 = compute_local_supports(D3)    # ex supp_D3 = [[1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]
+    supp_D2 = compute_local_supports(D2)    # ex [[1],[2],[1,2]]
+    locals = [
+        local_sup(supp_C3, cover[1]),  # C3
+        local_sup(supp_D3, cover[2]),  # D3
+        local_sup(supp_C3, cover[3]),  # C3
+        local_sup(supp_C3, cover[4]),  # C3
+        local_sup(supp_C3, cover[5]),  # C3
+        local_sup(supp_C3, cover[6]),  # C3
+        local_sup(supp_D2, cover[7])   # D2
+    ]
 
-# println("locals = $locals")
-# ex locals = [[[1, 2, 3]], [[4], [5], [6], [4, 5], [4, 6], [5, 6], [4, 5, 6]], 
-# [[7, 8, 9]], [[10, 11, 12]], [[13, 14, 15]], [[16, 17, 18]], [[19], [20], [19, 20]]]
+    # println("locals = $locals")
+    # ex locals = [[[1, 2, 3]], [[4], [5], [6], [4, 5], [4, 6], [5, 6], [4, 5, 6]], 
+    # [[7, 8, 9]], [[10, 11, 12]], [[13, 14, 15]], [[16, 17, 18]], [[19], [20], [19, 20]]]
 
-# net = CTLNetwork(G2)
-net = CTLNetwork(G5)
+    # net = CTLNetwork(G2)
+    net = CTLNetwork(graph)
+    println("Local → Global:")
+    fps_cover = global_from_locals(net, locals)
+    return fps_cover
+end
 
-println("Local → Global:")
-@elapsed (fps_cover = global_from_locals(net, locals))
+@time fps_cover = benchmark_local(cover)
+@time fps_cover = benchmark_local(cover)
+
 println("Number of supports from cover: $(length(fps_cover))")
 
 println("Brute force:")
-@elapsed fps_bruteforce = begin
+
+function benchmark_bruteforce(n)
+    net = CTLNetwork(n)
     tln = TLNetwork(net)
-    enumerate_supports_TLN(tln)
+    supports = enumerate_supports_TLN(tln)
+    return supports
 end
+
+@time fps_bruteforce = benchmark_bruteforce(G5)
+@time fps_bruteforce = benchmark_bruteforce(G5)
+
 println("Number of supports from brute force: $(length(fps_bruteforce))")
 
 @test sort(fps_cover) == sort(fps_bruteforce)

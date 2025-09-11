@@ -147,6 +147,12 @@ G4 = disjoint_union(G3, clique_union(C3, C3))
 # clique union of the previous graph G4 and a discrete graph D2, adding 2 edges and 21*2*3 edges between the two cliques
 G5 = clique_union(G4, D2)     
 
+# G1  = C3 + D3
+# G2 = G1 x C3
+# G3 = G2 x C3
+# G4 = G3 + (C3 x C3)
+# G5 = G4 x D2
+# ((((C3 + D3) x C3)) x C3) + (C3 x C3)) x D2
 
 # build partition from motives in G3
 # partition = vcat(fill(1, nv(C3)), fill(2, nv(D3)), fill(3, nv(C3)))
@@ -183,7 +189,32 @@ cover  = cover_partition(partition)
 #   [[4], [5], [6], [4,5], [4,6], [5,6], [4,5,6]],  # piece 2 (D3), lifted by τ₂ = [4,5,6]
 #   [[7,8,9]]                                       # piece 3 (C3), lifted by τ₃ = [7,8,9]
 # ]
-#compute_all_local_supports(graph, cover)
+
+# compute_all_local_supports(graph, cover)
+# which is combining compute_local_supports and local_sup for each block
+# store the graph G as a tree of (clique or disjoint) unions of subgraphs/motives,
+# then recursively compute the local supports for each subgraph/motive and lift them to global indices
+# finally combine the local supports to get the global supports
+# then do local to global mapping for each local support
+# once this is done, we can run the code below on an arbitrary graph with a fixed cover.
+
+# Storing the graph as a tree of (clique or disjoint) unions of subgraphs/motives is not implemented yet,
+# but will be a great way to store the graph and its cover because it doesn't need to realize the whole adjacency matrix of the graph.
+# We can just store the motives and the way they are combined to get the graph.
+# This will be useful for large graphs where the adjacency matrix is too large to store in memory.
+# We need an evaluate function that takes the tree and returns the actual graph to run the brute force algorithm on the whole graph.
+
+nblocks = maximum(partition)  # number of blocks in the cover
+Knb = Catlab.Graphs.complete_graph(Graph, nblocks)  # complete graph on nblocks nodes
+# add self-loops to Knb
+for v in vertices(Knb)
+    add_edge!(Knb, v, v)
+end
+phi = homomorphisms(G5, Knb, initial=(V=partition,))[1]
+
+to_graphviz(phi, node_attrs=Dict(:style=>"filled"), node_labels=true, node_colors=true)
+
+# just to visualize the graph
 
 function benchmark_local(graph, cover)
     supp_C3 = compute_local_supports(C3)    # ex supp_C3 = [[1,2,3]]
@@ -210,8 +241,8 @@ function benchmark_local(graph, cover)
     return fps_cover
 end
 
-@time fps_cover = benchmark_local(cover)
-@time fps_cover = benchmark_local(cover)
+@time fps_cover = benchmark_local(G5, cover)
+@time fps_cover = benchmark_local(G5, cover)
 
 println("Number of supports from cover: $(length(fps_cover))")
 

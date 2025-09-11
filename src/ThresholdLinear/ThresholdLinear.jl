@@ -173,6 +173,9 @@ end
 
 # Helper functions for the sheaf algorithm to compute fixed point supports of a CTLN.
 
+# TODO: Check that this is correct. Because we should be getting the same results for
+# clique_union and disjoint_union covers.
+# Also write some unit tests for this.
 """   check_support(net::CTLNetwork, nodes::Vector{Int}) -> Bool   
 
 Checks if the given subset of nodes constitutes a fixed point support of
@@ -192,16 +195,13 @@ function check_support(net::TLNetwork, nodes::Vector{Int})::Bool
 
   on_neuron_condition = true
   off_neuron_condition = true
+  y = W * x_star + b
   for i in 1:n
-    y_i = 0
-    for j in 1:n
-      y_i += W[i, j] * x_star[j]
-    end
-    y_i += b[i]
+    y_i = y[i] 
     if i in nodes
       on_neuron_condition = on_neuron_condition && y_i > 0
     else
-      off_neuron_condition = off_neuron_condition && y_i <= 0
+      off_neuron_condition = off_neuron_condition && y_i <= 0 
     end
   end
   return on_neuron_condition && off_neuron_condition

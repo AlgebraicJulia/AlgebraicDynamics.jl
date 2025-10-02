@@ -14,7 +14,7 @@ supp(x*) := { i | x_i^* > 0 }
 
 These points are contained by this struct, however we do not enforce the support condition unless we are ingesting a vector of floats. 
 """
-@struct_hash_equal struct Support
+@struct_hash_equal struct Support <: AbstractArray{Int, 1}
     indices::Union{Flatten, Vector{Int}}
    
     # empty support
@@ -49,7 +49,11 @@ Base.unique!(support::Support) = Support(unique!(support.indices))
 Base.isempty(support::Support) = isempty(support.indices)
 
 function Base.union(supports::Vararg{Support, N}) where N
-    Support(reduce(vcat, getfield.(supports, :indices)))
+    Support(union(getfield.(supports, :indices)))
+end
+
+function Base.vcat(s::Support, t::Support)
+    Support(vcat(s.indices, t.indices))
 end
 
 Base.sort!(support::Support) = Support(sort!(support.indices))
@@ -63,9 +67,9 @@ function shift(support::Support, n::Int)
 end
 export shift
 
-function Base.isless(s::Support, t::Support)
-    s.indices < t.indices
-end
+Base.isless(s::Support, t::Support) = s.indices < t.indices
+
+Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
 
 """    FPSections 
 Struct containing local supports on a graph. Since this is a covering, every vertex is included.
@@ -93,16 +97,8 @@ Base.sort(l::FPSections) = FPSections(sort(l.supports))
 
 Base.length(fp::FPSections) = length(fp.supports)
 
-# Base.eachindex(locals::FPSectionss) = eachindex(locals.data)
-# Base.getindex(locals::FPSectionss, key...) = getindex(locals.data, key...)
-
-""" This adds a "point" to the set, a distinguished empty support
-"""
-point!(l::FPSections) = union!(l, Support())
-export point!
-
-point(l::FPSections) = union(l, Support())
-export point
+# Base.eachindex(locals::FPSections) = eachindex(locals.data)
+# Base.getindex(locals::FPSections, key...) = getindex(locals.data, key...)
 
 shift(l::FPSections, n::Int) = FPSections(shift.(l.supports, n))
 
@@ -116,32 +112,6 @@ end
 
 function Base.maximum(l::FPSections)
     maximum(maximum.(l.supports))
-end
-
-function disjoint_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
-    if perform_shift
-        m = shift(m, maximum(l))
-    end
-    # TODO only valid for Disjoint Union. Clique union cannot union those guys
-    FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
-end
-
-function clique_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
-    if perform_shift
-        m = shift(m, maximum(l))
-    end
-    # TODO only valid for Disjoint Union. Clique union cannot union those guys
-    FPSections(collect(product([l, m])))
-end
-
-function Catlab.:∨(l::FPSections, m::FPSections)
-    disjoint_union(l, m; perform_shift=true)
-end
-export ∨
-# vee
-
-function Base.union(s::Support, t::Support)
-    Support(union(s.indices, t.indices))
 end
 
 function Base.union(ℓ::FPSections, m::FPSections)
@@ -163,6 +133,32 @@ function Base.collect(itr::ProductIterator{Tuple{Vector{Support}, Vector{Support
     end
     out[:] # XXX The supports become a matrix otherwise. Need to flatmap
 end
+
+function disjoint_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
+    if perform_shift
+        m = shift(m, maximum(l))
+    end
+    # only valid for Disjoint Union. Effectively adding an empty set to the supports.
+    FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
+end
+
+function clique_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
+    if perform_shift
+        m = shift(m, maximum(l))
+    end
+    FPSections(collect(product([l, m])))
+end
+
+# same as clique union
+function cyclic_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
+    clique_union(l, m; perform_shift=perform_shift)
+end
+
+function Catlab.:∨(l::FPSections, m::FPSections)
+    disjoint_union(l, m; perform_shift=true)
+end
+export ∨
+# vee
 
 # Formerly "compute_local_support"
 # Return the fixed-point supports of a local in local indices 1:nv(locals).

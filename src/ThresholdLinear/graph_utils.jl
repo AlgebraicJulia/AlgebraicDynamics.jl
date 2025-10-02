@@ -126,10 +126,53 @@ function clique_union(args...)::Graph
     reduce(clique_union, args)
 end
 
-# TODO Move me!
-abstract type GraphArchitecture end
-
 # TODO the right thing to do here is promote this to a DisjointUnion, since the arguments are assumed to be Lazy
 function Base.:+(g::ImplicitGraph, h::ImplicitGraph)
     disjoint_union(Graph(g), Graph(h))
+end
+
+# forward chain
+function chain_union(G::Graph, H::Graph; offset::Int=0)::Graph
+    X = disjoint_union(G, H)
+    g_offset = nv(G)
+    for v in vertices(G)
+        v > offset || continue
+        for w in vertices(H)
+            add_edge!(X, v, w + g_offset)
+        end
+    end
+    X
+end
+
+function cyclic_union(G::Graph, H::Graph)::Graph
+    cyclic_union([G, H])
+end
+
+# [G1, G2, G3, G4]
+# g12 <- G1.[v >= 1] => G2
+# g23 <- (g12).[v >= offsets[|G1|]] => G3
+# g34 <- (g23).[v >= offsets[|G2|]] => G4...
+function cyclic_union(graphs::Vector{Graph})::Graph
+    nvs = [0; accumulate(+, nv.(graphs))...]
+    chain = foldl(enumerate(graphs)) do (idx, fst), (_, snd)
+        chain_union(fst, snd; offset=nvs[idx])
+    end
+    # loop back around
+    for v in vertices(chain)
+        v > nvs[end-1] || continue
+        for w in vertices(graphs[1])
+            add_edge!(chain, v, w)
+        end
+    end
+    chain
+end
+export cyclic_union
+# \circlearrowright
+
+function cyclic_union(G::Graph, H::ImplicitGraph)::Graph
+    cyclic_union(G, Graph(H))
+end
+
+function cyclic_union(H::ImplicitGraph, G::Graph)::Graph
+    cyclic_union(G, H)
 end

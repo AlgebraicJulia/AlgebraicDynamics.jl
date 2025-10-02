@@ -5,8 +5,6 @@ using Catlab.Graphs
 using Catlab.Graphics.Graphviz: view_graphviz, to_graphviz
 using Test
 
-see(x) = view_graphviz(to_graphviz(x))
-
 @testset "Supports" begin
     @test Support([1,2,3.0]) == Support([1,2,3])
     @test Support([1,0,4.0]) == Support([1,3])

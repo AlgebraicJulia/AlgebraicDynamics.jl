@@ -3,19 +3,26 @@ using LinearAlgebra
 using SparseArrays
 using Catlab
 using Catlab.Graphs
+using Catlab.Graphics.Graphviz: view_graphviz
 using Combinatorics
 import SciMLBase: ODEProblem, NonlinearProblem, ODESolution, solve
 
-export draw, LegalParameters, DEFAULT_PARAMETERS, dynamics, nldynamics 
+export dynamics, nldynamics 
 
-# contains
-include("GraphUtils.jl")
+# Contains utilities for creating and combining graphs.
+include("graph_utils.jl")
 
-include("Supports.jl")
+# Contains code for defining fixed point supports, elements of the fixed point presheaf. `Support` is a wrapper for vectors of indices or iterators which represent vectors of indices. It also produces the indices of vectors of non-integer numbers which are greater than a certain (small) quantity. 
+include("supports.jl")
 
-include("FixedPointSheaf.jl")
+# Contains code for creating and combining fixed point presheafs localized over covers.
+include("fixed_point_presheaf.jl")
 
 draw(g) = to_graphviz(g, node_labels=true)
+export draw
+
+see(g) = view_graphviz(draw(g))
+export see
 
 """    LegalParameters{F}
 
@@ -39,10 +46,12 @@ struct LegalParameters{F}
     new(ϵ, δ, θ)
   end
 end
+export LegalParameters
 
 """    DEFAULT_PARAMETERS = (ϵ=0.25, δ=0.5, θ=1.0)
 """
 const DEFAULT_PARAMETERS = LegalParameters{Float64}(0.25, 0.5, 1.0)
+export DEFAULT_PARAMETERS
 
 """    CTLNetwork{F}
 

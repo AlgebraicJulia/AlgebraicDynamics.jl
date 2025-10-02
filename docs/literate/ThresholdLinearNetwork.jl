@@ -2,9 +2,9 @@ using AlgebraicDynamics
 
 # Example of construction of a graph using motives.
 
-C3 = GluingRule(C(3))
-D2 = GluingRule(D(2))
-D3 = GluingRule(D(3))
+C3 = GluingExpression(C(3))
+D2 = GluingExpression(D(2))
+D3 = GluingExpression(D(3))
 
 #
 vD2 = nv(collect(D2)) |> last

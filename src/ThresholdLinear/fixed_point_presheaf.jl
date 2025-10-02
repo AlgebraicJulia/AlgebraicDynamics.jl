@@ -4,10 +4,11 @@ abstract type AbstractPresheaf end
 """    The Fixed Point Support Functor is a separated presheaf. This is a section of that presheaf, which associates a neighborhood of a graph with its fixed point supports, if there are any. """
 @struct_hash_equal mutable struct FP <: AbstractPresheaf
     base::Union{Graph, ImplicitGraph}
-    data::Union{FPSections, Missing}
-    # fixed point support. we may not want to compute the fixed point support when constructing the graph
+    data::Union{FPSections, Missing} 
 end
 export FP
+# Typing `data` as also `::Missing` is perhaps overengineering, but it is conceivable that we may not want to compute the fixed point support when constructing the graph. Recall that in this framework, a graph is glued together by gluing rules, which is abstractly represented as an abstract syntax tree, and that terms of the tree whose fixed-point supports are computed with brute force are called "terminals." While decompositional methods might be able to simplify a terminal even further, its possible that a large terminal graph can take a long time to compute in brute force. For example, a Cyclic Graph for example takes a long time to compute the fixed points. While we overcome that specific problem with an ImplicitGraph, there could be other cases. In essence, allowed for "missing" information helps us separate (1) building the expression tree for a graph from (2) its evaluation, where all fixed point supports must be known.
+# TODO give a meaningful example
 
 function Base.show(io::IO, fp::FP)
     print(io, """Fixed Point Supports
@@ -16,49 +17,34 @@ function Base.show(io::IO, fp::FP)
           """)
 end
 
-# if consumes a ImplicitGraph, then load known information
+# if consumes a ImplicitGraph, then load known information. The docs at this point do not demonstrate "missing" information, as fixed point supports are automatically computed
 function FP(g::Union{Graph, ImplicitGraph}; compute::Bool=true)
     FP(g, compute ? FPSections(g) : missing)
 end
 
+# two basic properties of graphs (number of vertices and edges) are passed through here.
 nv(g::FP) = nv(g.base)
 ne(g::FP) = ne(g.base)
 
 # computes local supports if the data is missing.
 function FP(fp::FP; params = DEFAULT_PARAMETERS, kwargs...)::FP
-    ismissing(fp.data) || return fp 
-    fp.data = FPSections(fp.base isa Graph ? section.base : Graph(section.base); params=params, kwargs...)
+    ismissing(fp.data) || return fp
+    base = fp.base isa Graph ? section.base : Graph(section.base)
+    fp.data = FPSections(base; params=params, kwargs...)
     fp
 end
 
 # Interactions
-
-function Base.:+(G::Graph, H::ImplicitGraph)
-    disjoint_union(G, Graph(H))
-end
-
-Base.:+(G::ImplicitGraph, H::Graph) = H + G
-
-function Base.:+(G::FP, H::ImplicitGraph)
-    G + FP(H)
-end
-
-Base.:+(H::ImplicitGraph, G::FP) = G + H
-
-function Base.:*(G::FP, H::ImplicitGraph)
-    G * FP(H)
-end
-
-Base.:*(H::ImplicitGraph, G::FP) = H * G
+# TODO this boilerplate can be removed if the lowercase "disjoint_", "clique_", and "cyclic_", union methods were fetched from the Disjoint_, Clique_, Cyclic_ terms in the MLStyle ADT.
+# ```julia
+# method(::T, args...) = T_union(args...) 
+# ```
 
 function shift(g::FP, offset::Int)
     graph = shift(g.base, offset)
     data = shift(g.data, offset)
     FP(graph, data)
 end
-
-# TODO we shift to avoid colliding vertex labels. Plain graphs do not have labels, as they do not have attributes at all, so shifting it does nothing at all.
-shift(g::Graph, args...) = g
 
 # what happens if the "base" is sortable? (impl PartialEq) 
 function Base.sort!(g::FP)
@@ -111,12 +97,12 @@ function Base.:+(fp1::FP, fp2::FP)
     DisjointUnion(Terminal(fp1), Terminal(fp2))
 end
 
-function Base.:+(fp::FP, g::GluingExpression)
-    DisjointUnion(Terminal(fp), g)
-end
-# commutativity
-Base.:+(g::GluingExpression, fp::FP) = fp + g
+# the disjoint union between a fixed point functor over a graph and an ordinary implicit graph will first apply the FP functor to the implicit graph before computing the disjoint union.
+Base.:+(G::FP, H::ImplicitGraph) = G + FP(H)
+Base.:+(H::ImplicitGraph, G::FP) = G + H
 
+Base.:+(fp::FP, g::GluingExpression) = DisjointUnion(Terminal(fp), g)
+Base.:+(g::GluingExpression, fp::FP) = fp + g
 Base.:+(G::GluingExpression, H::GluingExpression) = DisjointUnion(G, H)
 
 nv(t::DisjointUnion) = foldl(+, nv.(t._1))
@@ -126,23 +112,21 @@ ne(t::DisjointUnion) = ne(Graph(t))
 """ Renders a disjoint union of graphs into a single graph """
 Graph(G::DisjointUnion) = foldl(+, Graph.(G._1))
 
-# #############
+# ############
 # CLIQUE UNION
-# #############
+# ############
 
 CliqueUnion(args...) = CliqueUnion([GluingExpression.(args)...])
 
-function Base.:*(fp1::FP, fp2::FP)
-    CliqueUnion(Terminal(fp1), Terminal(fp2))
-end
+Base.:*(fp1::FP, fp2::FP) = CliqueUnion(Terminal(fp1), Terminal(fp2))
 
-function Base.:*(fp::FP, g::GluingExpression)
-    CliqueUnion(Terminal(fp), g)
-end
+Base.:*(fp::FP, g::GluingExpression) = CliqueUnion(Terminal(fp), g)
 
 Base.:*(g::GluingExpression, fp::FP) = fp * g
-
 Base.:*(G::GluingExpression, H::GluingExpression) = CliqueUnion(G, H)
+
+Base.:*(G::FP, H::ImplicitGraph) = G * FP(H)
+Base.:*(H::ImplicitGraph, G::FP) = H * G
 
 nv(t::CliqueUnion) = foldl(+, nv.(t._1))
 ne(t::CliqueUnion) = ne(Graph(t))
@@ -159,18 +143,17 @@ end
 
 CyclicUnion(args...) = CyclicUnion([GluingExpression.(args)...])
 
-function (↻)(fp1::FP, fp2::FP)
-    CyclicUnion(Terminal(fp1), Terminal(fp2))
-end
+export ↻
 
-function (↻)(fp::FP, g::GluingExpression)
-    CyclicUnion(Terminal(fp), g)
-end
+(↻)(fp1::FP, fp2::FP) = CyclicUnion(Terminal(fp1), Terminal(fp2))
+(↻)(fp::FP, g::GluingExpression) = CyclicUnion(Terminal(fp), g)
+
+(↻)(G::FP, H::ImplicitGraph) = G * FP(H)
+(↻)(H::ImplicitGraph, G::FP) = H * G
 
 (↻)(g::GluingExpression, fp::FP) = fp ↻ g
 
 (↻)(G::GluingExpression, H::GluingExpression) = CyclicUnion(G, H)
-export ↻
 
 Graph(t::Terminal) = Graph(t._1)
 
@@ -186,6 +169,7 @@ FP(g::GluingExpression) = @match g begin
     err => error("$err")
 end
 
+# TODO move
 """    indicator(g::AbstractGraph, σ::Vector{Int})
 
 Get the indicator function of a subset with respect to a graph. Returns a vector of 0 and 1s.

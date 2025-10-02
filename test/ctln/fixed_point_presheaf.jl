@@ -3,52 +3,6 @@ using Combinatorics: powerset
 using Catlab: nv, Graph, erdos_renyi
 using AlgebraicDynamics
 
-
-# @testset "Sections" begin
-#     K3 = CompleteGraph(3)
-#     K2 = CompleteGraph(2)
-#     gh = K3 + K2
-#     #
-#     l1 = FPSections(K3) # computes supports for G|τᵢ
-#     l2 = FPSections(K2)
-#     @test l1 == FPSections([Support(1:3)])
-#     @test l2 == FPSections([Support(1:2)])
-#     #
-#     l12 = l1 ∨ l2
-#     lgh = FPSections(gh)
-#     @test sort(l12) == sort(lgh)
-# end
-
-# @testset "Sections" begin
-#     K8 = CompleteGraph(8)
-#     D4 = DiscreteGraph(4)
-#     gh = K8 + D4
-#     #
-#     l1 = FPSections(K8)
-#     l2 = FPSections(collect(D4)) # TODO no collect
-#     l1′ = FPSections([Support(1:8)])
-#     l2′ = FPSections([Support(k) for k in powerset(1:nv(D4)) if !isempty(k)])
-#     @test l1 == l1′ 
-#     @test l2 == l2′ 
-#     #
-#     l12 = l1 ∨ l2
-#     lgh = FPSections(gh)
-#     @test sort(l12) == sort(lgh)
-# end
-
-# @testset "Random Graphs" begin
-
-#     # these need to be promoted to Gluing Terms
-#     g = erdos_renyi(Graph, 10, 0.3)
-#     D4 = DiscreteGraph(4)
-#     gh = DisjointUnion(g, D4)
-
-# end
-
-# g = CompleteGraph(3)
-# shift!(g, 2)
-# @test g.offset == 2
-
 @testset "Disjoint Union" begin
     
     g = D(3)
@@ -56,7 +10,7 @@ using AlgebraicDynamics
     h = C(4)
     FPh = FP(h)
     FPgh = FP(disjoint_union(g, h))
-    FPgh_dc = FPg + FPh # disjoint_union
+    FPgh_dc = FP(FPg + FPh) # disjoint_union
     @test FPgh == FPgh_dc
 
     g = erdos_renyi(Graph, 7, 0.3)
@@ -64,7 +18,7 @@ using AlgebraicDynamics
     h = C(4)
     FPh = FP(h)
     FPgh = FP(disjoint_union(g, h))
-    FPgh_rand = FPg + FPh # disjoint_union
+    FPgh_rand = FP(FPg + FPh) # disjoint_union
     @test sort(FPgh.data) == sort(FPgh_rand.data)
 
 end
@@ -76,7 +30,7 @@ end
     g2 = C(4)
     FPg2 = FP(g2)
     FPg12 = FP(disjoint_union(g1, g2)) # no empty set
-    FPg12′ = disjoint_union(FPg1, FPg2) # disjoint_union
+    FPg12′ = FP(FPg1 + FPg2) # disjoint_union
     @test sort(FPg12.data) == sort(FPg12′.data)
     
     g3 = K(3)
@@ -133,8 +87,7 @@ end
     # Terminal lifts the FixedPointFunctors over g1 and g2 resp., into
     # terms in a gluing rule. This means we can now hold combinations of
     # terms in suspension until we are ready to compute them
-    tFPg12 = FPg1 + FPg2
-    FPg12′ = FP(tFPg12) # FixedPointSupports 
+    FPg12′ = FP(FPg1 + FPg2) # FixedPointSupports 
 
     # We show that the disjoint union we incrementally computed is equal
     # to the disjoint union expression we evaluated
@@ -143,9 +96,7 @@ end
     # We attempt this for a more complicated expression
     FPg3 = CompleteGraph(3) |> FP
     FPg123 = clique_union(FPg3, disjoint_union(FPg1, FPg2))
-   
-    tFPg123 = FPg3 * (FPg1 + FPg2)
-    FPg123′ = FP(tFPg123)
+    FPg123′ = FP(FPg3 * (FPg1 + FPg2)) 
 
     @test FPg123 == FPg123′
 
@@ -153,5 +104,9 @@ end
     FPg12′ = FP(FPg1 ↻ FPg2)
 
     @test FPg12 == FPg12′
+
+    FPg3c1p12 = cyclic_union(FPg3, disjoint_union(FPg1, clique_union(FPg2, FPg1)))
+    FPg3c1p12′ = FP(FPg3 ↻ (FPg1 + (FPg2 * FPg1)))
+    @test FPg3c1p12 == FPg3c1p12′
 
 end

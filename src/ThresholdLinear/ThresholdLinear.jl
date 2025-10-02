@@ -232,25 +232,11 @@ function is_fp_support(net::TLNetwork, support::Support)
     is_fp_support(net, support.indices)
 end
 
-######## FixedPointSupports
-function FPSections(g::CycleGraph)
-    FPSections(Support(1:g.n))
-end
-
-function FPSections(g::CompleteGraph)
-    FPSections(Support(1:g.n))
-end
-
-function FPSections(g::DiscreteGraph)
-    FPSections(Support(powerset(g.n)))
-end
-
-FP(g::ImplicitGraph) = FP(g, FPSections(g))
-#########
+# FP(g::ImplicitGraph) = FP(g, FPSections(g))
 
 
 # TODO fix signature
-"""   enumerate_supports(net::TLNetworks) -> Vector{Vector{Int}}
+"""   FPSections(net::TLNetworks)::FPSections()
 
 Uses a brute force search to enumerate the set of fixed point supports of a given CTLN.
 """

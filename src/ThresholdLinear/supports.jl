@@ -14,7 +14,7 @@ supp(x*) := { i | x_i^* > 0 }
 
 These points are contained by this struct, however we do not enforce the support condition unless we are ingesting a vector of floats. 
 """
-@struct_hash_equal struct Support <: AbstractArray{Int, 1}
+@struct_hash_equal struct Support <: AbstractVector{Int}
     indices::Union{Flatten, Vector{Int}}
    
     # empty support
@@ -48,6 +48,9 @@ end
 Base.unique!(support::Support) = Support(unique!(support.indices))
 Base.isempty(support::Support) = isempty(support.indices)
 
+Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
+
+# we could reduce also
 function Base.union(supports::Vararg{Support, N}) where N
     Support(union(getfield.(supports, :indices)))
 end
@@ -68,8 +71,6 @@ end
 export shift
 
 Base.isless(s::Support, t::Support) = s.indices < t.indices
-
-Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
 
 """    FPSections 
 Struct containing local supports on a graph. Since this is a covering, every vertex is included.
@@ -102,6 +103,7 @@ Base.length(fp::FPSections) = length(fp.supports)
 
 shift(l::FPSections, n::Int) = FPSections(shift.(l.supports, n))
 
+# The iterator product of a vector of Support structs is that of their indices
 function Iterators.product(l::Vector{FPSections})
     Iterators.product(getfield.(l, :supports)...)
 end
@@ -127,11 +129,9 @@ function Base.union(ℓ::FPSections, ℓs...)
     FPSections(ℓ.supports..., getfield.(ℓs, :supports)...)
 end
 
+# was getting a Matrix of supports
 function Base.collect(itr::ProductIterator{Tuple{Vector{Support}, Vector{Support}}})
-    out = map(itr) do (s, t)
-        s ∪ t
-    end
-    out[:] # XXX The supports become a matrix otherwise. Need to flatmap
+    vec([s ∪ t for (s, t) ∈ itr])
 end
 
 function disjoint_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
@@ -154,6 +154,7 @@ function cyclic_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
     clique_union(l, m; perform_shift=perform_shift)
 end
 
+# TODO necessary?
 function Catlab.:∨(l::FPSections, m::FPSections)
     disjoint_union(l, m; perform_shift=true)
 end
@@ -165,6 +166,19 @@ export ∨
 function FPSections(graph::Graph; params = DEFAULT_PARAMETERS)::FPSections
     tln = TLNetwork(CTLNetwork(graph, params))
     FPSections(tln) # enumerate_support_tln
+end
+
+# The fixed point supports of implicit graphs 
+function FPSections(g::CycleGraph)
+    FPSections(Support(1:g.n))
+end
+
+function FPSections(g::CompleteGraph)
+    FPSections(Support(1:g.n))
+end
+
+function FPSections(g::DiscreteGraph)
+    FPSections(Support(powerset(g.n)))
 end
 
 # from partition gives each block its nodes 

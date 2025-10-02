@@ -9,6 +9,10 @@ K(n::Int) = complete_graph(Graph, n)
 D(n::Int) = Graph(n)
 export C, K, D
 
+shift(g::Graph, args...) = g
+# XXX When making binary combinations of graphs, we first create a disjoint union of two graphs and then shift the vertex IDs of the right graph so that the new edges have proper targets. This is handled in the code for all such "union" operations, but we have a helper method called `shift` for handling the implicit graph cases and any future case where combinatorial structures might have attributes which may be shifted. In other words, we shift to avoid colliding vertex labels. Plain graphs do not have labels, as they do not have attributes at all, so shifting it does nothing at all.
+
+""" An implicit cyclic graph with `n` vertices. The `offset` of an ImplicitGraph tracks the first vertex starts """
 abstract type ImplicitGraph end
 
 mutable struct CycleGraph <: ImplicitGraph

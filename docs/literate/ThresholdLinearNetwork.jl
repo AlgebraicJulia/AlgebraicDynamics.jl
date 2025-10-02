@@ -1,5 +1,12 @@
 using AlgebraicDynamics
 
+# Let's construct a graph through cyclic, disjoint, and clique unions. Suppose that our graph was composed of four vertices.
+g = DiscreteGraph(4)
+# Here 
+
+g1 = erdos_renyi(Graph, 7, 0.3)
+
+
 # Example of construction of a graph using motives.
 
 C3 = GluingExpression(C(3))

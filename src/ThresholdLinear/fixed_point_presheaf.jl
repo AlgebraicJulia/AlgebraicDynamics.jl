@@ -168,15 +168,3 @@ FP(g::GluingExpression) = @match g begin
     CyclicUnion(g) => foldl(cyclic_union, FP.(g))
     err => error("$err")
 end
-
-# TODO move
-"""    indicator(g::AbstractGraph, σ::Vector{Int})
-
-Get the indicator function of a subset with respect to a graph. Returns a vector of 0 and 1s.
-
-This should probably be a FinFunction.
-"""
-function indicator(g::AbstractGraph, σ::Vector{Int})
-    [Int(v ∈ σ) for v ∈ vertices(g)]
-end
-export indicator

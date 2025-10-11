@@ -46,14 +46,12 @@ function Base.show(io::IO, support::Support)
     end
 end
 
+Base.getindex(v::AbstractVector{Int}, support::Support) = v[support.indices]
 Base.getindex(s::Support, k) = s.indices[k]
 
 Support(args::Vararg{Number, N}) where N = Support([args...])
 
 Base.size(support::Support) = size(support.indices)
-
-Base.unique!(support::Support) = Support(unique!(support.indices))
-Base.isempty(support::Support) = isempty(support.indices)
 
 Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
 
@@ -68,16 +66,10 @@ end
 
 Base.sort!(support::Support) = sort!(support.indices)
 
-function Base.getindex(v::AbstractVector{Int}, support::Support)
-    v[support.indices]
-end
-
 function shift(support::Support, n::Int)
     Support([idx + n for idx in support.indices])
 end
 export shift
-
-Base.isless(s::Support, t::Support) = s.indices < t.indices
 
 """    FPSections 
 Struct containing local supports on a graph. Since this is a covering, every vertex is included.
@@ -95,8 +87,8 @@ export FPSections
 Base.push!(l::FPSections, support::Support) = push!(l.supports, support)
 Base.push!(l::FPSections, x::Vector{Int}) = push!(l.supports, Support(x))
 
-function Base.union!(l::FPSections, supports::Vector{Support})
-    FPSections(union!(l.supports, supports))
+function Base.union!(fp::FPSections, supports::Vector{Support})
+    FPSections(union!(fp.supports, supports))
 end
 Base.union!(l::FPSections, support::Support) = union!(l, [support])
 

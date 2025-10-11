@@ -1,7 +1,11 @@
 import Base.Iterators: flatten
+using MLStyle
+using StructEquality
+
 using Catlab
 import Catlab: Graph, LabeledGraph, add_edges!, nv, ne
-using MLStyle
+
+export nv, ne, Graph
 
 # TODO upstream to Catlab graphs
 C(n::Int) = cycle_graph(Graph, n)
@@ -15,7 +19,7 @@ shift(g::Graph, args...) = g
 """ An implicit cyclic graph with `n` vertices. The `offset` of an ImplicitGraph tracks the first vertex starts """
 abstract type ImplicitGraph end
 
-mutable struct CycleGraph <: ImplicitGraph
+@struct_hash_equal mutable struct CycleGraph <: ImplicitGraph
     n::Int
     offset::Int
     CycleGraph(n::Int, offset=0) = new(n, offset)
@@ -27,7 +31,7 @@ Graph(g::CycleGraph) = C(nv(g))
 nv(g::CycleGraph) = g.n 
 ne(g::CycleGraph) = g.n 
 
-mutable struct CompleteGraph <: ImplicitGraph
+@struct_hash_equal mutable struct CompleteGraph <: ImplicitGraph
     n::Int
     offset::Int
     CompleteGraph(n::Int, offset=0) = new(n, offset)
@@ -39,7 +43,7 @@ Graph(g::CompleteGraph) = K(nv(g))
 nv(g::CompleteGraph) = g.n 
 ne(g::CompleteGraph) = g.n^2
 
-mutable struct DiscreteGraph <: ImplicitGraph
+@struct_hash_equal mutable struct DiscreteGraph <: ImplicitGraph
     n::Int
     offset::Int
     DiscreteGraph(n::Int, offset=0) = new(n, offset)

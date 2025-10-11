@@ -1,5 +1,6 @@
 using Base.Iterators: product, ProductIterator, Flatten
 using StructEquality
+import Catlab: disjoint_union
 using Catlab.Graphs
 using Catlab
 using Catlab.CategoricalAlgebra
@@ -38,12 +39,18 @@ end
 export Support
 
 function Base.show(io::IO, support::Support)
-    if !isempty(support.indices)
+    if !isempty(support)
         print(io, "σ$(support.indices)")
     else
         print(io, "σ[]")
     end
 end
+
+Base.getindex(s::Support, k) = s.indices[k]
+
+Support(args::Vararg{Number, N}) where N = Support([args...])
+
+Base.size(support::Support) = size(support.indices)
 
 Base.unique!(support::Support) = Support(unique!(support.indices))
 Base.isempty(support::Support) = isempty(support.indices)
@@ -59,7 +66,7 @@ function Base.vcat(s::Support, t::Support)
     Support(vcat(s.indices, t.indices))
 end
 
-Base.sort!(support::Support) = Support(sort!(support.indices))
+Base.sort!(support::Support) = sort!(support.indices)
 
 function Base.getindex(v::AbstractVector{Int}, support::Support)
     v[support.indices]
@@ -79,9 +86,9 @@ Struct containing local supports on a graph. Since this is a covering, every ver
     supports::Vector{Support}
 
     FPSections() = new(Support[])
-    FPSections(support::Support) = new([support])
+    FPSections(support::Support) = FPSections([support])
     FPSections(supports::Vector{Support}) = new(supports)
-    FPSections(ns::Vector{Int}) = new([Support(ns)])
+    # FPSections(ns::Vector{Int}) = new([Support(ns)])
 end
 export FPSections
 
@@ -97,6 +104,8 @@ Base.union!(l::FPSections, support::Support) = union!(l, [support])
 Base.sort(l::FPSections) = FPSections(sort(l.supports))
 
 Base.length(fp::FPSections) = length(fp.supports)
+
+Base.copy(fp::FPSections) = FPSections(copy(fp.supports))
 
 # Base.eachindex(locals::FPSections) = eachindex(locals.data)
 # Base.getindex(locals::FPSections, key...) = getindex(locals.data, key...)

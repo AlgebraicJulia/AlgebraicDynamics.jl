@@ -2,6 +2,7 @@ using Test
 using Combinatorics: powerset
 using Catlab: nv, Graph, erdos_renyi
 using AlgebraicDynamics
+using AlgebraicDynamics.ThresholdLinear: disjoint_union
 
 @testset "Disjoint Union" begin
     

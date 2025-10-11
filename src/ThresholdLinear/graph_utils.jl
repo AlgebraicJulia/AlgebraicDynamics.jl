@@ -7,6 +7,18 @@ import Catlab: Graph, LabeledGraph, add_edges!, nv, ne
 
 export nv, ne, Graph
 
+# TODO move
+"""    indicator(g::AbstractGraph, σ::Vector{Int})
+
+Get the indicator function of a subset with respect to a graph. Returns a vector of 0 and 1s.
+
+This should probably be a FinFunction.
+"""
+function indicator(g::AbstractGraph, σ::Vector{Int})
+    [Int(v ∈ σ) for v ∈ vertices(g)]
+end
+export indicator
+
 # TODO upstream to Catlab graphs
 C(n::Int) = cycle_graph(Graph, n)
 K(n::Int) = complete_graph(Graph, n)
@@ -31,6 +43,8 @@ Graph(g::CycleGraph) = C(nv(g))
 nv(g::CycleGraph) = g.n 
 ne(g::CycleGraph) = g.n 
 
+Base.copy(g::CycleGraph) = CycleGraph(g.n, g.offset)
+
 @struct_hash_equal mutable struct CompleteGraph <: ImplicitGraph
     n::Int
     offset::Int
@@ -42,6 +56,8 @@ Graph(g::CompleteGraph) = K(nv(g))
 
 nv(g::CompleteGraph) = g.n 
 ne(g::CompleteGraph) = g.n^2
+
+Base.copy(g::CompleteGraph) = CompleteGraph(g.n, g.offset)
 
 @struct_hash_equal mutable struct DiscreteGraph <: ImplicitGraph
     n::Int
@@ -55,15 +71,14 @@ Graph(g::DiscreteGraph) = D(nv(g))
 nv(g::DiscreteGraph) = g.n 
 ne(g::DiscreteGraph) = 0
 
-function shift(g::T, n) where T <: ImplicitGraph
-    g.offset += n
-    g
-end
+Base.copy(g::DiscreteGraph) = DiscreteGraph(g.n, g.offset)
 
 function shift!(g::T, n) where T <: ImplicitGraph
     g.offset += n
+    g
 end
-export shift!
+shift(g::T, n) where T <: ImplicitGraph = shift!(copy(g), n)
+export shift, shift!
 
 function LabeledGraph(g::T) where T <: ImplicitGraph
     X = Graph(T(g))

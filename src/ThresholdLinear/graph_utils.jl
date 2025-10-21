@@ -3,7 +3,7 @@ using MLStyle
 using StructEquality
 
 using Catlab
-import Catlab: Graph, LabeledGraph, add_edges!, nv, ne
+import Catlab: Graph, LabeledGraph, add_edges!, nv, ne, vertices
 
 export nv, ne, Graph
 
@@ -79,6 +79,8 @@ function shift!(g::T, n) where T <: ImplicitGraph
 end
 shift(g::T, n) where T <: ImplicitGraph = shift!(copy(g), n)
 export shift, shift!
+
+vertices(g::ImplicitGraph) = 1:nv(g)
 
 function LabeledGraph(g::T) where T <: ImplicitGraph
     X = Graph(T(g))

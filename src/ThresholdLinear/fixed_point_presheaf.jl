@@ -1,3 +1,4 @@
+
 # TODO connect to Catlab Sheaf module
 abstract type AbstractPresheaf end
 
@@ -32,7 +33,7 @@ function FP(fp::FP; params = DEFAULT_PARAMETERS, kwargs...)::FP
     base = fp.base isa Graph ? section.base : Graph(section.base)
     fp.data = FPSections(base; params=params, kwargs...)
     fp
-end
+end    
 
 # Interactions
 # TODO this boilerplate can be removed if the lowercase "disjoint_", "clique_", and "cyclic_", union methods were fetched from the Disjoint_, Clique_, Cyclic_ terms in the MLStyle ADT.
@@ -67,6 +68,20 @@ function cyclic_union(G::FP, H::FP)
     H_shifted = shift(H, nv(G.base))
     X = cyclic_union(G.base, H_shifted.base)
     FP(X, cyclic_union(G.data, H_shifted.data))
+end
+
+function connected_union(G::FP, H::FP)
+    g1, g2 = G.base, H.base
+    τ = vertices(g1) ∩ vertices(g2) # overlap between the two subgraphs   
+
+    global_section = FPSections()
+    for σ1 ∈ G.data.supports, σ2 ∈ H.data.supports
+        # check if (σ1, σ2) is a matching family
+        if Set(σ1 ∩ τ) == Set(σ2 ∩ τ) # using Set to make the comparison independent of order
+            push!(global_section, σ1, σ2, σ1 ∪ σ2)
+        end
+    end
+    unique(global_section)
 end
 
 @data GluingExpression begin
@@ -168,3 +183,4 @@ FP(g::GluingExpression) = @match g begin
     CyclicUnion(g) => foldl(cyclic_union, FP.(g))
     err => error("$err")
 end
+export connected_union, unique_connected_union, connected_union2

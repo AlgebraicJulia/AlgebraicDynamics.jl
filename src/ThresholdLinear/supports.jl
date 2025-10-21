@@ -1,6 +1,6 @@
 using Base.Iterators: product, ProductIterator, Flatten
 using StructEquality
-import Catlab: disjoint_union
+#import Catlab: disjoint_union
 using Catlab.Graphs
 using Catlab
 using Catlab.CategoricalAlgebra
@@ -27,7 +27,7 @@ These points are contained by this struct, however we do not enforce the support
     # The support underlying a vector of floating points is the vector of indices
     # which obey the support condition
     function Support(x::AbstractVector, ϵ::Real=1e-12)
-        new([i for i in 1:length(x) if abs(x[i]) > ϵ])
+        new([i for i in 1:length(x) if abs(x[i]) > ϵ]) # wl: por qué este constructor selecciona índices donde |x[i]| > ϵ? 
     end
     
     # the support underlying an ODE solution is a collection of indices of the floating points
@@ -45,6 +45,15 @@ function Base.show(io::IO, support::Support)
         print(io, "σ[]")
     end
 end
+
+Base.show(io::IO, ::MIME"text/plain", s::Support) = begin
+    if !isempty(s)
+        print(io, "σ", s.indices)
+    else
+        print(io, "σ[]")
+    end
+end
+
 
 Base.getindex(v::AbstractVector{Int}, support::Support) = v[support.indices]
 Base.getindex(s::Support, k) = s.indices[k]
@@ -81,11 +90,14 @@ Struct containing local supports on a graph. Since this is a covering, every ver
     FPSections(support::Support) = FPSections([support])
     FPSections(supports::Vector{Support}) = new(supports)
     # FPSections(ns::Vector{Int}) = new([Support(ns)])
+    FPSections(S::AbstractSet{<:Support}) = FPSections(collect(S))
 end
 export FPSections
 
 Base.push!(l::FPSections, support::Support) = push!(l.supports, support)
 Base.push!(l::FPSections, x::Vector{Int}) = push!(l.supports, Support(x))
+
+Base.unique(l::FPSections) = FPSections(unique(l.supports))
 
 function Base.union!(fp::FPSections, supports::Vector{Support})
     FPSections(union!(fp.supports, supports))
@@ -142,6 +154,15 @@ function disjoint_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
     # only valid for Disjoint Union. Effectively adding an empty set to the supports.
     FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
 end
+
+# function connected_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
+#     if perform_shift
+#         m = shift(m, maximum(l))
+#     end
+#     # only valid for Disjoint Union. Effectively adding an empty set to the supports.
+#     FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
+# end
+
 
 function clique_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
     if perform_shift

@@ -24,6 +24,51 @@ using AlgebraicDynamics.ThresholdLinear: disjoint_union
 
 end
 
+@testset "Connected Union" begin
+
+    # idempotency
+    g = K(4)
+    FPg = FP(g)
+    FPgh = FP(connected_union(g, g))
+    FPgh_dc = connected_union(FPg, FPg)
+    @test FPgh == FPgh_dc
+
+    g = K(3)
+    FPg = FP(g)
+    h = K(4)
+    FPh = FP(h)
+    FPgh = FP(connected_union(g, h))
+    FPgh_dc = connected_union(FPg, FPh)
+    @test FPgh == FPgh_dc
+
+    g = D(3)
+    FPg = FP(g)
+    h = D(2)
+    FPh = FP(h)
+    FPgh = FP(connected_union(g, h))
+    FPgh_dc = connected_union(FPg, FPh)
+    @test FPgh == FPgh_dc
+
+    g = P(2)
+    FPg = FP(g)
+    h = P(3)
+    FPh = FP(h)
+    FPgh = FP(connected_union(g, h))
+    FPgh_dc = connected_union(FPg, FPh)
+    @test FPgh == FPgh_dc
+
+    g = D(1)
+    FPg = FP(g)
+    h = P(3)
+    FPh = FP(h)
+    FPgh = FP(connected_union(g, h))
+    FPgh_dc = connected_union(FPg, FPh)
+    @test FPgh == FPgh_dc
+
+    # TODO: write tests with graphs that intersect nontrivially
+    # Use the connected-cover examples from Curto & Morrison (2023)
+end
+
 @testset "Multiple Disjoint Union" begin
     
     g1 = erdos_renyi(Graph, 7, 0.3)

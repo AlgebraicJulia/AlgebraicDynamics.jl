@@ -17,6 +17,10 @@ function FP(g::Union{Graph, ImplicitGraph}; compute::Bool=true, hat::Bool=true)
     FP(g, supports, hat)
 end
 
+function FP(g::Union{Graph, ImplicitGraph}, data::Union{FPSections, Missing})
+    FP(g, data, true)
+end
+
 function hat(fp::FP)::FP
     fp.hat = true
     fp

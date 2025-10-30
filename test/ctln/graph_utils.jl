@@ -19,3 +19,26 @@ d5 = DiscreteGraph(5)
 @test ne(d5) == 0
 @test Graph(d5) == D(5)
 @test shift(d5, 2) == DiscreteGraph(5, 2)
+
+
+@testset "Connected Union" begin
+
+    g = K(3)
+    h = K(4)
+    gh = connected_union(g, h)
+    @test adjacency_matrix(gh) == adjacency_matrix(h)
+
+    ghgh = connected_union(gh, gh)
+    @test adjacency_matrix(ghgh) == adjacency_matrix(gh)
+
+    g = D(5)
+    h = D(4)
+    gh = connected_union(g, h)
+    @test adjacency_matrix(gh) == adjacency_matrix(g)
+
+    g = P(5)
+    h = P(3)
+    gh = connected_union(g, h)
+    @test adjacency_matrix(gh) == adjacency_matrix(g)
+
+end

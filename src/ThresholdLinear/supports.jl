@@ -62,11 +62,11 @@ Support(args::Vararg{Number, N}) where N = Support([args...])
 
 Base.size(support::Support) = size(support.indices)
 
-Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
+Base.union(s::Support, t::Support) = Support(Base.union(s.indices, t.indices))
 
 # we could reduce also
 function Base.union(supports::Vararg{Support, N}) where N
-    Support(union(getfield.(supports, :indices)))
+    Support(Base.union(getfield.(supports, :indices)))
 end
 
 function Base.vcat(s::Support, t::Support)
@@ -154,15 +154,6 @@ function disjoint_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
     # only valid for Disjoint Union. Effectively adding an empty set to the supports.
     FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
 end
-
-# function connected_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
-#     if perform_shift
-#         m = shift(m, maximum(l))
-#     end
-#     # only valid for Disjoint Union. Effectively adding an empty set to the supports.
-#     FPSections(l.supports ∪ m.supports ∪ collect(product([l, m])))
-# end
-
 
 function clique_union(l::FPSections, m::FPSections; perform_shift::Bool=false)
     if perform_shift

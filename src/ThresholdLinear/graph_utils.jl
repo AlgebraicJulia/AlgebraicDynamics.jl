@@ -23,7 +23,8 @@ export indicator
 C(n::Int) = cycle_graph(Graph, n)
 K(n::Int) = complete_graph(Graph, n)
 D(n::Int) = Graph(n)
-export C, K, D
+P(n::Int) = path_graph(Graph, n)
+export C, K, D, P
 
 shift(g::Graph, args...) = g
 # XXX When making binary combinations of graphs, we first create a disjoint union of two graphs and then shift the vertex IDs of the right graph so that the new edges have proper targets. This is handled in the code for all such "union" operations, but we have a helper method called `shift` for handling the implicit graph cases and any future case where combinatorial structures might have attributes which may be shifted. In other words, we shift to avoid colliding vertex labels. Plain graphs do not have labels, as they do not have attributes at all, so shifting it does nothing at all.
@@ -201,3 +202,62 @@ end
 function cyclic_union(H::ImplicitGraph, G::Graph)::Graph
     cyclic_union(G, H)
 end
+
+###
+
+
+"""
+    connected_union(G::Graph, H::Graph) -> Graph
+
+Construct the **connected union** of two graphs `G` and `H`.
+
+This operation forms the set-theoretic union of the vertex and edge sets of
+`G` and `H`. Vertices with the same labels are identified (no relabeling or
+index shifting is performed prior to taking the union), so shared labels make
+the result “connected” through common nodes.
+
+# Example
+```julia
+julia> G = CycleGraph(5)
+julia> H = CycleGraph(3)
+julia> X = connected_union(G, H)
+julia> nv(X), ne(X)
+(5, 5)
+```
+ImplicitGraph arguments are first realized as explicit Graph objects
+and then unioned.
+"""
+function connected_union(G::Graph, H::Graph)
+    # 1) union of vertex labels
+    L = collect(union(Set(vertices(G)), Set(vertices(H))))
+
+    # 2) unpack and edge e as a pair (src(e), tgt(e))
+    δ(G, e) = (src(G, e), tgt(G, e))
+
+    # 3) base graph with |L| vertices
+    X = Graph(length(L))
+
+    # build the set of all edges from g and h, wrtten as pairs (src(e), tgt(e))
+    E = Set([δ.(Ref(G), edges(G))..., δ.(Ref(H), edges(H))...])
+
+    # 4) add edges to X
+    for(s, t) in E
+        add_edge!(X, s, t)
+    end
+    return X
+end
+
+function connected_union(G::Graph, H::ImplicitGraph)
+    connected_union(G, Graph(H))
+end
+
+function connected_union(G::ImplicitGraph, H::Graph)
+    connected_union(Graph(G), H)
+end
+
+function connected_union(G::ImplicitGraph, H::ImplicitGraph)
+    connected_union(Graph(G), Graph(H))
+end
+
+export connected_union
+

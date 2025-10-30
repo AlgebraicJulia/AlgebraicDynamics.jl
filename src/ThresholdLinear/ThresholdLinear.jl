@@ -22,6 +22,8 @@ draw(g) = to_graphviz(g, node_labels=true)
 export draw
 
 see(g) = view_graphviz(draw(g))
+see(g::ImplicitGraph) = view_graphviz(draw(Graph(g)))
+
 export see
 
 """    LegalParameters{F}

@@ -1,6 +1,6 @@
 using Base.Iterators: product, ProductIterator, Flatten
 using StructEquality
-import Catlab: disjoint_union
+#import Catlab: disjoint_union
 using Catlab.Graphs
 using Catlab
 using Catlab.CategoricalAlgebra
@@ -27,7 +27,7 @@ These points are contained by this struct, however we do not enforce the support
     # The support underlying a vector of floating points is the vector of indices
     # which obey the support condition
     function Support(x::AbstractVector, ϵ::Real=1e-12)
-        new([i for i in 1:length(x) if abs(x[i]) > ϵ])
+        new([i for i in 1:length(x) if abs(x[i]) > ϵ]) # wl: por qué este constructor selecciona índices donde |x[i]| > ϵ? 
     end
     
     # the support underlying an ODE solution is a collection of indices of the floating points
@@ -46,6 +46,15 @@ function Base.show(io::IO, support::Support)
     end
 end
 
+Base.show(io::IO, ::MIME"text/plain", s::Support) = begin
+    if !isempty(s)
+        print(io, "σ", s.indices)
+    else
+        print(io, "σ[]")
+    end
+end
+
+
 Base.getindex(v::AbstractVector{Int}, support::Support) = v[support.indices]
 Base.getindex(s::Support, k) = s.indices[k]
 
@@ -53,11 +62,11 @@ Support(args::Vararg{Number, N}) where N = Support([args...])
 
 Base.size(support::Support) = size(support.indices)
 
-Base.union(s::Support, t::Support) = Support(union(s.indices, t.indices))
+Base.union(s::Support, t::Support) = Support(Base.union(s.indices, t.indices))
 
 # we could reduce also
 function Base.union(supports::Vararg{Support, N}) where N
-    Support(union(getfield.(supports, :indices)))
+    Support(Base.union(getfield.(supports, :indices)))
 end
 
 function Base.vcat(s::Support, t::Support)
@@ -81,11 +90,14 @@ Struct containing local supports on a graph. Since this is a covering, every ver
     FPSections(support::Support) = FPSections([support])
     FPSections(supports::Vector{Support}) = new(supports)
     # FPSections(ns::Vector{Int}) = new([Support(ns)])
+    FPSections(S::AbstractSet{<:Support}) = FPSections(collect(S))
 end
 export FPSections
 
 Base.push!(l::FPSections, support::Support) = push!(l.supports, support)
 Base.push!(l::FPSections, x::Vector{Int}) = push!(l.supports, Support(x))
+
+Base.unique(l::FPSections) = FPSections(unique(l.supports))
 
 function Base.union!(fp::FPSections, supports::Vector{Support})
     FPSections(union!(fp.supports, supports))

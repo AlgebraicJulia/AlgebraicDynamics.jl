@@ -1,3 +1,4 @@
+using Catlab.Graphs
 
 # TODO connect to Catlab Sheaf module
 abstract type AbstractPresheaf end
@@ -5,9 +6,22 @@ abstract type AbstractPresheaf end
 """    The Fixed Point Support Functor is a separated presheaf. This is a section of that presheaf, which associates a neighborhood of a graph with its fixed point supports, if there are any. """
 @struct_hash_equal mutable struct FP <: AbstractPresheaf
     base::Union{Graph, ImplicitGraph}
-    data::Union{FPSections, Missing} 
+    data::Union{FPSections, Missing}
+    hat::Bool
 end
 export FP
+
+# if consumes a ImplicitGraph, then load known information. The docs at this point do not demonstrate "missing" information, as fixed point supports are automatically computed
+function FP(g::Union{Graph, ImplicitGraph}; compute::Bool=true, hat::Bool=true)
+    supports = compute ? FPSections(g) : missing
+    FP(g, supports, hat)
+end
+
+function hat(fp::FP)::FP
+    fp.hat = true
+    fp
+end
+
 # Typing `data` as also `::Missing` is perhaps overengineering, but it is conceivable that we may not want to compute the fixed point support when constructing the graph. Recall that in this framework, a graph is glued together by gluing rules, which is abstractly represented as an abstract syntax tree, and that terms of the tree whose fixed-point supports are computed with brute force are called "terminals." While decompositional methods might be able to simplify a terminal even further, its possible that a large terminal graph can take a long time to compute in brute force. For example, a Cyclic Graph for example takes a long time to compute the fixed points. While we overcome that specific problem with an ImplicitGraph, there could be other cases. In essence, allowed for "missing" information helps us separate (1) building the expression tree for a graph from (2) its evaluation, where all fixed point supports must be known.
 # TODO give a meaningful example
 
@@ -18,10 +32,6 @@ function Base.show(io::IO, fp::FP)
           """)
 end
 
-# if consumes a ImplicitGraph, then load known information. The docs at this point do not demonstrate "missing" information, as fixed point supports are automatically computed
-function FP(g::Union{Graph, ImplicitGraph}; compute::Bool=true)
-    FP(g, compute ? FPSections(g) : missing)
-end
 
 # two basic properties of graphs (number of vertices and edges) are passed through here.
 nv(g::FP) = nv(g.base)
@@ -70,19 +80,57 @@ function cyclic_union(G::FP, H::FP)
     FP(X, cyclic_union(G.data, H_shifted.data))
 end
 
-function connected_union(G::FP, H::FP)
-    g1, g2 = G.base, H.base
-    τ = vertices(g1) ∩ vertices(g2) # overlap between the two subgraphs   
+"""
+    connected_union(G::FP, H::FP) -> FP
 
-    global_section = FPSections()
-    for σ1 ∈ G.data.supports, σ2 ∈ H.data.supports
+Construct the **connected union** of two fixed point presheaves `G` and `H`.
+
+This operation glues the local fixed point supports of two graphs whose bases
+(`G.base` and `H.base`) intersect each other. The resulting object is
+a new `FP` whose base graph is the graph union of `G.base` and `H.base`,  and
+whose sections (data field) are the global supports obtained by gluing the (local) supports 
+of G and H following the connected union gluing strategy:
+
+Each pair of local supports `(σ₁, σ₂)` contributes a global support `σ₁ ∪ σ₂`
+when they form a *matching family*, i.e. when the local restrictions agree on
+the overlap:
+`Set(τ ∩ σ₁) == Set(τ ∩ σ₂)`, where `τ = vertices(G.base) ∩ vertices(H.base)`.
+
+# Example
+```julia
+julia> g = D(2)
+julia> h = C(3)
+julia> FPg = FP(g)
+julia> FPg.data
+FPSections(Support[σ[1], σ[2], σ[1, 2], σ[]])
+julia> FPh = FP(h)
+julia> FPh.data
+FPSections(Support[σ[1, 2, 3], σ[]])
+julia> FPgh = connected_union(FPg, FPh)
+julia> FPgh.base
+Graph {V:4, E:4}
+julia> FPgh.data
+FPSections(Support[σ[1, 2, 3], σ[]])
+```
+"""
+function connected_union(G::FP, H::FP)
+    G.hat && H.hat || error("The `hat` value for connected unions has to be `true`. See documentation for connected_union(G::FP, H::FP)")
+    g, h = G.base, H.base
+    τ = vertices(g) ∩ vertices(h) # overlap between the two subgraphs
+
+    global_sections = FPSections()
+
+    for σ1 ∈ [G.data.supports..., Support()], σ2 ∈ [H.data.supports..., Support()]
         # check if (σ1, σ2) is a matching family
-        if Set(σ1 ∩ τ) == Set(σ2 ∩ τ) # using Set to make the comparison independent of order
-            push!(global_section, σ1, σ2, σ1 ∪ σ2)
+        if Set(τ ∩ σ1) == Set(τ ∩ σ2) # Set makes the comparison order-independent
+            push!(global_sections, σ1 ∪ σ2)
         end
     end
-    unique(global_section)
+    filter!(!=(Support()), global_sections.supports)
+    FP(connected_union(g, h), unique(global_sections), true)
 end
+export connected_union
+
 
 @data GluingExpression begin
     Terminal(::FP) # Brute Force
@@ -183,4 +231,3 @@ FP(g::GluingExpression) = @match g begin
     CyclicUnion(g) => foldl(cyclic_union, FP.(g))
     err => error("$err")
 end
-export connected_union, unique_connected_union, connected_union2

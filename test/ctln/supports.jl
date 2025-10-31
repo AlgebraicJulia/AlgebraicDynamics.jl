@@ -44,6 +44,6 @@ end
 
     @test FPSections(c3) == FPSections(Support[Support(1,2,3)])
     @test FPSections(k4) == FPSections(Support[Support(1:4)])
-    @test_broken FPSections(d5) == FPSections([Support(k) for k in powerset(1:5)])
+    @test FPSections(d5) == FPSections([Support(k) for k in powerset(1:5) if !isempty(k)])
 
 end

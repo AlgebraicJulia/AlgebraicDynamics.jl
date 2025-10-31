@@ -190,8 +190,9 @@ function FPSections(g::CompleteGraph)
     FPSections(Support(1:g.n))
 end
 
+# TODO remove iterator
 function FPSections(g::DiscreteGraph)
-    FPSections(Support(powerset(g.n)))
+    FPSections(Support.(filter(!isempty, collect(powerset(1:g.n)))))
 end
 
 # from partition gives each block its nodes 

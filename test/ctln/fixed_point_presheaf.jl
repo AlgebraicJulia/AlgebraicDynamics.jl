@@ -6,9 +6,9 @@ using AlgebraicDynamics.ThresholdLinear: disjoint_union
 
 @testset "Disjoint Union" begin
     
-    g = D(3)
+    g = Graph(3)
     FPg = FP(g)
-    h = C(4)
+    h = cycle_graph(Graph, 4)
     FPh = FP(h)
     FPgh = FP(disjoint_union(g, h))
     FPgh_dc = FP(FPg + FPh) # disjoint_union
@@ -16,7 +16,7 @@ using AlgebraicDynamics.ThresholdLinear: disjoint_union
 
     g = erdos_renyi(Graph, 7, 0.3)
     FPg = FP(g)
-    h = C(4)
+    h = cycle_graph(Graph, 4)
     FPh = FP(h)
     FPgh = FP(disjoint_union(g, h))
     FPgh_rand = FP(FPg + FPh) # disjoint_union
@@ -27,39 +27,39 @@ end
 @testset "Connected Union" begin
 
     # idempotency
-    g = K(4)
+    g = complete_graph(Graph, 4)
     FPg = FP(g)
     FPgh = FP(connected_union(g, g))
     FPgh_dc = connected_union(FPg, FPg)
     @test FPgh == FPgh_dc
 
-    g = K(3)
+    g = complete_graph(Graph, 3)
     FPg = FP(g)
-    h = K(4)
+    h = complete_graph(Graph, 4)
     FPh = FP(h)
     FPgh = FP(connected_union(g, h))
     FPgh_dc = connected_union(FPg, FPh)
     @test FPgh == FPgh_dc
 
-    g = D(3)
+    g = Graph(3)
     FPg = FP(g)
-    h = D(2)
+    h = Graph(2)
     FPh = FP(h)
     FPgh = FP(connected_union(g, h))
     FPgh_dc = connected_union(FPg, FPh)
     @test FPgh == FPgh_dc
 
-    g = P(2)
+    g = path_graph(Graph, 2)
     FPg = FP(g)
-    h = P(3)
+    h = path_graph(Graph, 3)
     FPh = FP(h)
     FPgh = FP(connected_union(g, h))
     FPgh_dc = connected_union(FPg, FPh)
     @test FPgh == FPgh_dc
 
-    g = D(1)
+    g = Graph(1)
     FPg = FP(g)
-    h = P(3)
+    h = path_graph(Graph, 3)
     FPh = FP(h)
     FPgh = FP(connected_union(g, h))
     FPgh_dc = connected_union(FPg, FPh)
@@ -73,13 +73,13 @@ end
     
     g1 = erdos_renyi(Graph, 7, 0.3)
     FPg1 = FP(g1) # FP(g1)
-    g2 = C(4)
+    g2 = cycle_graph(Graph, 4)
     FPg2 = FP(g2)
     FPg12 = FP(disjoint_union(g1, g2)) # no empty set
     FPg12′ = FP(FPg1 + FPg2) # disjoint_union
     @test sort(FPg12.data) == sort(FPg12′.data)
     
-    g3 = K(3)
+    g3 = Graph(3)
     FPg3 = FP(g3)
     FPg123′ = foldl(disjoint_union, [FPg1, FPg2, FPg3])
     FPg123 = FP(disjoint_union(g1, g2, g3)) # reduces
@@ -91,14 +91,14 @@ end
     
     g1 = erdos_renyi(Graph, 7, 0.3)
     FPg1 = FP(g1) # FP(g1)
-    g2 = C(4)
+    g2 = cycle_graph(Graph, 4)
     FPg2 = FP(g2)
     FPg12 = FP(clique_union(g1, g2))
     FPg12′ = clique_union(FPg1, FPg2)
     @test sort(FPg12.data) == sort(FPg12′.data)
     
 
-    g3 = K(3)
+    g3 = Graph(3)
     FPg3 = FP(g3)
     FPg123′ = foldl(clique_union, [FPg1, FPg2, FPg3])
     FPg123 = FP(clique_union(g1, g2, g3)) # reduces
@@ -110,9 +110,9 @@ end
     
     g1 = erdos_renyi(Graph, 7, 0.3)
     FPg1 = FP(g1)
-    g2 = C(4)
+    g2 = cycle_graph(Graph, 4)
     FPg2 = FP(g2)
-    g3 = K(3)
+    g3 = Graph(3)
     FPg3 = FP(g3)
     FPg123′ = clique_union(disjoint_union(FPg1, FPg2), FPg3)
     FPg123 = FP(clique_union(disjoint_union(g1, g2), g3)) # reduces

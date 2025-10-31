@@ -34,7 +34,7 @@ AlgebraicDynamicsOrdinaryDiffEqExt = "OrdinaryDiffEq"
 AlgebraicDynamicsPlotsExt = "Plots"
 
 [compat]
-Catlab = "0.17.1"
+Catlab = "0.16.20"
 Combinatorics = "1.0.3"
 IterTools = "1.10.0"
 MLStyle = "0.4.17"

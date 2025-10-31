@@ -557,13 +557,13 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 end
 
 
-destruct(C::AbsColimit, xs::FinDomFunction) =
+destruct(C::AbstractColimit, xs::FinDomFunction) =
   map(1:length(C)) do i
     collect(compose(legs(C)[i], xs))
   end
-destruct(C::AbsColimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
+destruct(C::AbstractColimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
 
-destruct(C::AbsColimit, h) =
+destruct(C::AbstractColimit, h) =
   map(1:length(C)) do i
     (p, t) -> destruct(C, h(p, t))[i]
   end
@@ -579,7 +579,7 @@ get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} 
   end
 
 # A function which iteratively produces the readouts for an composite of InstantaneousDirected interface
-function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbsColimit}
+function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbstractColimit}
 
   _, vertex_box, sorted_vs, _ = dependency_graph(d, dependency_colims)
 

@@ -106,7 +106,6 @@ function disjoint_union(G::Graph, H::Graph)::Graph
     end
     X
 end
-export disjoint_union
 
 function disjoint_union(G::Graph, H::ImplicitGraph)::Graph
     disjoint_union(G, Graph(H))
@@ -132,7 +131,6 @@ function clique_union(G::Graph, H::Graph)::Graph
     end
     X
 end
-export clique_union
 
 function clique_union(G::Graph, H::ImplicitGraph)::Graph
     clique_union(G, Graph(H))
@@ -185,7 +183,6 @@ function cyclic_union(graphs::Vector{Graph})::Graph
     end
     chain
 end
-export cyclic_union
 # \circlearrowright
 
 function cyclic_union(G::Graph, H::ImplicitGraph)::Graph

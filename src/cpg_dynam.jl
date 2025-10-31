@@ -66,14 +66,13 @@ function oapply(d::OpenCPortGraph, ms::Vector{M}) where {M<:AbstractMachine}
         @assert fills(ms[b], d, b)
     end
 
-    S = coproduct((FinSet∘nstates).(ms))
+    S = coproduct[SkelFinSet()]((FinSet∘nstates).(ms))
     
     return M(
         nparts(d, :OuterPort), 
         length(apex(S)), 
         induced_dynamics(d, ms, S), 
-        induced_readout(d, ms, S)
-    )
+        induced_readout(d, ms, S))
 end
 
 

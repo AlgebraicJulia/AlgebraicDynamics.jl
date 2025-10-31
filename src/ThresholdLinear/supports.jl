@@ -1,6 +1,6 @@
 using Base.Iterators: product, ProductIterator, Flatten
 using StructEquality
-#import Catlab: disjoint_union
+
 using Catlab.Graphs
 using Catlab
 using Catlab.CategoricalAlgebra

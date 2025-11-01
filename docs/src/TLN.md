@@ -52,7 +52,7 @@ plot(soln)
 ````
 
 ````@example TLN
-support(soln)
+Support(soln)
 ````
 
 
@@ -77,7 +77,7 @@ and it activates nothing, so it can't change those fixed points.
 bb3 = CTLNetwork(apex(coproduct([barbell.G, Graph(1)])))
 prob = ODEProblem(bb3, [1/2, 1/4, 1/8], (0.0,100))
 soln = solve(prob, Tsit5())
-@test support(soln, 1e-14) == [1,2]
+@test Support(soln, 1e-14) == Support([1,2])
 plot(soln)
 ````
 
@@ -99,7 +99,7 @@ Notice how symmetric this W matrix is.
 ````@example TLN
 prob = ODEProblem(barbell_plus, [1/2, 1/4, 1/8], (0.0,100))
 soln = solve(prob, Tsit5())
-@test support(soln, 1e-14) == [1,2]
+@test Support(soln, 1e-14) == Support([1,2])
 plot(soln)
 ````
 
@@ -126,7 +126,7 @@ With a different initial condition, we find another attractor this one correspon
 ````@example TLN
 prob = ODEProblem(barbell_pair, [1/2, 1/4, 2/50, 1/40], (0,50))
 soln = solve(prob, Tsit5())
-@test support(soln, 1e-12)== [1,2]
+@test Support(soln, 1e-12)== Support([1,2])
 plot(soln)
 ````
 
@@ -144,7 +144,7 @@ Now we look for an attractor.
 ````@example TLN
 prob = ODEProblem(tln, [1/2, 1/4, 2/3, 4/5, 1/10, 5/6], (0,150))
 soln = solve(prob, Tsit5())
-@test support(soln, 1e-5) == [1,2,4,5,6]
+@test Support(soln, 1e-5) == Support[1,2,4,5,6])
 plot(soln)
 ````
 
@@ -161,7 +161,7 @@ Notice that even when you have only a singleton in the initial condition, you do
 ````@example TLN
 prob = ODEProblem(tln, [0, 0, 2/3, 0, 0, 0], (0,150))
 soln = solve(prob, Tsit5())
-# @test support(soln, 1e-5)  == [2,3,6]
+# @test Support(soln, 1e-5)  == Support([2,3,6])
 plot(soln)
 ````
 
@@ -170,7 +170,7 @@ Because of symmetry in the model, we can pick out a different attractor.
 ````@example TLN
 prob = ODEProblem(tln, [0, 2/3, 0, 0, 0, 0], (0,150))
 soln = solve(prob, Tsit5())
-# @test support(soln, 1e-5) == [2,3,4]
+# @test Support(soln, 1e-5) == Support([2,3,4])
 plot(soln)
 ````
 

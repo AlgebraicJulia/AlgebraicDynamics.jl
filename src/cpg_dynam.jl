@@ -162,6 +162,7 @@ barbell(k::Int) = begin
   add_parts!(g, :Wire, k; tgt=1:k, src=k+1:2k)
   return g
 end
+export barbell
 
 meshpath(n::Int) = begin
     gt = @acset OpenCPortGraph begin

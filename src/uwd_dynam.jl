@@ -20,7 +20,6 @@ struct UndirectedInterface{T} <: AbstractUndirectedInterface{T}
 end
 UndirectedInterface{T}(nports::Int) where T = UndirectedInterface{T}(1:nports)
 
-
 struct UndirectedVectorInterface{T,N} <: AbstractUndirectedInterface{T}
   ports::Vector
 end
@@ -255,7 +254,7 @@ oapply(d::AbstractUWD, xs::AbstractDict{S,R}) where {S,R<:AbstractResourceSharer
 
 function oapply(d::AbstractUWD, xs::Vector{R}, S′) where {R<:AbstractResourceSharer}
 
-  S = coproduct((FinSet ∘ nstates).(xs))
+  S = coproduct[SkelFinSet()]((FinSet ∘ nstates).(xs)...)
   states(b::Int) = legs(S)[b].func
 
   v = induced_dynamics(d, xs, legs(S′)[1], states)
@@ -263,11 +262,14 @@ function oapply(d::AbstractUWD, xs::Vector{R}, S′) where {R<:AbstractResourceS
   junction_map = legs(S′)[2]
   outer_junction_map = FinFunction(subpart(d, :outer_junction), nparts(d, :Junction))
 
+  f = compose[SkelFinSet()](outer_junction_map, junction_map)
+  @info (typeof(f), typeof(f.val), fieldnames(typeof(f)))
   return R(
     induced_ports(d),
     length(apex(S′)),
     v,
-    compose(outer_junction_map, junction_map).func)
+    f.val
+   )
 end
 
 
@@ -282,10 +284,10 @@ function induced_states(d::AbstractUWD, xs::Vector{R}) where {R<:AbstractResourc
     fills(xs[box], d, box) || error("$(xs[box]) does not fill box $box")
   end
 
-  S = coproduct((FinSet ∘ nstates).(xs))
-  total_portfunction = copair([compose(portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
+  S = coproduct[SkelFinSet()]((FinSetInt ∘ nstates).(xs)...)
+  total_portfunction = copair[SkelFinSet()](S, [compose[SkelFinSet()](portfunction(xs[i]), legs(S)[i]) for i in 1:length(xs)])
 
-  return pushout(total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
+  return pushout[SkelFinSet()](total_portfunction, FinFunction(subpart(d, :junction), nparts(d, :Junction)))
 end
 
 

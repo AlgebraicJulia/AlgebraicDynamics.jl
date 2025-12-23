@@ -6,6 +6,7 @@ include("uwd_dynam.jl")
 include("dwd_dynam.jl")
 include("cpg_dynam.jl")
 include("ThresholdLinear/ThresholdLinear.jl")
+include("steady.jl")
 
 @reexport using .DWDDynam
 @reexport using .UWDDynam

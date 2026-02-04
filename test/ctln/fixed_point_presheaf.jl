@@ -155,4 +155,6 @@ end
     FPg3c1p12′ = FP(FPg3 ↻ (FPg1 + (FPg2 * FPg1)))
     @test FPg3c1p12 == FPg3c1p12′
 
+    @test FP(↻(↻(FPg1, FPg1), FPg1)) == FP(↻(FPg1, FPg1, FPg1))
+
 end

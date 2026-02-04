@@ -24,7 +24,12 @@
 # Begin by loading the package:
 using AlgebraicDynamics
 using AlgebraicDynamics.ThresholdLinear
+using AlgebraicDynamics.ThresholdLinear: disjoint_union, cyclic_union, connected_union
 using Catlab, Catlab.Graphs
+using Catlab.Graphics
+
+draw(g; kw...) = to_graphviz(g; node_labels=true, edge_labels=true, kw...)
+
 #
 # ### 1.1 Implicit graph constructors
 #
@@ -32,19 +37,20 @@ using Catlab, Catlab.Graphs
 # as building blocks.  
 # These objects can be converted into concrete Catlab graphs using `Graph(element)`.
 
-# A 2-clique (complete graph on 2 vertices)
+# A 2-clique (complete graph on 2 vertices):
 C2  = CompleteGraph(2)
 GC2 = Graph(C2)
+draw(GC2)
 
-# A directed 4-cycle
+# A directed 4-cycle:
 Cy4  = CycleGraph(4)
 GCy4 = Graph(Cy4)
+draw(GCy4)
 
-# A 5-vertex discrete graph (no edges)
+# A 5-vertex discrete graph (no edges):
 D5  = DiscreteGraph(5)
 GD5 = Graph(D5)
-
-GC2, GCy4, GD5
+draw(GD5)
 
 # The resulting graphs are directed, loopless, and have vertices numbered
 # consecutively from `1` to `n`. These may now be used as cover elements in the
@@ -56,7 +62,7 @@ GC2, GCy4, GD5
 # is also a valid cover element.
 #
 # ---
-# ## 2. Supported Simply Embedded Covers (Architecture Constructors)
+# ## 2. Supported Simply Embedded Covers 
 #
 # Once we have cover elements (directed, loopless graphs), we can assemble them
 # into larger architectures. The file `graph_utils.jl` provides several
@@ -79,7 +85,7 @@ GC2, GCy4, GD5
 # without adding edges between components.
 
 G_dis = disjoint_union(GC2, GCy4)
-G_dis
+draw(G_dis)
 
 # Here, the vertices of `GCy4` are relabeled to avoid overlap with `GC2`,
 # and each original component embeds simply into `G_dis`. The family
@@ -93,18 +99,26 @@ G_dis
 # bidirectionally connected bipartite structure between them.
 
 G_clique = clique_union(GC2, GCy4)
-G_clique
+draw(G_clique)
 
 # As with `disjoint_union`, each component graph embeds simply into `G_clique`;
 # the difference is that we now have additional edges between components.
 
-# ### 2.3Connected unions
+# ### 2.3 Connected unions
 #
 # `connected_union` overlays two graphs that live on (possibly overlapping)
-# vertex sets by **taking the union of their edge sets**.
+# vertex sets by **taking the union of their edge sets**. Recall:
+
+draw(GC2)
+
+#
+
+draw(GCy4)
+
+# These graphs share the subgraph `(1) --> (2)`, so their connected union is
 
 G_conn = connected_union(GC2, GCy4)
-G_conn
+draw(G_conn)
 
 # In this case, the vertex labels are shared: both `GC2` and `GCy4` are
 # viewed as graphs on (parts of) the same vertex set, and `connected_union`
@@ -115,42 +129,34 @@ G_conn
 # original components (and their embeddings) to obtain a simply embedded cover,
 # which can then be used as input for CTLN fixed point computations.
 
-
-subs = [clique_graph(3), cycle_graph(3), path_graph(4)]
-G_multi, cover_multi = connected_unions(subs)
-
-G_multi, cover_multi
-
-# This constructor automatically determines a set of connecting edges and
-# produces a global graph together with a simply embedded cover.
-
 # ---
 
-# ## 3. TODO? Checking Validity of Covers
-#
-# Although the architecture constructors ensure validity, users can verify a
-# cover manually:
-
-# is_simply_embedded_cover(G_clique, cover_clique)
-
-
-# ---
-
-# ## 4. Using These Graphs for Fixed Point Support Computations
+# ## 3. Using These Graphs for Fixed Point Support Computations
 #
 # Each `(G, cover)` pair constructed above lies in the domain of the functor
 # `\widehat{FP}`, so fixed point supports can be computed directly.
 
-## 4.1 Binary covers
+# ## 3.1 Binary covers
 
 # Computing the fixed point supports of G_clique:
     
 FPG_clique = FP(G_clique)
 
+# TODO
 # and this is the distributed version
-FPG_clique = FP(GC2, GCy4)
+FPG_clique = FP(FP(GC2) + FP(GCy4))
 
+# ---
 
-## 4.2 arbitrary covers
-# for covers with more than two elements, e.g., subs = [clique_graph(3), cycle_graph(3), path_graph(4)]
+# Disjoint, clique, and cyclic unions can be constructed with infix operators `+`, `*`, and `↻` (`\circlearrowright`).
+
+fpg1 = erdos_renyi(Graph, 7, 0.3) |> FP
+fpg2 = CycleGraph(100) |> FP
+fpg12 = FP(fpg1 + fpg2)
+
+# Here it is for a more complicated expression,
+
+fpg3 = CompleteGraph(3) |> FP
+fpg = FP(fpg3 ↻ (fpg1 + (fpg1 * fpg2)))
+
 

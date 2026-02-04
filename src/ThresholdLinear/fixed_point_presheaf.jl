@@ -160,9 +160,7 @@ function DisjointUnion(args...)
     DisjointUnion([GluingExpression.(args)...]) # wraps graphs 
 end
 
-function Base.:+(fp1::FP, fp2::FP)
-    DisjointUnion(Terminal(fp1), Terminal(fp2))
-end
+Base.:+(fp1::FP, fp2::FP) = DisjointUnion(Terminal(fp1), Terminal(fp2))
 
 # the disjoint union between a fixed point functor over a graph and an ordinary implicit graph will first apply the FP functor to the implicit graph before computing the disjoint union.
 Base.:+(G::FP, H::ImplicitGraph) = G + FP(H)
@@ -171,6 +169,8 @@ Base.:+(H::ImplicitGraph, G::FP) = G + H
 Base.:+(fp::FP, g::GluingExpression) = DisjointUnion(Terminal(fp), g)
 Base.:+(g::GluingExpression, fp::FP) = fp + g
 Base.:+(G::GluingExpression, H::GluingExpression) = DisjointUnion(G, H)
+
+Base.:+(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(+, xs)
 
 nv(t::DisjointUnion) = foldl(+, nv.(t._1))
 # TODO didn't want to write the foldl
@@ -194,6 +194,8 @@ Base.:*(G::GluingExpression, H::GluingExpression) = CliqueUnion(G, H)
 
 Base.:*(G::FP, H::ImplicitGraph) = G * FP(H)
 Base.:*(H::ImplicitGraph, G::FP) = H * G
+
+Base.:*(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(*, xs)
 
 nv(t::CliqueUnion) = foldl(+, nv.(t._1))
 ne(t::CliqueUnion) = ne(Graph(t))
@@ -221,6 +223,8 @@ export ↻
 (↻)(g::GluingExpression, fp::FP) = fp ↻ g
 
 (↻)(G::GluingExpression, H::GluingExpression) = CyclicUnion(G, H)
+
+(↻)(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(↻, xs)
 
 Graph(t::Terminal) = Graph(t._1)
 

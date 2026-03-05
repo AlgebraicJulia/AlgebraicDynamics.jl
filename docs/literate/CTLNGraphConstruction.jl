@@ -136,13 +136,12 @@ draw(G_conn)
 # Each `(G, cover)` pair constructed above lies in the domain of the functor
 # `\widehat{FP}`, so fixed point supports can be computed directly.
 
-# ## 3.1 Binary covers
+# ### 3.1 Binary covers
 
 # Computing the fixed point supports of G_clique:
     
 FPG_clique = FP(G_clique)
 
-# TODO
 # and this is the distributed version
 FPG_clique = FP(FP(GC2) + FP(GCy4))
 

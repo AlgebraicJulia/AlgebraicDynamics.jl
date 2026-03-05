@@ -36,7 +36,6 @@ function Base.show(io::IO, fp::FP)
           """)
 end
 
-
 # two basic properties of graphs (number of vertices and edges) are passed through here.
 nv(g::FP) = nv(g.base)
 ne(g::FP) = ne(g.base)
@@ -84,6 +83,22 @@ function cyclic_union(G::FP, H::FP)
     FP(X, cyclic_union(G.data, H_shifted.data))
 end
 
+@data GluingExpression begin
+    Terminal(::FP) # Brute Force
+    CliqueUnion(::Vector{<:GluingExpression})
+    DisjointUnion(::Vector{<:GluingExpression})
+    CyclicUnion(::Vector{<:GluingExpression})
+end
+export GluingExpression, DisjointUnion, CliqueUnion, CyclicUnion
+
+# convenience methods
+GluingExpression(t::GluingExpression) = t
+GluingExpression(t::FP) = Terminal(t)
+GluingExpression(g::Union{Graph, ImplicitGraph}) = Terminal(FP(g))
+GluingExpression(g::Vector{<:GluingExpression}) = DisjointUnion(g)
+GluingExpression(k::Int) = Terminal(FP(DiscreteGraph(k))) 
+
+
 """
     connected_union(G::FP, H::FP) -> FP
 
@@ -117,7 +132,7 @@ julia> FPgh.data
 FPSections(Support[σ[1, 2, 3], σ[]])
 ```
 """
-function connected_union(G::FP, H::FP)
+function connected_union(G::FP, H::FP)::FP
     G.hat && H.hat || error("The `hat` value for connected unions has to be `true`. See documentation for connected_union(G::FP, H::FP)")
     g, h = G.base, H.base
     τ = vertices(g) ∩ vertices(h) # overlap between the two subgraphs
@@ -136,20 +151,15 @@ end
 export connected_union
 
 
-@data GluingExpression begin
-    Terminal(::FP) # Brute Force
-    CliqueUnion(::Vector{<:GluingExpression})
-    DisjointUnion(::Vector{<:GluingExpression})
-    CyclicUnion(::Vector{<:GluingExpression})
-end
-export GluingExpression, DisjointUnion, CliqueUnion, CyclicUnion
+Base.union(fp1::FP, fp2::FP) = connected_union(fp1, fp2)
+Base.union(fp::FP, g::GluingExpression) = connected_union(Terminal(fp), g)
+Base.union(g::GluingExpression, fp::FP) = fp ∪ g
+Base.union(G::GluingExpression, H::GluingExpression) = connected_union(G, H)
 
-# convenience methods
-GluingExpression(t::GluingExpression) = t
-GluingExpression(t::FP) = Terminal(t)
-GluingExpression(g::Union{Graph, ImplicitGraph}) = Terminal(FP(g))
-GluingExpression(g::Vector{<:GluingExpression}) = DisjointUnion(g)
-GluingExpression(k::Int) = Terminal(FP(DiscreteGraph(k))) 
+Base.union(G::FP, H::ImplicitGraph) = G ∪ FP(H)
+Base.union(H::ImplicitGraph, G::FP) = H ∪ G
+
+Base.union(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(union, xs)
 
 # ##############
 # DISJOINT UNION
@@ -164,10 +174,10 @@ Base.:+(fp1::FP, fp2::FP) = DisjointUnion(Terminal(fp1), Terminal(fp2))
 
 # the disjoint union between a fixed point functor over a graph and an ordinary implicit graph will first apply the FP functor to the implicit graph before computing the disjoint union.
 Base.:+(G::FP, H::ImplicitGraph) = G + FP(H)
-Base.:+(H::ImplicitGraph, G::FP) = G + H
+Base.:+(H::ImplicitGraph, G::FP) = FP(H) + G # XXX
 
 Base.:+(fp::FP, g::GluingExpression) = DisjointUnion(Terminal(fp), g)
-Base.:+(g::GluingExpression, fp::FP) = fp + g
+Base.:+(g::GluingExpression, fp::FP) = DisjointUnion(g, Terminal(fp))
 Base.:+(G::GluingExpression, H::GluingExpression) = DisjointUnion(G, H)
 
 Base.:+(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(+, xs)
@@ -188,12 +198,10 @@ CliqueUnion(args...) = CliqueUnion([GluingExpression.(args)...])
 Base.:*(fp1::FP, fp2::FP) = CliqueUnion(Terminal(fp1), Terminal(fp2))
 
 Base.:*(fp::FP, g::GluingExpression) = CliqueUnion(Terminal(fp), g)
-
-Base.:*(g::GluingExpression, fp::FP) = fp * g
+Base.:*(g::GluingExpression, fp::FP) = CliqueUnion(g, Terminal(fp))
 Base.:*(G::GluingExpression, H::GluingExpression) = CliqueUnion(G, H)
-
 Base.:*(G::FP, H::ImplicitGraph) = G * FP(H)
-Base.:*(H::ImplicitGraph, G::FP) = H * G
+Base.:*(H::ImplicitGraph, G::FP) = FP(H) * G
 
 Base.:*(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(*, xs)
 
@@ -216,12 +224,9 @@ export ↻
 
 (↻)(fp1::FP, fp2::FP) = CyclicUnion(Terminal(fp1), Terminal(fp2))
 (↻)(fp::FP, g::GluingExpression) = CyclicUnion(Terminal(fp), g)
-
-(↻)(G::FP, H::ImplicitGraph) = G * FP(H)
-(↻)(H::ImplicitGraph, G::FP) = H * G
-
-(↻)(g::GluingExpression, fp::FP) = fp ↻ g
-
+(↻)(G::FP, H::ImplicitGraph) = G ↻ FP(H)
+(↻)(H::ImplicitGraph, G::FP) = FP(H) ↻ G
+(↻)(g::GluingExpression, fp::FP) = CyclicUnion(g, Terminal(fp))
 (↻)(G::GluingExpression, H::GluingExpression) = CyclicUnion(G, H)
 
 (↻)(xs::Vararg{Union{GluingExpression, FP, ImplicitGraph}}) = foldl(↻, xs)
@@ -239,3 +244,46 @@ FP(g::GluingExpression) = @match g begin
     CyclicUnion(g) => foldl(cyclic_union, FP.(g))
     err => error("$err")
 end
+
+function (f::ACSetTransformation)(s::Support)
+    Support(map(idx -> f.components.V.func[idx], s.indices))
+end
+
+function (f::ACSetTransformation)(fp::FPSections)
+    FPSections(f.(fp.supports))
+end
+
+using Catlab.CategoricalAlgebra.CSets: SubACSetComponentwise
+
+# if we call FP(1 --> 3), it will return sections 2, 3, [2,3]. This is because the FP algo still considers V as existing, since it does, it just has no edge. Therefore it is a valid section.
+#
+# TODO we *should* return a Restriction struct, since 
+function FP(a::SubACSetComponentwise)
+    g1, g2 = dom(hom(a)), codom(hom(a))
+    fp = FP(g1)
+    embedding = Graph(nv(g2))
+    f = a.components.V.hom
+    for e in edges(g1)
+        add_part!(embedding, :E, src=f(src(g1, e)), tgt=f(tgt(g1, e)))
+    end
+    fp.base = embedding
+    fp.data = hom(a)(fp.data)
+    fp
+end
+
+# TODO check typing of struct.
+"""
+This relabels the indices of each support
+"""
+function (f::ACSetTransformation)(fp::FP)
+    @assert !ismissing(fp.data)
+    # TODO We need to replace the graph with vertices of the right id. e.g.,
+    # ```
+    # h = 1 --> 2
+    # g = 1 --> 3 <-- 2
+    # the new base is 1 --> 3
+    g = f(fp.base)
+    FP(g.ob, f(fp.data), fp.hat) 
+end
+# Remember that `fp` is a presheaf, so a map
+# f: G → H should result in FP(f): FP(H) → FP(G), i.e., a map which tells us which data in FP(H) goes to FP(G)

@@ -12,13 +12,13 @@ using LinearAlgebra
 using SparseArrays
 using Catlab
 using Catlab.Graphs
+using Catlab.Graphics
 using OrdinaryDiffEq
 using NonlinearSolve
 using AlgebraicDynamics
 using AlgebraicDynamics.ThresholdLinear
 using Test
 using Plots
-using Catlab.Graphics
 ````
 
 ## Triangle Graph
@@ -109,7 +109,7 @@ Two disjoint symmetric edges have fixed points on each.
 
 ````@example TLN
 barbell_pair = CTLNetwork(apex(coproduct(barbell.G, barbell.G)))
-draw(barbell_pair.G)
+# draw(barbell_pair.G)
 ````
 
 We first look for the attractor supported on the 3rd and 4th vertex (σ=[3,4]).
@@ -136,7 +136,7 @@ Categorical products have symmetry because they work like the cartesian product 
 ````@example TLN
 bt = apex(product(add_reflexives(barbell.G), trig))
 tln = CTLNetwork(bt)
-draw(tln.G)
+# draw(tln.G)
 ````
 
 Now we look for an attractor.
@@ -144,7 +144,8 @@ Now we look for an attractor.
 ````@example TLN
 prob = ODEProblem(tln, [1/2, 1/4, 2/3, 4/5, 1/10, 5/6], (0,150))
 soln = solve(prob, Tsit5())
-@test Support(soln, 1e-5) == Support[1,2,4,5,6])
+@test Support(soln, 1e-5) == Support([1,2,4,5,6])
+
 plot(soln)
 ````
 
@@ -253,7 +254,7 @@ end
 Let's take a look at our graph again
 
 ````@example TLN
-draw(bt)
+# draw(bt)
 ````
 
 We can try finding an attractor from the triangle 2,4,6

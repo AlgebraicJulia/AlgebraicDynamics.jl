@@ -33,7 +33,7 @@ These points are contained by this struct, however we do not enforce the support
     # the support underlying an ODE solution is a collection of indices of the floating points
     # which are above a certain threshold.
     function Support(soln::ODESolution, ϵ::Real=1e-12)
-        new(soln.u[end], ϵ)
+        Support(soln.u[end], ϵ)
     end
 end
 export Support

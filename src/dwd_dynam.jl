@@ -396,7 +396,7 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {M<:AbstractMachine}
     fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
   end
 
-  S = coproduct((FinSet ∘ nstates).(ms))
+  S = coproduct[SkelFinSet()]((FinSet ∘ nstates).(ms))
 
   return M(input_ports(d),
     length(apex(S)),
@@ -412,8 +412,10 @@ function oapply(d::WiringDiagram, ms::Vector{M}) where {T,I<:InstantaneousDirect
     fills(ms[box], d, box) || error("$ms[box] does not fill box $box")
   end
 
-  S = coproduct((FinSet ∘ nstates).(ms))
-  dependency_colims = (colimit ∘ dependency).(ms)
+  # XXX
+  S = coproduct[SkelFinSet()]((FinSet ∘ nstates).(ms))
+  dependency_colims = collect(((x->colimit(WithModel(FinSetC()), x)) ∘ dependency).(ms))
+  @info "DEPENDENCY COLIMS $dependency_colims"
   get_readouts = define_get_readouts(d, dependency_colims)
 
   return M(input_ports(d),
@@ -557,13 +559,15 @@ function fills(m::AbstractMachine, d::WiringDiagram, b::Int)
 end
 
 
-destruct(C::AbstractColimit, xs::FinDomFunction) =
+destruct(C::AbsColimit, xs::FinDomFunction) = begin
   map(1:length(C)) do i
-    collect(compose(legs(C)[i], xs))
+    @info "TYPE CHECKING: $(legs(C)[i]) $xs"
+    collect(FinDomFunction(legs(C)[i], xs))
   end
-destruct(C::AbstractColimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs))
+end
+destruct(C::AbsColimit, xs::AbstractVector) = destruct(C, FinDomFunction(xs, SetOb(Int)))
 
-destruct(C::AbstractColimit, h) =
+destruct(C::AbsColimit, h) =
   map(1:length(C)) do i
     (p, t) -> destruct(C, h(p, t))[i]
   end
@@ -579,7 +583,7 @@ get_readouts(ms::AbstractArray{M}, states, hists, p, t) where {M<:DelayMachine} 
   end
 
 # A function which iteratively produces the readouts for an composite of InstantaneousDirected interface
-function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbstractColimit}
+function define_get_readouts(d::WiringDiagram, dependency_colims::AbstractVector{C}) where {C<:AbsColimit}
 
   _, vertex_box, sorted_vs, _ = dependency_graph(d, dependency_colims)
 
